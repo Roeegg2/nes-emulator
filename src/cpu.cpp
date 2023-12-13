@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-CPU::CPU(Bus* bus){
+CPU::CPU(CPU_Bus* bus){
     /* I know, its ugly, but I'm using it for now (possibly forever) */
     /* Credit to OLC on the array that served as the foundation of this one */
     using a = CPU;
@@ -28,7 +28,7 @@ CPU::CPU(Bus* bus){
 	};
 
     this->bus = bus;
-    PC = 0x4020;
+    PC = 0x8000;
     S = 0xfd;
     P = 0b00110100;
     A = X = Y = 0x00;
@@ -47,7 +47,8 @@ void CPU::execute_inst(){
     sleep_ns((inst->cycles)/NTSC_ClockSpeed);
 }
 
-void CPU::decode_inst(){
+void CPU::fetch_decode_inst(){
+    IR = fetch(0);
     inst = &lookup[IR];
 
     switch(inst->mode){
@@ -126,7 +127,7 @@ void CPU::push(uint8_t value){
     bus->write(STACK_BASE + S, value); // could be passing arguments in the wrong order; check that
     if (S <= 0)
         std::cout << "%s\n", "WARNING: Stack overflowing into zero page!";
-    
+        
     S--;
 }
 

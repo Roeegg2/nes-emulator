@@ -1,10 +1,9 @@
 #ifndef CPU_H
 #define CPU_H
 
+#include "../include/cpu_bus.h"
+
 #include <cstdint>
-
-#include "../include/bus.h"
-
 #include <vector>
 
 #define CARRY_BIT 0b00000001
@@ -44,8 +43,8 @@ private:
     uint8_t S;
     uint8_t X;
     uint8_t Y;
-    // uint8_t IR; 
-    // Bus* bus;
+    uint8_t IR; 
+    CPU_Bus* bus;
 
     Instruction* inst;
     uint16_t bytes;
@@ -53,15 +52,17 @@ private:
     std::vector<Instruction> lookup;
 
 public:
-uint8_t IR;
-Bus* bus;
     uint8_t fetch(uint8_t offset);
-    void decode_inst();
+    void fetch_decode_inst();
     void execute_inst();
 
     void print_state(uint8_t* temp);
 
-    CPU(Bus* bus);
+    CPU(CPU_Bus* bus);
+
+    void nmi();
+    void irq();
+    void reset();
 
 private:
     void set_flag(uint8_t flag, uint8_t res);
@@ -91,10 +92,6 @@ private:
     void mem_INCDEC_actual(int8_t val);
     void reg_LD_actual(uint8_t* reg);
     void reg_T_actual(uint8_t* dst_reg, uint8_t* src_reg);
-
-    void nmi();
-    void irq();
-    void reset();
 };
 
 
