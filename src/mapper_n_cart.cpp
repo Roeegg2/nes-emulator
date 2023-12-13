@@ -2,7 +2,7 @@
 #include "../include/mappers/nrom_0.h"
 
 #include <iostream>
-#include <fstream>
+#include <stdio.h>
 #include <string.h>
 
 Mapper* Mapper::create_mapper(std::string rom_path){
@@ -20,6 +20,7 @@ Mapper* Mapper::create_mapper(std::string rom_path){
 }
 
 // need also to take care of the case there is a trainer section
+// i had some trouble with the STL file io so i used the c one for now. I might switch to the STL one later
 Cartridge::Cartridge(std::string rom_path){
     char signature[5];
     signature[4] = '\0';
@@ -64,7 +65,7 @@ Cartridge::Cartridge(std::string rom_path){
 uint8_t Mapper::cpu_read(uint16_t addr){
     return 0;
 }
-// 00110001
+
 void Mapper::cpu_write(uint16_t addr, uint8_t data){
     return;
 }

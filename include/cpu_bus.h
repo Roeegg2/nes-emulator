@@ -21,6 +21,4 @@ public:
     void insert_cart(char rom_path[]);
 };
 
-uint8_t load_cart_data(Cartridge* cart, char rom_path[]);
-
 #endif

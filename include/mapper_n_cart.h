@@ -7,15 +7,12 @@
 #include <vector>
 #include <string>
 
-// might implement as class later on
-
 struct Cartridge_Header{
     uint16_t total_size; // in kb
-    uint8_t mapper_number;
 
     uint8_t prg_bank_size;
     uint8_t chr_bank_size;
-    
+
     uint8_t prg_ram_size;
 
     uint8_t flags_6;
