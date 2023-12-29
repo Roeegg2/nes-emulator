@@ -1,5 +1,6 @@
 #ifndef NROM_0_H
 #define NROM_0_H
+
 #include "../mapper_n_cart.h"
 
 class NROM_0 : public Mapper{

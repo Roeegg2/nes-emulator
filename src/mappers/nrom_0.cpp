@@ -10,7 +10,7 @@ uint8_t NROM_0::cpu_read(uint16_t addr) {
 }
 
 void NROM_0::cpu_write(uint16_t addr, uint8_t data) {
-    return; // nothing i guess
+    return; // do nothing
 }
 
 NROM_0::NROM_0(Cartridge* cart){

@@ -21,7 +21,7 @@ struct Cartridge_Header{
     uint8_t flags_9;
     uint8_t flags_10;
     
-    // might add other stuff later
+    // might add other stuff later if i add support for iNES 2.0
 };
 
 class Cartridge{

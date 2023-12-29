@@ -1,3 +1,6 @@
+#include <thread>
+#include <chrono>
+
 #include "../include/cpu.h"
 #include "../include/utils.h"
 
@@ -34,7 +37,9 @@ void CPU::ASL(){
     else{
         uint8_t data = bus->read(bytes);
         set_flag(CARRY_BIT, data & 0b10000000);
+
         data = data << 1;
+        
         set_flag(ZERO_BIT, data == 0);
         set_flag(NEGATIVE_BIT, data & 0b10000000);
         bus->write(bytes, data);
@@ -355,7 +360,7 @@ void CPU::TYA(){
     reg_T_actual(&A, &Y);
 }
 
-void CPU::XXX(){
+void CPU::ILLEGAL(){
     return; // do nothing (for now...)
 }
 
@@ -403,7 +408,7 @@ void CPU::reg_T_actual(uint8_t* dst_reg, uint8_t* src_reg){
 }
 
 /* Interrupts */
-// there is code duplication in nmi and irq right now, but later they will be different  
+// there is code duplication in nmi and irq right now, but later they will be different
 void CPU::nmi(){
     push(P);
     push((PC >> 8) & 0x00ff);
@@ -414,7 +419,8 @@ void CPU::nmi(){
     set_flag(DISINT_BIT, 1);
     set_flag(BRK_BIT, 0);
 
-    sleep_ns((NMICycles)/NTSC_ClockSpeed);
+    std::chrono::microseconds sleepDuration(get_sleep_time(NMI_CYCLES));
+    std::this_thread::sleep_for(sleepDuration);
 }
 
 void CPU::reset(){
@@ -423,7 +429,8 @@ void CPU::reset(){
 
     set_flag(DISINT_BIT, 1);
 
-    sleep_ns((ResetCycles)/NTSC_ClockSpeed);
+    std::chrono::microseconds sleepDuration(get_sleep_time(RST_CYCLES));
+    std::this_thread::sleep_for(sleepDuration);
 }
 
 void CPU::irq(){
@@ -436,6 +443,7 @@ void CPU::irq(){
     set_flag(DISINT_BIT, 1);
     set_flag(BRK_BIT, 0);
 
-    sleep_ns((IRQCycles)/NTSC_ClockSpeed);
+    std::chrono::microseconds sleepDuration(get_sleep_time(IRQ_CYCLES));
+    std::this_thread::sleep_for(sleepDuration);
 }
     

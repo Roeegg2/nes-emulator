@@ -14,13 +14,14 @@ Mapper* Mapper::create_mapper(std::string rom_path){
         case 0:
             return new NROM_0(cart);
         default:
-            std::cout << "Mapper not implemented yet!";
+            std::cerr << "Mapper not implemented yet!" << std::endl;
             return nullptr;
     }
 }
 
+
 // need also to take care of the case there is a trainer section
-// i had some trouble with the STL file io so i used the c one for now. I might switch to the STL one later
+// i had some trouble with STL file io so i did it the c way. I might switch to the STL one later
 Cartridge::Cartridge(std::string rom_path){
     char signature[5];
     signature[4] = '\0';

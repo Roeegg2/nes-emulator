@@ -2,36 +2,37 @@
 #define CPU_H
 
 #include "../include/cpu_bus.h"
+#include "../include/ppu.h"
 
 #include <cstdint>
 #include <vector>
 
-#define CARRY_BIT 0b00000001
-#define ZERO_BIT 0b00000010
-#define DISINT_BIT 0b00000100 // hardware interrupt flag
-#define DECIMAL_BIT 0b00001000 // unused in NES's 6502 implementation
-#define BRK_BIT 0b00010000 // software (brk) interrupt flag
-#define UNUSED_BIT 0b00100000
-#define OVERFLOW_BIT 0b01000000
-#define NEGATIVE_BIT 0b10000000
+#define IRQ_CYCLES 7
+#define NMI_CYCLES 8
+#define RST_CYCLES 7
 
 #define STACK_BASE 256
 
-constexpr double NTSC_ClockSpeed = 1.789773;
+enum StatusFlag : uint8_t {
+    CARRY_BIT = 0b00000001, 
+    ZERO_BIT = 0b00000010, 
+    DISINT_BIT = 0b00000100, // hardware interrupt flag
+    DECIMAL_BIT = 0b00001000, // decimal mode flag - unused in the NES's 6502 implementation
+    BRK_BIT = 0b00010000, // software (brk) interrupt flag
+    UNUSED_BIT = 0b00100000, // unused flag in 6502
+    OVERFLOW_BIT = 0b01000000, 
+    NEGATIVE_BIT = 0b10000000
+};
 
-constexpr uint8_t IRQCycles = 7;
-constexpr uint8_t NMICycles = 8;
-constexpr uint8_t ResetCycles = 7;
+enum AddressingMode : uint8_t {IMP, ACC, IMM, ABS, ZP, ZP_X, ZP_Y, REL, ABS_X, ABS_Y, IND, IND_Y, X_IND, XXX};
 
-enum AddressingModes {IMP, ACC, IMM, ABS, ZP, ZP_X, ZP_Y, REL, ABS_X, ABS_Y, IND, IND_Y, X_IND, XXX};
-
+class CPU; // forward declaration to avoid circular dependency
 struct Instruction;
-class CPU;
 
 struct Instruction {
-    // uint8_t opcode;
-    void (CPU::*exec)();
-    uint8_t mode;
+    void (CPU::*exec)(); // pointer to the instruction to execute
+
+    AddressingMode mode;
     uint8_t cycles;
 };
 
@@ -44,7 +45,9 @@ private:
     uint8_t X;
     uint8_t Y;
     uint8_t IR; 
+
     CPU_Bus* bus;
+    PPU* ppu;
 
     Instruction* inst;
     uint16_t bytes;
@@ -52,25 +55,30 @@ private:
     std::vector<Instruction> lookup;
 
 public:
-    uint8_t fetch(uint8_t offset);
     void fetch_decode_inst();
     void execute_inst();
 
+    // temporary util functions
     void print_state(uint8_t* temp);
 
     CPU(CPU_Bus* bus);
 
-    void nmi();
-    void irq();
-    void reset();
+    /* interrupts */
+    void nmi(); // non maskable - triggered by the PPU
+    void irq(); // maskable
+    void reset(); // reset
 
 private:
-    void set_flag(uint8_t flag, uint8_t res);
-    uint8_t get_flag_status(uint8_t flag);
+    uint8_t fetch(uint8_t offset);
+    // 
+    void set_flag(StatusFlag flag, uint8_t res);
+    uint8_t get_flag_status(StatusFlag flag) const;
 
+    // stack functions
     uint8_t pop();
     void push(uint8_t data);
 
+    /* the functions called for each instruction */
     void ADC();	void AND();	void ASL();	void BCC();
 	void BCS();	void BEQ();	void BIT();	void BMI();
 	void BNE();	void BPL();	void BRK();	void BVC();
@@ -85,8 +93,10 @@ private:
 	void SEC();	void SED();	void SEI();	void STA();
 	void STX();	void STY();	void TAX();	void TAY();
 	void TSX();	void TXA();	void TXS();	void TYA();
-    void XXX();
+    // this one is a nop which i call for each illegal instruction. I plan to add support for most of them (because some are a pain in the ass to implement) later.
+    void ILLEGAL();
 
+    // to avoid code duplications in some instructions, i added these functions (see implementation)
     void reg_CMP_actual(uint8_t* reg);
     void reg_INCDEC_actual(uint8_t* reg, uint8_t val);
     void mem_INCDEC_actual(int8_t val);

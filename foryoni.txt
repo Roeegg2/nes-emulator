@@ -1,0 +1,19 @@
+this is a small terminology explanation for stuff regarding the NES:
+
+1. the cpu used is the mos 6502, with slight modification
+2. ppu - picture processing unit - the graphics processor
+3. apu - audio processing unit - the sound processor
+4. iNES - a file format that is the standard for distributing nes roms (saved in a .nes file ending)
+5. a mapper is a small circut inside the game cartridge which adds "extensions" to the basic NES console (mostly just more game code rom/ram or graphics rom, but some even provide more advanced stuff like extra sound channels). the cpu addres map is 8kb, and that isnt a lot of space
+so the mapper helps overcome this limitation by exposing certain registers, and when these registers are written to by the CPU the mapper maps the cpu address space to a different section of rom/ram, so that way we can access a lot more space
+for now, i only implemented NROM, which is a "no mapper" mapper (ie no extensions and no extra rom/ram, just the basic one on the cartridge). I plan to finish the ppu, apu
+
+NOTE: i havent implemented the ppu yet, but still i wanted to include the header files so i could get some critisism about the overall structure of the project
+
+I also want to note that ive never written big projects like this and so if you have any advice/tips on project management, design, etc i would love to hear
+Additionally, this is my first time ever writing C++, so sorry in advance if i make rookie mistakes
+
+And thanks again for taking your time checking my project, I really really appriciate it :)
+
+
+

@@ -3,17 +3,12 @@
 
 #include "../include/utils.h"
 
-#include <time.h>
 #include <iostream>
 
-void sleep_ns(long long ns){
-    struct timespec req, rem;
+constexpr _Float16 NTSC_CPU_CLOCKSPEED = 1.789773; // in nano seconds
 
-    req.tv_sec = ns / 1000000000;
-    req.tv_nsec = ns % 1000000000;
-
-    while (nanosleep(&req, &rem) == -1)
-        req = rem;
+int get_sleep_time(uint8_t cycles) { // for now its in cpu cycles, but later it would be in ppu cycles since they are shorter.
+    return (int)((cycles/NTSC_CPU_CLOCKSPEED)*1000);
 }
 
 uint16_t convert_to_2byte(uint8_t byte1, uint8_t byte2){
