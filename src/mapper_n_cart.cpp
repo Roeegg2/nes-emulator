@@ -2,8 +2,9 @@
 #include "../include/mappers/nrom_0.h"
 
 #include <iostream>
-#include <stdio.h>
-#include <string.h>
+#include <fstream>
+#include <string>
+#include <cstring>
 
 Mapper* Mapper::create_mapper(std::string rom_path){
     Cartridge* cart = new Cartridge(rom_path);
@@ -19,46 +20,41 @@ Mapper* Mapper::create_mapper(std::string rom_path){
     }
 }
 
-
 // need also to take care of the case there is a trainer section
-// i had some trouble with STL file io so i did it the c way. I might switch to the STL one later
 Cartridge::Cartridge(std::string rom_path){
+    std::ifstream rom_file(rom_path, std::ios::binary);
+
+    if (!rom_file.is_open()){
+        std::cerr << "Error opening file" << std::endl;
+        exit(1);
+    }
+
     char signature[5];
-    signature[4] = '\0';
-
-    FILE *rom_file = fopen("testr/Donkey_Kong.nes", "rb");
-
-    if (rom_file == NULL) {
-        perror("Error opening file");
-        exit(1);
-    }
-
-    fread(signature, 1, 4, rom_file);
+    rom_file.read(signature, 4);
     if (strcmp(signature, "NES\x1A") != 0) {
-        printf("Not a valid NES ROM\n");
+        std::cerr << "Not a valid NES ROM" << std::endl;
         exit(1);
     }
 
-    fread(&header.prg_bank_size, 1, 1, rom_file);
-    fread(&header.chr_bank_size, 1, 1, rom_file);
-    fread(&header.flags_6, 1, 1, rom_file);
-    fread(&header.flags_7, 1, 1, rom_file);
-    fread(&header.flags_8, 1, 1, rom_file);
-    fread(&header.flags_9, 1, 1, rom_file);
-    fread(&header.flags_10, 1, 1, rom_file);
+    rom_file.read((char*)&header.prg_bank_size, 1);
+    rom_file.read((char*)&header.chr_bank_size, 1);
+    rom_file.read((char*)&header.flags_6, 1);
+    rom_file.read((char*)&header.flags_7, 1);
+    rom_file.read((char*)&header.flags_8, 1);
+    rom_file.read((char*)&header.flags_9, 1);
+    rom_file.read((char*)&header.flags_10, 1);
 
-    header.total_size = (header.prg_bank_size * 16 + header.chr_bank_size * 8);
+    header.total_size = ((header.prg_bank_size * 16) + (header.chr_bank_size * 8)); // the prg and chr banks are in 16kb and 8kb respectively
+
     prg_rom.resize(header.prg_bank_size * 16 * KILOBYTE);
     chr_rom.resize(header.chr_bank_size * 8 * KILOBYTE);
 
-    fseek(rom_file, 16, SEEK_SET);
-    fread(prg_rom.data(), 1, prg_rom.size(), rom_file);
-    fread(chr_rom.data(), 1, chr_rom.size(), rom_file);
+    rom_file.seekg(16, std::ios::beg);
+    rom_file.read((char*)prg_rom.data(), prg_rom.size());
+    rom_file.read((char*)chr_rom.data(), chr_rom.size());
 
-    prg_ram.resize(header.prg_ram_size * 8 * KILOBYTE);
-
-    if (header.flags_10 & 0b00000010)
-        prg_ram.resize(header.prg_ram_size * 8 * KILOBYTE);
+    if (header.flags_10 & 0b00000010) // if this bit in flag 10 is set then there is prg ram
+        prg_ram.resize(header.flags_8 * 8 * KILOBYTE); // flag 8 is the size of the prg ram in 8kb units
     else
         prg_ram.resize(0);
 }

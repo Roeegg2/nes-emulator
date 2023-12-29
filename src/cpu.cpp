@@ -51,7 +51,7 @@ void CPU::execute_inst(){
     std::this_thread::sleep_for(sleepDuration);
 }
 
-void CPU::fetch_decode_inst(){
+void CPU::fetch_decode_inst(){ // this is also ugly, might rewrite it in the future
     IR = fetch(0);
     inst = &lookup[IR];
 
@@ -106,6 +106,7 @@ void CPU::fetch_decode_inst(){
 
 
 /* P register helper functions */
+
 void CPU::set_flag(StatusFlag flag, uint8_t res){
     if (res)
         P |= flag;
@@ -119,6 +120,7 @@ uint8_t CPU::get_flag_status(StatusFlag flag) const{
 
 
 /* Stack helper functions */
+
 uint8_t CPU::pop() {
     S++;
     uint8_t data = bus->read(STACK_BASE + S);
@@ -136,7 +138,7 @@ void CPU::push(uint8_t value){
     S--;
 }
 
-// util functions for testing - DELETE LATER!
+/* ----- util functions for testing - DELETE LATER! */
 
 void check_array_equal(uint8_t* old, uint8_t* changed){
     for (int i = 0; i < 0x800; i++){
@@ -150,14 +152,15 @@ void check_array_equal(uint8_t* old, uint8_t* changed){
 
 /* Printing util */
 void CPU::print_state(uint8_t* old) {
-    printf("A: %d\n", A);
-    printf("X: %d\n", X);
-    printf("Y: %d\n", Y);
-    printf("S: %d\n", S);
-    printf("PC: %d\n", PC);
+    std::cout << "----------------------------------------------" << std::endl;
+    std::cout << "A: " << std::dec << (int)A << std::endl;
+    std::cout << "X: " << std::dec << (int)X << std::endl;
+    std::cout << "Y: " << std::dec << (int)Y << std::endl;
+    std::cout << "S: " << std::dec << (int)S << std::endl;
+    std::cout << "PC: " << std::dec << (int)PC << std::endl;
     print_binary(P);
-    printf("IR: %d\n", IR);
+    std::cout << "IR: " << std::hex << (int)IR << std::endl;
 
     check_array_equal(old, bus->ram);
-    printf("----------------------------------------------\n");
+    std::cout << "----------------------------------------------" << std::endl;
 }

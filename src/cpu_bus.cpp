@@ -6,8 +6,10 @@
 void CPU_Bus::write(uint16_t addr, uint8_t data) {
     if (0 <= addr && addr <= 0x1fff)
         ram[addr % 0x800] = data;
-    else if (0x2000 <= addr && addr <= 0x3fff)
+    else if (0x2000 <= addr && addr <= 0x3fff){
+        std::cout << "PPU REG WRITE" << std::endl; // for debugging
         ppu->regs[addr % 0x8] = data; 
+    }
     else if (0x4000 <= addr && addr <= 0x4017)
         return; // apu related - didnt implement yet
     else if (0x4018 <= addr && addr <= 0x401f)

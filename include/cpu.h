@@ -102,6 +102,9 @@ private:
     void mem_INCDEC_actual(int8_t val);
     void reg_LD_actual(uint8_t* reg);
     void reg_T_actual(uint8_t* dst_reg, uint8_t* src_reg);
+    void actual_LSR(uint8_t* reg);
+    void actual_ROL(uint8_t* val);
+    void actual_ROR(uint8_t* val);
 };
 
 

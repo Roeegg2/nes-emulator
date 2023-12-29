@@ -9,11 +9,12 @@ int main(){
     uint8_t temp[0xbfe0];
 
     CPU_Bus cpu_bus = CPU_Bus();
-    cpu_bus.mapper = Mapper::create_mapper("testr/Donkey_Kong_Classics.nes");
+    cpu_bus.mapper = Mapper::create_mapper("testr/Donkey_Kong.nes");
     CPU cpu = CPU(&cpu_bus);
-    // cpu.reset();
-    
-    for (int i = 0; i < 1000; i++){
+    cpu.reset();
+    cpu.print_state(temp);
+
+    for (int i = 0; i < 20; i++){
         copyArray(cpu_bus.ram, temp, 0x800);
 
         cpu.fetch_decode_inst();
