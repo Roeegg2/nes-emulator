@@ -11,8 +11,8 @@ int get_sleep_time(uint8_t cycles) { // for now its in cpu cycles, but later it 
     return (int)((cycles/NTSC_CPU_CLOCKSPEED)*1000);
 }
 
-uint16_t convert_to_2byte(uint8_t byte1, uint8_t byte2){
-    return (byte1 << 8) | byte2;
+uint16_t convert_to_2byte(uint8_t low, uint8_t high){
+    return (high << 8) | low;
 }
 
 void print_binary(uint8_t val) {

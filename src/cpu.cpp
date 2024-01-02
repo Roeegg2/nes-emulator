@@ -2,6 +2,7 @@
 #include "../include/utils.h"
 
 #include <iostream>
+#include <fstream>
 #include <thread>
 #include <chrono>
 
@@ -30,12 +31,13 @@ CPU::CPU(CPU_Bus* bus){
 	};
 
     this->bus = bus;
-    PC = 0x8000;
     S = 0xfd;
     P = 0b00110100;
     A = X = Y = 0x00;
     IR = 0x00;
     bytes = 0x0000;
+
+    reset();
 }
 
 uint8_t CPU::fetch(uint8_t offset){
@@ -151,16 +153,17 @@ void check_array_equal(uint8_t* old, uint8_t* changed){
 }
 
 /* Printing util */
-void CPU::print_state(uint8_t* old) {
-    std::cout << "----------------------------------------------" << std::endl;
-    std::cout << "A: " << std::dec << (int)A << std::endl;
-    std::cout << "X: " << std::dec << (int)X << std::endl;
-    std::cout << "Y: " << std::dec << (int)Y << std::endl;
-    std::cout << "S: " << std::dec << (int)S << std::endl;
-    std::cout << "PC: " << std::dec << (int)PC << std::endl;
-    print_binary(P);
-    std::cout << "IR: " << std::hex << (int)IR << std::endl;
+void CPU::log() {
+    static std::ofstream log("testr/nestest/roeenes.log", std::ios::out | std::ios::trunc);
 
-    check_array_equal(old, bus->ram);
-    std::cout << "----------------------------------------------" << std::endl;
+    log << std::hex << std::uppercase << PC << " ";
+    log << std::hex << std::uppercase << (uint16_t)IR << " ";
+    log << std::hex << std::uppercase << (uint16_t)(bytes >> 8) << " ";
+    log << std::hex << std::uppercase << (uint16_t)(bytes << 8) << " \t";
+    log << std::hex << std::uppercase << "A:" << (uint16_t)A << " ";
+    log << std::hex << std::uppercase << "X:" << (uint16_t)X << " ";
+    log << std::hex << std::uppercase << "Y:" << (uint16_t)Y << " ";
+    log << std::hex << std::uppercase << "P:" << (uint16_t)P << " ";
+    log << std::hex << std::uppercase << "SP:" << (uint16_t)S << " ";
+    log << std::endl;
 }

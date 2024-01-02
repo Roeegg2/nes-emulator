@@ -22,7 +22,7 @@ Mapper* Mapper::create_mapper(std::string rom_path){
 
 // need also to take care of the case there is a trainer section
 Cartridge::Cartridge(std::string rom_path){
-    std::ifstream rom_file(rom_path, std::ios::binary);
+    static std::ifstream rom_file(rom_path, std::ios::binary);
 
     if (!rom_file.is_open()){
         std::cerr << "Error opening file" << std::endl;
@@ -49,8 +49,9 @@ Cartridge::Cartridge(std::string rom_path){
     prg_rom.resize(header.prg_bank_size * 16 * KILOBYTE);
     chr_rom.resize(header.chr_bank_size * 8 * KILOBYTE);
 
-    rom_file.seekg(16, std::ios::beg);
+    rom_file.seekg(16);
     rom_file.read((char*)prg_rom.data(), prg_rom.size());
+    std::cout << std::hex << (int)prg_rom[0] << std::endl;
     rom_file.read((char*)chr_rom.data(), chr_rom.size());
 
     if (header.flags_10 & 0b00000010) // if this bit in flag 10 is set then there is prg ram

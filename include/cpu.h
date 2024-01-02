@@ -59,7 +59,7 @@ public:
     void execute_inst();
 
     // temporary util functions
-    void print_state(uint8_t* temp);
+    void log();
 
     CPU(CPU_Bus* bus);
 

@@ -9,18 +9,17 @@ int main(){
     uint8_t temp[0xbfe0];
 
     CPU_Bus cpu_bus = CPU_Bus();
-    cpu_bus.mapper = Mapper::create_mapper("testr/Donkey_Kong.nes");
+    cpu_bus.mapper = Mapper::create_mapper("testr/gameroms/Donkey Kong (U) (PRG1) [!p](1).nes");
     CPU cpu = CPU(&cpu_bus);
-    cpu.reset();
-    cpu.print_state(temp);
 
-    for (int i = 0; i < 20; i++){
-        copyArray(cpu_bus.ram, temp, 0x800);
+    for (int i = 0; i < 50; i++){
+        cpu.log();
 
         cpu.fetch_decode_inst();
         cpu.execute_inst();
 
-        cpu.print_state(temp);
+        /* if (i == 10)
+            cpu.nmi(); */
     }
 
     return 0;
