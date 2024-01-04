@@ -6,7 +6,7 @@
 #include <thread>
 #include <chrono>
 
-CPU::CPU(CPU_Bus* bus){
+CPU::CPU(Bus* bus){
     /* I know, its ugly, but I'm using it for now (possibly forever) because its very easy and conventient */
     /* Credit to OLC on the map that served as the foundation of this one */
     using a = CPU;

@@ -1,7 +1,7 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "../include/cpu_bus.h"
+#include "../include/bus.h"
 #include "../include/ppu.h"
 
 #include <cstdint>
@@ -26,6 +26,7 @@ enum StatusFlag : uint8_t {
 
 enum AddressingMode : uint8_t {IMP, ACC, IMM, ABS, ZP, ZP_X, ZP_Y, REL, ABS_X, ABS_Y, IND, IND_Y, X_IND, XXX};
 
+class Bus; // forward declaration to avoid circular dependency
 class CPU; // forward declaration to avoid circular dependency
 struct Instruction;
 
@@ -46,8 +47,7 @@ private:
     uint8_t Y;
     uint8_t IR; 
 
-    CPU_Bus* bus;
-    PPU* ppu;
+    Bus* bus;
 
     Instruction* inst;
     uint16_t bytes;
@@ -61,7 +61,7 @@ public:
     // temporary util functions
     void log();
 
-    CPU(CPU_Bus* bus);
+    CPU(Bus* bus);
 
     /* interrupts */
     void nmi(); // non maskable - triggered by the PPU

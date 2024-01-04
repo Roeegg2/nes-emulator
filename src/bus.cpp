@@ -1,9 +1,9 @@
-#include "../include/cpu_bus.h"
+#include "../include/bus.h"
 #include "../include/mappers/nrom_0.h"
 
 #include <iostream>
 
-void CPU_Bus::write(uint16_t addr, uint8_t data) {
+void Bus::write(uint16_t addr, uint8_t data) {
     if (0 <= addr && addr <= 0x1fff)
         ram[addr % 0x800] = data;
     else if (0x2000 <= addr && addr <= 0x3fff){
@@ -18,7 +18,7 @@ void CPU_Bus::write(uint16_t addr, uint8_t data) {
         mapper->cpu_write(addr, data);
 }
 
-uint8_t CPU_Bus::read(uint16_t addr) {
+uint8_t Bus::read(uint16_t addr) {
     if (0 <= addr && addr <= 0x1fff)
         return ram[addr % 0x800];
     else if (0x2000 <= addr && addr <= 0x3fff)
