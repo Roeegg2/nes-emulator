@@ -1,11 +1,10 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "../include/cpu_bus.h"
-#include "../include/ppu.h"
-
 #include <cstdint>
 #include <vector>
+
+#include "bus.h"
 
 #define IRQ_CYCLES 7
 #define NMI_CYCLES 8
@@ -46,8 +45,7 @@ private:
     uint8_t Y;
     uint8_t IR; 
 
-    CPU_Bus* bus;
-    PPU* ppu;
+    Bus* bus;
 
     Instruction* inst;
     uint16_t bytes;
@@ -61,7 +59,7 @@ public:
     // temporary util functions
     void log();
 
-    CPU(CPU_Bus* bus);
+    CPU(Bus* bus);
 
     /* interrupts */
     void nmi(); // non maskable - triggered by the PPU

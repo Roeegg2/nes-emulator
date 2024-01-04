@@ -1,10 +1,10 @@
-#include "../include/mapper_n_cart.h"
-#include "../include/mappers/nrom_0.h"
-
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <cstring>
+
+#include "../include/mapper_n_cart.h"
+#include "../include/mappers/nrom_0.h"
 
 Mapper* Mapper::create_mapper(std::string rom_path){
     Cartridge* cart = new Cartridge(rom_path);

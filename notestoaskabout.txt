@@ -1,0 +1,2 @@
+1. why do i need 2 pattern table shift registers?
+2. 

@@ -1,9 +1,6 @@
-#ifndef UTIL_H
-#define UTIL_H
+#include <iostream>
 
 #include "../include/utils.h"
-
-#include <iostream>
 
 constexpr _Float16 NTSC_CPU_CLOCKSPEED = 1.789773; // in nano seconds
 
@@ -27,11 +24,3 @@ void print_binary(uint8_t val) {
 
     std::cout << "P:" << binary << std::endl;
 }
-
-void copyArray(uint8_t source[], uint8_t destination[], int size) {
-    for (int i = 0; i < size; i++) {
-        destination[i] = source[i];
-    }
-}
-
-#endif

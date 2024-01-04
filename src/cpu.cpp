@@ -1,12 +1,12 @@
-#include "../include/cpu.h"
-#include "../include/utils.h"
-
 #include <iostream>
 #include <fstream>
 #include <thread>
 #include <chrono>
 
-CPU::CPU(CPU_Bus* bus){
+#include "../include/cpu.h"
+#include "../include/utils.h"
+
+CPU::CPU(Bus* bus){
     /* I know, its ugly, but I'm using it for now (possibly forever) because its very easy and conventient */
     /* Credit to OLC on the map that served as the foundation of this one */
     using a = CPU;
@@ -41,7 +41,7 @@ CPU::CPU(CPU_Bus* bus){
 }
 
 uint8_t CPU::fetch(uint8_t offset){
-    uint8_t data = bus->read(PC) + offset;
+    uint8_t data = bus->cpu_read(PC) + offset;
     PC++;
     return data;
 }
@@ -89,15 +89,15 @@ void CPU::fetch_decode_inst(){ // this is also ugly, might rewrite it in the fut
             break;
         case IND:
             bytes = convert_to_2byte(fetch(0), fetch(0));
-            bytes = bus->read(bytes);
+            bytes = bus->cpu_read(bytes);
             break;
         case X_IND:
             bytes = convert_to_2byte(fetch(0) + X, 0);
-            bytes = bus->read(bytes);
+            bytes = bus->cpu_read(bytes);
             break;
         case IND_Y:
             bytes = convert_to_2byte(fetch(0), 0);
-            bytes = bus->read(bytes);
+            bytes = bus->cpu_read(bytes);
             bytes += Y;
             break;
         default:
@@ -125,7 +125,7 @@ uint8_t CPU::get_flag_status(StatusFlag flag) const{
 
 uint8_t CPU::pop() {
     S++;
-    uint8_t data = bus->read(STACK_BASE + S);
+    uint8_t data = bus->cpu_read(STACK_BASE + S);
     if (S >= 0xff)
         std::cerr << "WARNING: Stack underflowing! Could be affecting game memory." << std::endl;
 
@@ -133,7 +133,7 @@ uint8_t CPU::pop() {
 }
 
 void CPU::push(uint8_t value){
-    bus->write(STACK_BASE + S, value); // could be passing arguments in the wrong order; check that
+    bus->cpu_write(STACK_BASE + S, value); // could be passing arguments in the wrong order; check that
     if (S <= 0)
         std::cerr << "WARNING: Stack overflowing into zero page!" << std::endl;
         
