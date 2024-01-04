@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "bus.h"
+#include "../include/bus.h"
 
 class PPU {
 public:

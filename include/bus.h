@@ -3,9 +3,9 @@
 
 #include <cstdint>
 
-#include "mapper_n_cart.h"
-// #include "ppu.h"
-#include "cpu.h"
+#include "../include/mapper_n_cart.h"
+#include "../include/ppu.h"
+#include "../include/cpu.h"
 
 class Bus{
 public:

@@ -4,7 +4,7 @@
 // #include <SDL2/SDL.h>
 
 #include "../include/cpu.h"
-// #include "../include/ppu.h"
+#include "../include/ppu.h"
 #include "../include/bus.h"
 #include "../include/utils.h"
 
@@ -13,7 +13,7 @@ int main(){
 
     Bus bus = Bus(Mapper::create_mapper("testr/gameroms/Donkey Kong (U) (PRG1) [!p](1).nes"));
     CPU cpu = CPU(&bus);
-    // PPU ppu = PPU(&bus);
+    PPU ppu = PPU(&bus);
 
     for (int i = 0; i < 10; i++){
         cpu.log();

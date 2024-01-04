@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "bus.h"
+#include "../include/bus.h"
 
 #define IRQ_CYCLES 7
 #define NMI_CYCLES 8
