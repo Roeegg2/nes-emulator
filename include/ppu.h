@@ -6,6 +6,7 @@
 
 #include "bus.h"
 
+class Bus;
 
 enum PPU_STATE {
     FETCH_NT,
@@ -29,18 +30,18 @@ struct Background_Regs {
 
 class PPU {
 public:
-    // PPU(Bus* bus);
+    PPU(Bus* bus);
 
-//     void run_ppu(uint8_t cycles);
+    void run_ppu(uint8_t cycles);
 
-// private:
-//     void prerender_and_visible_scanline(uint8_t cycles);
-//     void vblank_scanline(uint8_t cycles);
+private:
+    void prerender_and_visible_scanline(uint8_t cycles);
+    void vblank_scanline(uint8_t cycles);
 
-//     void increment_counters(uint8_t cycles);
+    void increment_counters(uint8_t cycles);
 
-//     void increment_x();
-//     void increment_y();
+    void increment_x();
+    void increment_y();
 
 public:
     uint16_t v;
@@ -55,12 +56,12 @@ public:
 
     uint8_t nmi_occurred;
 
-    static int32_t curr_scanline;
-    static int32_t curr_cycle;
-    static uint8_t odd_even_frame; // for pre-render scanline
+    int32_t curr_scanline; // why does static cause an error here?
+    int32_t curr_cycle;
+    uint8_t odd_even_frame; // for pre-render scanline
 
-// public:
-//     Bus* bus;
+public:
+    Bus* bus;
 
 };
 #endif

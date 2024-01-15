@@ -1,11 +1,11 @@
 #ifndef MAPPER_H
 #define MAPPER_H
 
-#define KILOBYTE 1024
-
 #include <cstdint>
 #include <vector>
 #include <string>
+
+constexpr uint16_t KILOBYTE = 1024;
 
 struct Cartridge_Header{
     uint16_t total_size; // in kb
