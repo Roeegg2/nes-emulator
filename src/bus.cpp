@@ -26,17 +26,17 @@ void Bus::cpu_write(uint16_t addr, uint8_t data) {
         case OAMDATA:
             break;
         case PPUSCROLL:
-            // if (ppu->w == 0) {
-            //     ppu->t = ((ppu->t >> 5) << 5) & (temp >> 3);
-            //     ppu->x = temp & 0b00000111;
-            //     ppu->w = 1; // NOTE: move this out of the if statement
-            // }
-            // else {
-            //     ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
-            //     ppu->t = ppu->t | (temp << 12);
-            //     ppu->t = ppu->t | ((temp >> 3) << 5);
-            //     ppu->w = 0; // NOTE: move this out of the if statement
-            // }
+            if (ppu->w == 0) {
+                ppu->t = ((ppu->t >> 5) << 5) & (temp >> 3);
+                ppu->x = temp & 0b00000111;
+                ppu->w = 1; // NOTE: move this out of the if statement
+            }
+            else {
+                ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
+                ppu->t = ppu->t | (temp << 12);
+                ppu->t = ppu->t | ((temp >> 3) << 5);
+                ppu->w = 0; // NOTE: move this out of the if statement
+            }
             break;
         case PPUADDR:
             // if (ppu->w == 0) {
@@ -105,13 +105,13 @@ uint8_t Bus::cpu_read(uint16_t addr) {
     return 0;
 }
 
-// uint8_t Bus::ppu_read(uint16_t addr) {
-//     if (0 <= addr && addr <= 0x1fff)
-//         return mapper->ppu_read(addr);
-//     else if (0x2000 <= addr && addr <= 0x3eff)
-//         return mapper->ppu_read(addr);
-//     else if (0x3f00 <= addr && addr <= 0x3fff)
-//         return 0;
+uint8_t Bus::ppu_read(uint16_t addr) {
+    if (0 <= addr && addr <= 0x1fff)
+        return mapper->ppu_read(addr);
+    else if (0x2000 <= addr && addr <= 0x3eff)
+        return mapper->ppu_read(addr);
+    else if (0x3f00 <= addr && addr <= 0x3fff)
+        return 0;
 
-//     return 0;
-// }
+    return 0;
+}

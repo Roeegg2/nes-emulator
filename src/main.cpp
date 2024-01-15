@@ -17,8 +17,8 @@ int main(){
         cpu.fetch_decode_inst();
         cpu.execute_inst();
 
-        /* if (i == 10)
-            cpu.nmi(); */
+        if (i == 10)
+            cpu.nmi();
     }
 
     return 0;
