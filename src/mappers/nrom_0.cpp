@@ -2,11 +2,10 @@
 
 namespace roee_nes {
 
-    NROM_0::NROM_0(Cartridge* cart) {
-        this->cart = cart;
-
+    NROM_0::NROM_0(Cartridge* cart) : Mapper(cart) {
         cart->vram.resize(0x800);
     }
+
 
     uint8_t NROM_0::cpu_read(uint16_t addr) {
         if (0x6000 <= addr && addr <= 0x7FFF) // not sure if its only in famicom

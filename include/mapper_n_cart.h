@@ -45,6 +45,8 @@ namespace roee_nes {
 
     class Mapper {
     public:
+        Mapper(Cartridge* cart) : cart(cart) {}
+
         virtual uint8_t cpu_read(uint16_t addr) = 0;
         virtual void cpu_write(uint16_t addr, uint8_t data) = 0;
 

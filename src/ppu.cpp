@@ -2,15 +2,17 @@
 
 namespace roee_nes {
 
-    PPU::PPU(Bus* bus) {
+    PPU::PPU(Bus* bus) 
+    : curr_cycle(0), curr_scanline(261), odd_even_frame(0), nmi_occurred(0), w(0)
+    {
         this->bus = bus;
 
-        curr_scanline = 261; // NOTE: not sure about this yet!
-        curr_cycle = 0;
+        // curr_scanline = 261; // NOTE: not sure about this yet!
+        // curr_cycle = 0;
 
-        w = 0;
-        odd_even_frame = 0; // NOTE: not sure about this yet!
-        nmi_occurred = 0; // NOTE: not sure about this yet!
+        // w = 0;
+        // odd_even_frame = 0; // NOTE: not sure about this yet!
+        // nmi_occurred = 0; // NOTE: not sure about this yet!
     }
 
     void PPU::run_ppu(uint8_t cycles) {
@@ -42,10 +44,10 @@ namespace roee_nes {
             if (run_cycles > 1) {
                 switch (where_did_i_stop) {
                 case FETCH_NT:
-                    // bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF));
+                    bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF));
                     break;
                 case FETCH_AT:
-                    // bg_regs.at_latch = bus->ppu_read(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
+                    bg_regs.at_latch = bus->ppu_read(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
                     break;
                 case FETCH_PT1:
                     // pt_latch1 = bus->ppu_read
@@ -81,18 +83,21 @@ namespace roee_nes {
             curr_scanline = -1;
     }
 
+    
     /* helper functions*/
 
     void PPU::increment_counters(uint8_t cycles) {
         curr_cycle += cycles;
+
         if (curr_cycle >= 340)
             curr_scanline++;
         if (curr_scanline == 261)
             curr_scanline = -1;
+
         curr_cycle %= 340;
     }
 
-    void PPU::increment_x() {
+    void PPU::increment_x() { // pseudocode taken from the nesDEV wiki
         if (x == 7) {
             x = 0;
             if (v & 0b00011111 == 31) {
@@ -106,7 +111,7 @@ namespace roee_nes {
             x += 1;
     }
 
-    void PPU::increment_y() {
+    void PPU::increment_y() { // pseudocode taken from the nesDEV wiki
         if (v & 0x7000 != 0x7000)
             v += 0x1000;
         else {

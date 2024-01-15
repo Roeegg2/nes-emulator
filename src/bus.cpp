@@ -41,16 +41,16 @@ namespace roee_nes {
                 }
                 break;
             case PPUADDR:
-                // if (ppu->w == 0) {
-                //     temp = temp & 0b00111111;
-                //     ppu->t = (ppu->t & 0b0000000011111111) | (data << 8);
-                //     ppu->w = 1; // NOTE: move this out of the if statement
-                // }
-                // else {
-                //     ppu->t = (ppu->t & 0b1111111100000000) | temp;
-                //     ppu->v = ppu->t;
-                //     ppu->w = 0; // NOTE: move this out of the if statement
-                // }
+                if (ppu->w == 0) {
+                    temp = temp & 0b00111111;
+                    ppu->t = (ppu->t & 0b0000000011111111) | (data << 8);
+                    ppu->w = 1; // NOTE: move this out of the if statement
+                }
+                else {
+                    ppu->t = (ppu->t & 0b1111111100000000) | temp;
+                    ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
+                    ppu->w = 0; // NOTE: move this out of the if statement
+                }
                 break;
             case PPUDATA:
                 break;
@@ -76,8 +76,8 @@ namespace roee_nes {
             case PPUMASK:
                 break;
             case PPUSTATUS:
-                // ppu->w = 0;
-                // ppu->ppustatus = ppu->ppustatus & 0b01111111;
+                ppu->w = 0;
+                ppu->ppustatus = ppu->ppustatus & 0b01111111;
                 break;
             case OAMADDR:
                 break;
