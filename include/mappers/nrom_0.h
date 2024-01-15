@@ -3,12 +3,16 @@
 
 #include "../mapper_n_cart.h"
 
-class NROM_0 : public Mapper{
-public:
-    uint8_t cpu_read(uint16_t addr) override;
-    void cpu_write(uint16_t addr, uint8_t data) override;
+namespace roee_nes {
 
-    NROM_0(Cartridge* cart);
-};
+    class NROM_0 : public Mapper {
+    public:
+        uint8_t cpu_read(uint16_t addr) override;
+        void cpu_write(uint16_t addr, uint8_t data) override;
 
+        uint8_t ppu_read(uint16_t addr) override;
+
+        NROM_0(Cartridge* cart);
+    };
+}
 #endif
