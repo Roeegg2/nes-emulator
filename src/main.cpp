@@ -8,8 +8,7 @@
 int main(){
     uint8_t temp[0xbfe0];
 
-    Bus bus = Bus();
-    bus.mapper = Mapper::create_mapper("testr/gameroms/Donkey Kong (U) (PRG1) [!p](1).nes");
+    Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"));
     CPU cpu = CPU(&bus);
 
     for (int i = 0; i < 50; i++){
@@ -18,8 +17,8 @@ int main(){
         cpu.fetch_decode_inst();
         cpu.execute_inst();
 
-        /* if (i == 10)
-            cpu.nmi(); */
+        if (i == 10)
+            cpu.nmi();
     }
 
     return 0;

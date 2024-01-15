@@ -7,7 +7,7 @@
 /* accumulator add with carry */
 void CPU::ADC(){
     if (inst->mode != IMM)
-        bytes = bus->read(bytes);
+        bytes = bus->cpu_read(bytes);
     
     uint16_t foo = A + bytes + get_flag_status(CARRY_BIT);
     A = (uint8_t)foo;
@@ -21,7 +21,7 @@ void CPU::ADC(){
 /* accumulator bitwise AND */
 void CPU::AND(){
     if (inst->mode != IMM)
-        bytes = bus->read(bytes);
+        bytes = bus->cpu_read(bytes);
     
     A &= bytes;
 
@@ -38,14 +38,14 @@ void CPU::ASL(){
         set_flag(NEGATIVE_BIT, A & 0b10000000);
     }
     else{
-        uint8_t data = bus->read(bytes);
+        uint8_t data = bus->cpu_read(bytes);
         set_flag(CARRY_BIT, data & 0b10000000);
 
         data = data << 1;
         
         set_flag(ZERO_BIT, data == 0);
         set_flag(NEGATIVE_BIT, data & 0b10000000);
-        bus->write(bytes, data);
+        bus->cpu_write(bytes, data);
     }
 }
 
@@ -69,7 +69,7 @@ void CPU::BEQ(){
 
 /* bit test on accumulator with memory */
 void CPU::BIT(){
-    bytes = bus->read(bytes);
+    bytes = bus->cpu_read(bytes);
     uint8_t foo = A & bytes;
 
     set_flag(ZERO_BIT, foo == 0);
@@ -103,7 +103,7 @@ void CPU::BRK(){
     push(PC & 0x00ff);
     set_flag(BRK_BIT, 1);
 
-    PC = convert_to_2byte(bus->read(0xffff), bus->read(0xfffe)); // order might be wrong
+    PC = convert_to_2byte(bus->cpu_read(0xffff), bus->cpu_read(0xfffe)); // order might be wrong
 }
 
 /* branch on overflow clear */
@@ -171,7 +171,7 @@ void CPU::DEY(){
 /* exclusive OR (XOR) accumulator with memory */
 void CPU::EOR(){
     if (inst->mode != IMM)
-        bytes = bus->read(bytes);
+        bytes = bus->cpu_read(bytes);
     
     A ^= (uint8_t)bytes;
 
@@ -199,7 +199,7 @@ void CPU::JMP(){
     if (inst->mode == ABS)
         PC = bytes;
     else
-        PC = convert_to_2byte(bus->read(bytes), bus->read(bytes+1)); //WARN: might need to swap the order here
+        PC = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes+1)); //WARN: might need to swap the order here
 }
 
 /* jump to new location saving return address */
@@ -230,9 +230,9 @@ void CPU::LSR(){
     if (inst->mode == ACC)
         actual_LSR(&A);
     else{
-        uint8_t data = bus->read(bytes);
+        uint8_t data = bus->cpu_read(bytes);
         actual_LSR(&data);
-        bus->write(bytes, data);
+        bus->cpu_write(bytes, data);
     }
 }
 
@@ -244,7 +244,7 @@ void CPU::NOP(){
 /* bitwise OR accumulator with memory */
 void CPU::ORA(){
     if (inst->mode != IMM)
-        bytes = bus->read(bytes);
+        bytes = bus->cpu_read(bytes);
     
     A |= (uint8_t)bytes;
 
@@ -279,9 +279,9 @@ void CPU::ROL(){ // NOTE: I know there is code duplication here, maybe ill fix l
     if (inst->mode == ACC)
         actual_ROL(&A);
     else{
-        uint8_t data = bus->read(bytes);
+        uint8_t data = bus->cpu_read(bytes);
         actual_ROL(&data);
-        bus->write(bytes, data);
+        bus->cpu_write(bytes, data);
     }
 }
 
@@ -290,9 +290,9 @@ void CPU::ROR(){
     if (inst->mode == ACC)
         actual_ROR(&A);
     else{
-        uint8_t data = bus->read(bytes);
+        uint8_t data = bus->cpu_read(bytes);
         actual_ROR(&data);
-        bus->write(bytes, data);
+        bus->cpu_write(bytes, data);
     }
 
 }
@@ -314,7 +314,7 @@ void CPU::RTS(){
 /* subtract with carry */
 void CPU::SBC(){
     if (inst->mode != IMM)
-        bytes = bus->read(bytes);
+        bytes = bus->cpu_read(bytes);
     
     uint16_t foo = A - bytes - (1 - get_flag_status(CARRY_BIT));
     A = (uint8_t)foo;
@@ -343,17 +343,17 @@ void CPU::SEI(){
 
 /* store accumulator in memory */
 void CPU::STA(){
-    bus->write(bytes, A);
+    bus->cpu_write(bytes, A);
 }
 
 /* store X register in memory */
 void CPU::STX(){
-    bus->write(bytes, X);
+    bus->cpu_write(bytes, X);
 }
 
 /* store Y register in memory */
 void CPU::STY(){
-    bus->write(bytes, Y);
+    bus->cpu_write(bytes, Y);
 }
 
 /* transfer accumulator to X register */
@@ -396,7 +396,7 @@ void CPU::ILLEGAL(){
 /* the actual CMP implementation */
 void CPU::reg_CMP_actual(uint8_t* reg){
     if (inst->mode != IMM)
-        bytes = bus->read(bytes);
+        bytes = bus->cpu_read(bytes);
 
     set_flag(ZERO_BIT, *(reg) == (uint8_t)bytes);
     set_flag(NEGATIVE_BIT, (*(reg) - ((uint8_t)bytes)) & 0b10000000);
@@ -413,8 +413,8 @@ void CPU::reg_INCDEC_actual(uint8_t* reg, uint8_t val){
 
 /* the actual INC/DEC implementation */
 void CPU::mem_INCDEC_actual(int8_t val){
-    uint8_t data = bus->read(bytes);
-    bus->write(bytes, data + val);
+    uint8_t data = bus->cpu_read(bytes);
+    bus->cpu_write(bytes, data + val);
 
     set_flag(ZERO_BIT, data == 0);
     set_flag(NEGATIVE_BIT, data & 0b10000000);
@@ -424,7 +424,7 @@ void CPU::mem_INCDEC_actual(int8_t val){
 /* the actual LD implementation */
 void CPU::reg_LD_actual(uint8_t* reg){
     if (inst->mode != IMM)
-        bytes = bus->read(bytes);
+        bytes = bus->cpu_read(bytes);
     
     *(reg) = (uint8_t)bytes;
 
@@ -476,7 +476,7 @@ void CPU::nmi(){
     push((PC >> 8) & 0x00ff);
     push(PC & 0x00ff);
 
-    PC = convert_to_2byte(bus->read(0xfffa), bus->read(0xfffb));
+    PC = convert_to_2byte(bus->cpu_read(0xfffa), bus->cpu_read(0xfffb));
 
     set_flag(DISINT_BIT, 1);
     set_flag(BRK_BIT, 0);
@@ -487,7 +487,7 @@ void CPU::nmi(){
 
 /* reset */
 void CPU::reset(){
-    PC = convert_to_2byte(bus->read(0xfffc), bus->read(0xfffd));
+    PC = convert_to_2byte(bus->cpu_read(0xfffc), bus->cpu_read(0xfffd));
     S = S-3;
 
     set_flag(DISINT_BIT, 1);
@@ -502,7 +502,7 @@ void CPU::irq(){
     push((PC >> 8) & 0x00ff);
     push(PC & 0x00ff);
 
-    PC = convert_to_2byte(bus->read(0xfffe), bus->read(0xffff));
+    PC = convert_to_2byte(bus->cpu_read(0xfffe), bus->cpu_read(0xffff));
 
     set_flag(DISINT_BIT, 1);
     set_flag(BRK_BIT, 0);
