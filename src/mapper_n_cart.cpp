@@ -53,7 +53,6 @@ namespace roee_nes {
 
         rom_file.seekg(16);
         rom_file.read((char*)prg_rom.data(), prg_rom.size());
-        std::cout << std::hex << (int)prg_rom[0] << std::endl;
         rom_file.read((char*)chr_rom.data(), chr_rom.size());
 
         if (header.flags_10 & 0b00000010) // if this bit in flag 10 is set then there is prg ram

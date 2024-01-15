@@ -147,18 +147,6 @@ namespace roee_nes {
         S--;
     }
 
-    /* ----- util functions for testing - DELETE LATER! */
-
-    void check_array_equal(uint8_t* old, uint8_t* changed) {
-        for (int i = 0; i < 0x800; i++) {
-            if (old[i] != changed[i]) {
-                std::cout << "| Index " << i << " is different!" << std::endl;
-                std::cout << "| Old: " << (int)old[i] << std::endl;
-                std::cout << "| New: " << (int)changed[i] << std::endl;
-            }
-        }
-    }
-
     /* Printing util */
     void CPU::log() {
         static std::ofstream log("testr/nestest/roeenes.log", std::ios::out | std::ios::trunc);
