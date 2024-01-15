@@ -4,7 +4,7 @@ SECTION 1: REGISTERS
 
 PPUCTRL:
 contains various flags controlling the PPU operation
-
+ 
 VPHB SINN
 |||| ||||
 |||| ||++- Base nametable address
