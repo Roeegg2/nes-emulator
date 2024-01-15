@@ -5,20 +5,20 @@
 #include <string.h>
 #include <iostream>
 
+using namespace roee_nes;
+
 int main(){
-    uint8_t temp[0xbfe0];
+    uint8_t cycles;
 
     Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"));
     CPU cpu = CPU(&bus);
+    PPU ppu = PPU(&bus);
 
-    for (int i = 0; i < 50; i++){
-        cpu.log();
+    cpu.log();
 
-        cpu.fetch_decode_inst();
-        cpu.execute_inst();
-
-        if (i == 10)
-            cpu.nmi();
+    for (int i = 0; i < 50; i++) {
+        cycles = cpu.run_cpu();
+        ppu.run_ppu(cycles * 3);
     }
 
     return 0;

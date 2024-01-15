@@ -5,53 +5,56 @@
 #include <vector>
 #include <string>
 
-constexpr uint16_t KILOBYTE = 1024;
+namespace roee_nes {
 
-struct Cartridge_Header{
-    uint16_t total_size; // in kb
+    constexpr uint16_t KILOBYTE = 1024;
 
-    uint8_t prg_bank_size;
-    uint8_t chr_bank_size;
+    struct Cartridge_Header {
+        uint16_t total_size; // in kb
 
-    uint8_t prg_ram_size;
+        uint8_t prg_bank_size;
+        uint8_t chr_bank_size;
 
-    uint8_t flags_6;
-    uint8_t flags_7;
-    uint8_t flags_8;
-    uint8_t flags_9;
-    uint8_t flags_10;
-    
-    // might add other stuff later if i add support for iNES 2.0
-};
+        uint8_t prg_ram_size;
 
-class Cartridge{
-friend class Mapper;
-friend class NROM_0;
+        uint8_t flags_6;
+        uint8_t flags_7;
+        uint8_t flags_8;
+        uint8_t flags_9;
+        uint8_t flags_10;
 
-public:
-    Cartridge(std::string rom_path);
+        // might add other stuff later if i add support for iNES 2.0
+    };
 
-private:
-    Cartridge_Header header;
+    class Cartridge {
+        friend class Mapper;
+        friend class NROM_0;
 
-    std::vector<uint8_t> prg_rom;
-    std::vector<uint8_t> chr_rom;
-    std::vector<uint8_t> prg_ram;
+    public:
+        Cartridge(std::string rom_path);
 
-    std::vector<uint8_t> vram;
-};
+    private:
+        Cartridge_Header header;
 
-class Mapper {
-public:
-    virtual uint8_t cpu_read(uint16_t addr) = 0;
-    virtual void cpu_write(uint16_t addr, uint8_t data) = 0;
+        std::vector<uint8_t> prg_rom;
+        std::vector<uint8_t> chr_rom;
+        std::vector<uint8_t> prg_ram;
 
-    virtual uint8_t ppu_read(uint16_t addr) = 0;
+        std::vector<uint8_t> vram;
+    };
 
-    static Mapper* create_mapper(std::string rom_path);
+    class Mapper {
+    public:
+        virtual uint8_t cpu_read(uint16_t addr) = 0;
+        virtual void cpu_write(uint16_t addr, uint8_t data) = 0;
 
-protected:
-    Cartridge* cart;
-};
+        virtual uint8_t ppu_read(uint16_t addr) = 0;
 
+        static Mapper* create_mapper(std::string rom_path);
+
+    protected:
+        Cartridge* cart;
+    };
+
+}
 #endif
