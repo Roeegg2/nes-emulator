@@ -62,6 +62,5 @@ public:
 
 public:
     Bus* bus;
-
 };
 #endif
