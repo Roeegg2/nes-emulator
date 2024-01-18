@@ -77,7 +77,7 @@ namespace roee_nes {
                 break;
             case PPUSTATUS:
                 ppu->w = 0;
-                ppu->ppustatus = ppu->ppustatus & 0b01111111;
+                ppu->ext_regs.ppustatus = ppu->ext_regs.ppustatus & 0b01111111;
                 break;
             case OAMADDR:
                 break;

@@ -21,7 +21,7 @@ g++ -g -c src/mapper_n_cart.cpp -o mapper_n_cart.o
 
 g++ -g -c src/mappers/nrom_0.cpp -o nrom_0.o
 
-g++ *.o -o emulator 
+g++ *.o -o emulator
 rm *.o
 
 echo "Done"

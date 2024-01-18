@@ -8,13 +8,17 @@
 
 namespace roee_nes {
 
+    constexpr uint8_t lsb = 0b00001000;
+    constexpr uint8_t msb = 0b00000000;
+
     class Bus;
 
-    enum PPU_STATE {
+    enum PPU_State {
         FETCH_NT,
         FETCH_AT,
         FETCH_PT1,
-        FETCH_PT2
+        FETCH_PT2,
+        LOAD_SHIFT_REGS
     };
 
     struct Background_Regs {
@@ -30,6 +34,13 @@ namespace roee_nes {
         uint8_t pt_latch2;
     };
 
+    struct External_Registers {
+        uint8_t ppuctrl;
+        uint8_t ppumask;
+        uint8_t ppustatus;
+        uint8_t oamaddr;
+    };
+
     class PPU {
     public:
         PPU(Bus* bus);
@@ -42,8 +53,10 @@ namespace roee_nes {
 
         void increment_counters(uint8_t cycles);
 
-        void increment_x();
+        void increment_coarse_x();
         void increment_y();
+
+        uint16_t fetch_pt_byte(uint8_t byte_significance);
 
     public:
         uint16_t v;
@@ -53,8 +66,7 @@ namespace roee_nes {
 
         Background_Regs bg_regs;
 
-        uint8_t ppustatus;
-        uint8_t ppuctrl;
+        External_Registers ext_regs;
 
         uint8_t nmi_occurred;
 
@@ -64,6 +76,7 @@ namespace roee_nes {
 
     public:
         Bus* bus;
+
     };
 }
 #endif

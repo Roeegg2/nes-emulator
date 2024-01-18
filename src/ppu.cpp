@@ -2,8 +2,8 @@
 
 namespace roee_nes {
 
-    PPU::PPU(Bus* bus) 
-    : curr_cycle(0), curr_scanline(261), odd_even_frame(0), nmi_occurred(0), w(0)
+    PPU::PPU(Bus* bus)
+        : curr_cycle(0), curr_scanline(261), odd_even_frame(0), nmi_occurred(0), w(0)
     {
         this->bus = bus;
 
@@ -20,26 +20,31 @@ namespace roee_nes {
             prerender_and_visible_scanline(cycles);
         else // vblank scanlines
             vblank_scanline(cycles);
-
-        increment_counters(cycles);
     }
 
+    /* I am a bit simplfying this, usually there is an insertion and fetch in different address*/
     void PPU::prerender_and_visible_scanline(uint8_t cycles) {
         static uint8_t run_cycles = 0;
-        static uint8_t where_did_i_stop = FETCH_NT;
+        static PPU_State where_did_i_stop = FETCH_NT;
 
         uint8_t pixel;
-
-        run_cycles += cycles;
 
         if (curr_cycle == 0) {
             // do later, but pretty much just idle
         }
 
+        run_cycles += cycles;
+
         for (uint8_t i = 0; i < cycles; i++) {
+            auto increment_mod_eight = [](uint8_t* foo) -> void { *foo = (*foo + 1) % 8; };
+            increment_mod_eight(&x);
+
             if (1 <= curr_cycle <= 256) {
                 // render pixel
-                increment_x();
+            }
+            if (where_did_i_stop == LOAD_SHIFT_REGS) {
+                // load into shift registers
+                where_did_i_stop = static_cast<PPU_State>(static_cast<int>(where_did_i_stop) + 1);
             }
             if (run_cycles > 1) {
                 switch (where_did_i_stop) {
@@ -50,40 +55,40 @@ namespace roee_nes {
                     bg_regs.at_latch = bus->ppu_read(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
                     break;
                 case FETCH_PT1:
-                    // pt_latch1 = bus->ppu_read
+                    bg_regs.pt_latch1 = fetch_pt_byte(msb);
                     break;
                 case FETCH_PT2:
-                    // load into shift registers
+                    bg_regs.pt_latch1 = fetch_pt_byte(lsb);
+                    increment_coarse_x();
                     break;
                 }
 
-                where_did_i_stop = (where_did_i_stop + 1) % 4;
+                where_did_i_stop = static_cast<PPU_State>(static_cast<int>(where_did_i_stop) + 1);
                 run_cycles -= 2;
             }
-
             if (run_cycles == 256)
                 increment_y();
 
             if (odd_even_frame == 1 && curr_scanline == -1 && curr_cycle == 339)
-                curr_cycle++; // skip the last cycle
+                increment_counters(1);
 
-            curr_cycle++;
+            increment_counters(1);
         }
     }
 
     void PPU::vblank_scanline(uint8_t cycles) {
         if (curr_scanline == 241 && curr_cycle == 1) {
             nmi_occurred = 1;
-            ppustatus |= 0b10000000;
+            ext_regs.ppustatus |= 0b10000000;
             nmi_occurred = 0;
-            ppuctrl |= 0b10000000;
+            ext_regs.ppuctrl |= 0b10000000;
             // bus->cpu->nmi();
         }
         if (curr_scanline == 260)
             curr_scanline = -1;
     }
 
-    
+
     /* helper functions*/
 
     void PPU::increment_counters(uint8_t cycles) {
@@ -97,18 +102,13 @@ namespace roee_nes {
         curr_cycle %= 340;
     }
 
-    void PPU::increment_x() { // pseudocode taken from the nesDEV wiki
-        if (x == 7) {
-            x = 0;
-            if (v & 0b00011111 == 31) {
-                v &= 0b11100000; // setting coarse x to 0
-                v ^= 0000010000000000; // moving to the next nametable
-            }
-            else
-                v += 1;
+    void PPU::increment_coarse_x() { // pseudocode taken from the nesDEV wiki
+        if (v & 0b00011111 == 31) {
+            v &= 0b11100000; // setting coarse x to 0
+            v ^= 0000010000000000; // moving to the next nametable
         }
         else
-            x += 1;
+            v += 1;
     }
 
     void PPU::increment_y() { // pseudocode taken from the nesDEV wiki
@@ -130,4 +130,14 @@ namespace roee_nes {
         }
     }
 
+    uint16_t PPU::fetch_pt_byte(uint8_t byte_significance) {
+        uint16_t pt_byte = bg_regs.nt_latch;
+        pt_byte <<= 5;
+        pt_byte |= v >> 12;
+        pt_byte |= (ext_regs.ppuctrl & 0b00010000) << 8;
+        pt_byte |= 0b1000000000000000; // pt is only between 0x0000 and 0x1FFF
+        pt_byte |= byte_significance; // fetching msb/lsb
+
+        return pt_byte;
+    }
 }
