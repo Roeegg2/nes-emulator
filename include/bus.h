@@ -24,7 +24,6 @@ namespace roee_nes {
         PPUDATA = 0x2007
     };
 
-
     class Bus {
     public:
         std::array<uint8_t, 0x800> ram; // 0x0000 - 0x07FF, 3 mirrors + real | 0x2000 size

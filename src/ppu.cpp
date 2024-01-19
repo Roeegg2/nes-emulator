@@ -27,8 +27,6 @@ namespace roee_nes {
         static uint8_t run_cycles = 0;
         static PPU_State where_did_i_stop = FETCH_NT;
 
-        uint8_t pixel;
-
         if (curr_cycle == 0) {
             // do later, but pretty much just idle
         }
@@ -40,10 +38,12 @@ namespace roee_nes {
             increment_mod_eight(&x);
 
             if (1 <= curr_cycle <= 256) {
+                bg_regs.pt_shift_lsb <<= 1;
+                bg_regs.pt_shift_msb <<= 1;
                 // render pixel
             }
             if (where_did_i_stop == LOAD_SHIFT_REGS) {
-                // load into shift registers
+                load_bg_shift_regs();
                 where_did_i_stop = static_cast<PPU_State>(static_cast<int>(where_did_i_stop) + 1);
             }
             if (run_cycles > 1) {
@@ -52,13 +52,13 @@ namespace roee_nes {
                     bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF));
                     break;
                 case FETCH_AT:
-                    bg_regs.at_latch = bus->ppu_read(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
+                    bg_regs.at_latch = bus->ppu_read(0010001111000000 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
                     break;
-                case FETCH_PT1:
-                    bg_regs.pt_latch1 = fetch_pt_byte(msb);
+                case FETCH_PT_LSB:
+                    bg_regs.pt_latch_lsb = fetch_pt_byte(lsb);
                     break;
-                case FETCH_PT2:
-                    bg_regs.pt_latch1 = fetch_pt_byte(lsb);
+                case FETCH_PT_MSB:
+                    bg_regs.pt_latch_msb = fetch_pt_byte(msb);
                     increment_coarse_x();
                     break;
                 }
@@ -94,7 +94,7 @@ namespace roee_nes {
     void PPU::increment_counters(uint8_t cycles) {
         curr_cycle += cycles;
 
-        if (curr_cycle >= 340)
+        if (curr_cycle >= 341)
             curr_scanline++;
         if (curr_scanline == 261)
             curr_scanline = -1;
@@ -104,40 +104,79 @@ namespace roee_nes {
 
     void PPU::increment_coarse_x() { // pseudocode taken from the nesDEV wiki
         if (v & 0b00011111 == 31) {
-            v &= 0b11100000; // setting coarse x to 0
-            v ^= 0000010000000000; // moving to the next nametable
+            v &= 0b0111111111100000; // setting coarse x to 0
+            v ^= 0b0000010000000000; // moving to the next nametable
         }
         else
             v += 1;
     }
 
     void PPU::increment_y() { // pseudocode taken from the nesDEV wiki
-        if (v & 0x7000 != 0x7000)
-            v += 0x1000;
+        if (v & 0b011100000000000 != 0b011100000000000)
+            v += 0b0000100000000000;
         else {
-            v &= ~0x7000;
-            uint8_t y = (v & 0x03E0) >> 5;
+            v &= ~0b011100000000000; // setting fine scroll y to 0
+            uint8_t y = (v & 0b0000001111100000) >> 5;// extracting coarse y
             if (y == 29) {
                 y = 0;
-                v ^= 0x0800;
+                v ^= 0b0000100000000000; // switching vertical nametable
             }
             else if (y == 31)
-                y = 0;
+                y = 0; // got to the end of the screen
             else {
-                y += 1;
-                v = (v & ~0x03E0) | (y << 5);
+                y += 1; // increment coarse y
+                v = (v & ~0b0000001111100000) | (y << 5); // putting coarse y back in v
+
             }
         }
     }
 
     uint16_t PPU::fetch_pt_byte(uint8_t byte_significance) {
         uint16_t pt_byte = bg_regs.nt_latch;
-        pt_byte <<= 5;
+        pt_byte <<= 4;
         pt_byte |= v >> 12;
-        pt_byte |= (ext_regs.ppuctrl & 0b00010000) << 8;
-        pt_byte |= 0b1000000000000000; // pt is only between 0x0000 and 0x1FFF
         pt_byte |= byte_significance; // fetching msb/lsb
+        pt_byte |= (ext_regs.ppuctrl & 0b00010000) << 8;
 
         return pt_byte;
+    }
+
+    void PPU::load_bg_shift_regs() {
+        uint8_t attr_loading_shift;
+
+        bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
+        bg_regs.pt_shift_msb = (bg_regs.pt_shift_msb & 0xFF00) | bg_regs.pt_latch_msb;
+
+        auto constexpr get_coarse_x = [](uint16_t v) -> uint8_t { return v & 0b00011111; };
+        auto constexpr get_coarse_y = [](uint16_t v) -> uint8_t { return (v & 0b11111000000) >> 5; };
+
+        // 0, 0 -> 2|, 3
+        // 0, 1 -> 4|, 5
+        // 1, 0 -> 0|, 1
+        // 1, 1 -> 6|, 7
+        auto get_first_bit = [](uint8_t coarse_x, uint8_t coarse_y) -> uint8_t { // will rewrite this lambda later
+            if (coarse_x % 2 == 0) {
+                if (coarse_y % 2 == 0)
+                    return 2; // fetch bits for top right
+                else
+                    return 4; // fetch bits for bottom right
+            }
+            else {
+                if (coarse_y % 2 == 0)
+                    return 0; // fetch bits for top left
+                else
+                    return 6; // fetch bits for bottom left
+            }
+        };
+
+        attr_loading_shift = get_first_bit(get_coarse_x(v), get_coarse_y(v));
+
+        bg_regs.attr_shift_msb = (bg_regs.at_latch >> attr_loading_shift) && 0b00000001;
+        bg_regs.attr_shift_lsb = (bg_regs.at_latch >> (attr_loading_shift +1)) && 0b00000001;
+
+        // if reg = 0b01 -> 0b11111111, if reg = 0b00 -> 0b00000000
+        bg_regs.attr_shift_lsb *= 0b11111111;
+        bg_regs.attr_shift_msb *= 0b11111111;
+
     }
 }
