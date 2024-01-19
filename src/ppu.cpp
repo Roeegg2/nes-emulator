@@ -27,9 +27,8 @@ namespace roee_nes {
         static uint8_t run_cycles = 0;
         static PPU_State where_did_i_stop = FETCH_NT;
 
-        if (curr_cycle == 0) {
-            // do later, but pretty much just idle
-        }
+        if (curr_cycle == 0)
+            cycles--; // do later, but pretty much just idle.
 
         run_cycles += cycles;
 
@@ -37,11 +36,9 @@ namespace roee_nes {
             auto increment_mod_eight = [](uint8_t* foo) -> void { *foo = (*foo + 1) % 8; };
             increment_mod_eight(&x);
 
-            if (1 <= curr_cycle <= 256) {
-                bg_regs.pt_shift_lsb <<= 1;
-                bg_regs.pt_shift_msb <<= 1;
-                // render pixel
-            }
+            // if (1 <= curr_cycle <= 256)
+            //     NES_Screen.render_pixel(prepare_pixel());
+
             if (where_did_i_stop == LOAD_SHIFT_REGS) {
                 load_bg_shift_regs();
                 where_did_i_stop = static_cast<PPU_State>(static_cast<int>(where_did_i_stop) + 1);
@@ -179,4 +176,8 @@ namespace roee_nes {
         bg_regs.attr_shift_msb *= 0b11111111;
 
     }
+
+    // void PPU::prepare_pixel(){
+
+    // }
 }

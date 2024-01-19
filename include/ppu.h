@@ -56,7 +56,7 @@ namespace roee_nes {
         void increment_coarse_x();
         void increment_y();
 
-        void PPU::load_bg_shift_regs(); 
+        void load_bg_shift_regs(); 
 
         uint16_t fetch_pt_byte(uint8_t byte_significance);
 
