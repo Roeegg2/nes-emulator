@@ -1,8 +1,4 @@
 #include "../include/bus.h"
-#include "../include/mappers/nrom_0.h"
-
-#include <iostream>
-
 namespace roee_nes {
 
     Bus::Bus(Mapper* mapper) {
@@ -91,8 +87,6 @@ namespace roee_nes {
                 break;
 
             }
-
-            return 1;
         }
         else if (0x4000 <= addr && addr <= 0x4017) {
             return 0; // apu related - didnt implement yet
@@ -108,12 +102,20 @@ namespace roee_nes {
     }
 
     uint8_t Bus::ppu_read(uint16_t addr) {
-        if (0 <= addr && addr <= 0x1fff)
-            return mapper->ppu_read(addr);
-        else if (0x2000 <= addr && addr <= 0x3eff)
-            return mapper->ppu_read(addr);
-        else if (0x3f00 <= addr && addr <= 0x3fff)
-            return 0;
+        if (0 <= addr && addr <= 0x1fff){
+            return mapper->ppu_read(addr); // pattern table
+        }
+        else if (0x2000 <= addr && addr <= 0x3eff){
+            return mapper->ppu_read(addr); // nametable and attribute table
+        }
+        else if (0x3f00 <= addr && addr <= 0x3fff){
+            addr %= 32;
+            // change the following later!
+            if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1c)
+                addr -= 0x10;
+            
+            return palette[addr];
+        }
 
         return 0;
     }

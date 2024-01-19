@@ -1,17 +1,21 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "../include/bus.h"
-#include "../include/ppu.h"
+#include "bus.h"
+#include "ppu.h"
 
 #include <cstdint>
 #include <vector>
+#include <iostream>
+#include <fstream>
+#include <thread>
+#include <chrono>
 
-#define IRQ_CYCLES 7
-#define NMI_CYCLES 8
-#define RST_CYCLES 7
+constexpr uint8_t IRQ_CYCLES = 7;
+constexpr uint8_t NMI_CYCLES = 8;
+constexpr uint8_t RST_CYCLES = 7;
 
-#define STACK_BASE 256
+constexpr uint16_t STACK_BASE = 256;
 
 namespace roee_nes {
 
@@ -26,7 +30,7 @@ namespace roee_nes {
         NEGATIVE_BIT = 0b10000000
     };
 
-    enum AddressingMode : uint8_t { IMP, ACC, IMM, ABS, ZP, ZP_X, ZP_Y, REL, ABS_X, ABS_Y, IND, IND_Y, X_IND, XXX };
+    enum AddressingMode : uint8_t { IMP, ACC, IMM, ABS, ZP, ZP_X, ZP_Y, REL, ABS_X, ABS_Y, IND, IND_Y, X_IND };
 
     class Bus; // forward declaration to avoid circular dependency
     class CPU; // forward declaration to avoid circular dependency

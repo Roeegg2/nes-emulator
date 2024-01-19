@@ -1,16 +1,11 @@
 #include "../include/cpu.h"
 #include "../include/utils.h"
 
-#include <iostream>
-#include <fstream>
-#include <thread>
-#include <chrono>
-
 namespace roee_nes {
 
     CPU::CPU(Bus* bus) 
     : S(0xfd), P(0b00110100), A(0x00), X(0x00), Y(0x00), IR(0x00), bytes(0x0000)
-    {
+    {   
         /* I know, its ugly, but I'm using it for now (possibly forever) because its very easy and conventient */
         /* Credit to OLC on the map that served as the foundation of this one */
         using a = CPU;
@@ -56,8 +51,8 @@ namespace roee_nes {
     void CPU::execute_inst() {
         (this->*inst->exec)();
 
-        std::chrono::microseconds sleepDuration(get_sleep_time(inst->cycles));
-        std::this_thread::sleep_for(sleepDuration);
+        // std::chrono::microseconds sleepDuration(get_sleep_time(inst->cycles));
+        // std::this_thread::sleep_for(sleepDuration);
     }
 
     void CPU::fetch_decode_inst() { // this is also ugly, might rewrite it in the future
