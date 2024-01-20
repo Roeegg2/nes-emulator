@@ -18,7 +18,7 @@ namespace roee_nes
 
         renderer = SDL_CreateRenderer(window, -1, 0);
         
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
     }
 
@@ -27,29 +27,21 @@ namespace roee_nes
         SDL_Quit();
     }
 
-    void NES_Screen::draw_pixel(uint32_t color_value, uint8_t x, uint8_t y)
+    void NES_Screen::draw_pixel(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b)
     {
-        uint8_t r = (color_value & 0xFF000000) >> 24;
-        uint8_t g = (color_value & 0x00FF0000) >> 16;
-        uint8_t b = (color_value & 0x0000FF00) >> 8;
+        // uint8_t r = (color_value & 0x00ff0000) >> 16;
+        // uint8_t g = (color_value & 0x0000ff00) >> 8;
+        // uint8_t b = (color_value & 0x000000ff);
+
+        // std::cout << "x: " << (int)x << " y: " << (int)y << " r: " << (int)r << " g: " << (int)g << " b: " << (int)b << std::endl;
 
         if (x >= 256 || y >= 240)
             return;
 
         SDL_SetRenderDrawColor(renderer, r, g, b, 255);
         SDL_RenderDrawPoint(renderer, x, y);
-        // for (uint8_t i = 0; i < SCALE; i++)
-        // {
-        //     for (uint8_t j = 0; j < SCALE; j++)
-        //     {
-        //         SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-        //         SDL_RenderDrawPoint(renderer, x + i, y + j);
-        //     }
-        // }
-    }
 
-    void NES_Screen::wierd_wrapper()
-    {
-        SDL_RenderPresent(renderer);
+        if (x == 255 && y == 239)
+            SDL_RenderPresent(renderer);
     }
 }

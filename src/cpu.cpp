@@ -113,9 +113,6 @@ namespace roee_nes {
             bytes += Y;
             PC += 2;
             break;
-        default:
-            std::cout << "ERROR: Invalid addressing mode!" << std::endl;
-            break;
         }
 
         log(2);

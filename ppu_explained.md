@@ -1,12 +1,12 @@
-## PPU Graphics explained:
+# PPU Graphics explained:
 
-# Terminology:
+## Terminology:
 
-Tiles - 8x8 pixel regions, which the nes screen is divided into
-Sprites - any shape to be drawn on the screen. Mario, Goomba, clouds, Grass, Sky - everything.
-Character Sprites - a subset of the Sprites. Stuff like Mario, Goomba, Fireball, Koopatroopa, etc (ie all sprites which are not background)
+- Tiles - 8x8 pixel regions, which the nes screen is divided into
+- Sprites - any shape to be drawn on the screen. Mario, Goomba, clouds, Grass, Sky - everything.
+- Character Sprites - a subset of the Sprites. Stuff like Mario, Goomba, Fireball, Koopatroopa, etc (ie all sprites which are not background)
 
-# Nametables:
+## Nametables:
 Nametables can be thought of as "location of each sprite on the screen" I know its a bit confusing, hopefully the following explanation clears some of the confusion.
 
 the PPU has 4 nametables, each of size 1024 bytes (see PPU memory map). 
@@ -28,7 +28,7 @@ what is the pattern table?
 
 glad you asked!
 
-# Pattern table:
+## Pattern table:
 the pattern table is another section, its usually rom (but can be ram as well). it is in the *cartridge*. also called sometimes CHR rom/ram.
 remember i said the nametables are the "shape of the whole screen"? well, the pattern table can be thought of the "shape of each sprite"
 

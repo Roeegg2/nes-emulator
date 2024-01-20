@@ -14,8 +14,6 @@ namespace roee_nes
     {
         for (uint8_t i = 0; i < cycles; i++)
         {
-            if (curr_scanline == 0)
-                screen->wierd_wrapper();
             if (-1 <= curr_scanline && curr_scanline <= 239)
                 prerender_and_visible_scanline();
             else if (241 <= curr_scanline && curr_scanline <= 260) // vblank scanline
@@ -65,7 +63,6 @@ namespace roee_nes
         if (curr_scanline == 241 && curr_cycle == 1)
         {
             ext_regs.ppustatus |= 0b10000000;
-            std::cout << "nmi set" << std::endl;
             if (ext_regs.ppuctrl & 0b10000000) // if nmi on vblank is enabled
                 nmi = 1;
         }
@@ -226,8 +223,8 @@ namespace roee_nes
         attr_data |= (bg_regs.attr_shift_msb >> (7 - x)) << 1;
         attr_data &= 0b00000011;
 
-        uint8_t color = bus->ppu_read(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
+        Color* color = bus->ppu_get_color(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
 
-        screen->draw_pixel(color, curr_cycle, curr_scanline);
+        screen->draw_pixel(curr_cycle, curr_scanline, color->r, color->g, color->b);
     }
 }

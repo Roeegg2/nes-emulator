@@ -9,7 +9,7 @@ int main(){
     SDL_Event event;
     uint8_t cycles;
 
-    Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"));
+    Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"), "palette.pal");
     CPU cpu = CPU(&bus);
     PPU ppu = PPU(&bus, new NES_Screen());
     bus.cpu = &cpu;
