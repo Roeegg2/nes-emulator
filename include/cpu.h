@@ -44,7 +44,7 @@ namespace roee_nes {
     };
 
     class CPU {
-    private:
+        private:
         uint8_t A;
         uint8_t P;
         uint16_t PC;
@@ -60,7 +60,7 @@ namespace roee_nes {
 
         std::vector<Instruction> lookup;
 
-    public:
+        public:
         uint8_t run_cpu();
 
         void fetch_decode_inst();
@@ -76,7 +76,7 @@ namespace roee_nes {
         void irq(); // maskable
         void reset(); // reset
 
-    private:
+        private:
         uint8_t fetch(uint8_t offset);
         // 
         void set_flag(StatusFlag flag, uint8_t res);

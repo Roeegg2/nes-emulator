@@ -3,9 +3,8 @@
 
 namespace roee_nes {
 
-    CPU::CPU(Bus* bus) 
-    : S(0xfd), P(0b00110100), A(0x00), X(0x00), Y(0x00), IR(0x00), bytes(0x0000)
-    {   
+    CPU::CPU(Bus* bus)
+        : S(0xfd), P(0b00110100), A(0x00), X(0x00), Y(0x00), IR(0x00), bytes(0x0000) {
         /* I know, its ugly, but I'm using it for now (possibly forever) because its very easy and conventient */
         /* Credit to OLC on the map that served as the foundation of this one */
         using a = CPU;
@@ -40,10 +39,9 @@ namespace roee_nes {
 
         return inst->cycles;
     }
-    
+
     uint8_t CPU::fetch(uint8_t offset) {
-        uint8_t data = bus->cpu_read(PC + offset);
-        return data;
+        return bus->cpu_read(PC + offset);
     }
 
     void CPU::execute_inst() {
@@ -60,59 +58,59 @@ namespace roee_nes {
 
         log(1);
         switch (inst->mode) {
-        case REL:
-        case IMM:
-            bytes = fetch(1);
-            PC += 2;
-            break;
-        case ACC:
-        case IMP:
-            PC++;
-            break;
-        case ABS:
-            bytes = convert_to_2byte(fetch(1), fetch(2));
-            PC += 3;
-            break;
-        case ZP:
-            bytes = convert_to_2byte(fetch(1), 0);
-            PC += 2;
-            break;
-        case ZP_X:
-            bytes = convert_to_2byte(fetch(1), 0);
-            bytes += X;
-            PC += 2;
-            break;
-        case ZP_Y:
-            bytes = convert_to_2byte(fetch(1), 0);
-            bytes += Y;
-            PC += 2;
-            break;
-        case ABS_X:
-            bytes = convert_to_2byte(fetch(1), fetch(2));
-            bytes += X;
-            PC += 3;
-            break;
-        case ABS_Y:
-            bytes = convert_to_2byte(fetch(1), fetch(2));
-            bytes += Y;
-            PC += 3;
-            break;
-        case IND:
-            bytes = convert_to_2byte(fetch(1), fetch(2));
-            bytes = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes + 1)); // might be the other way around
-            PC += 3;
-            break;
-        case X_IND:
-            bytes = convert_to_2byte(fetch(1), 0);
-            bytes = bus->cpu_read(bytes);
-            PC += 2;
-            break;
-        case IND_Y:
-            bytes = convert_to_2byte(fetch(1), 0);
-            bytes = bus->cpu_read(bytes);
-            bytes += Y;
-            PC += 2;
-            break;
+            case REL:
+            case IMM:
+                bytes = fetch(1);
+                PC += 2;
+                break;
+            case ACC:
+            case IMP:
+                PC++;
+                break;
+            case ABS:
+                bytes = convert_to_2byte(fetch(1), fetch(2));
+                PC += 3;
+                break;
+            case ZP:
+                bytes = convert_to_2byte(fetch(1), 0);
+                PC += 2;
+                break;
+            case ZP_X:
+                bytes = convert_to_2byte(fetch(1), 0);
+                bytes += X;
+                PC += 2;
+                break;
+            case ZP_Y:
+                bytes = convert_to_2byte(fetch(1), 0);
+                bytes += Y;
+                PC += 2;
+                break;
+            case ABS_X:
+                bytes = convert_to_2byte(fetch(1), fetch(2));
+                bytes += X;
+                PC += 3;
+                break;
+            case ABS_Y:
+                bytes = convert_to_2byte(fetch(1), fetch(2));
+                bytes += Y;
+                PC += 3;
+                break;
+            case IND:
+                bytes = convert_to_2byte(fetch(1), fetch(2));
+                bytes = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes + 1)); // might be the other way around
+                PC += 3;
+                break;
+            case X_IND:
+                bytes = convert_to_2byte(fetch(1), 0);
+                bytes = bus->cpu_read(bytes);
+                PC += 2;
+                break;
+            case IND_Y:
+                bytes = convert_to_2byte(fetch(1), 0);
+                bytes = bus->cpu_read(bytes);
+                bytes += Y;
+                PC += 2;
+                break;
         }
 
         log(2);
@@ -129,7 +127,7 @@ namespace roee_nes {
     }
 
     uint8_t CPU::get_flag_status(StatusFlag flag) const {
-        return (P & flag) ? 1 : 0;
+        return ((P & flag) > 0) ? 1 : 0;
     }
 
 
@@ -154,22 +152,20 @@ namespace roee_nes {
 
     /* Printing util */
     void CPU::log(uint8_t part) {
-        static std::ofstream log("testr/nestest/roeenes.log", std::ios::out | std::ios::trunc);
+        static std::ofstream log("testr/nestest/CPU.log", std::ios::out | std::ios::trunc);
 
-        if (part == 1){
-        log << std::hex << std::uppercase << PC << " ";
-        log << std::hex << std::uppercase << (int)IR << " ";
+        if (part == 1) {
+            log << std::hex << std::uppercase << PC << " ";
+            log << std::hex << std::uppercase << (int)IR << " ";
         }
-        // log << std::hex << std::uppercase << (int)(bytes << 8) << " ";
-        // log << std::hex << std::uppercase << (int)(bytes >> 8) << " \t";
         else {
-        log << std::hex << std::uppercase << (int)(bytes) << " ";
-        log << std::hex << std::uppercase << "A:" << (int)A << " ";
-        log << std::hex << std::uppercase << "X:" << (int)X << " ";
-        log << std::hex << std::uppercase << "Y:" << (int)Y << " ";
-        log << std::hex << std::uppercase << "P:" << (int)P << " ";
-        log << std::hex << std::uppercase << "SP:" << (int)S << " ";
-        log << std::endl;
+            log << std::hex << std::uppercase << (int)(bytes) << " ";
+            log << std::hex << std::uppercase << "A:" << (int)A << " ";
+            log << std::hex << std::uppercase << "X:" << (int)X << " ";
+            log << std::hex << std::uppercase << "Y:" << (int)Y << " ";
+            log << std::hex << std::uppercase << "P:" << (int)P << " ";
+            log << std::hex << std::uppercase << "SP:" << (int)S << " ";
+            log << std::endl;
         }
     }
 }

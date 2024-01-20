@@ -9,11 +9,11 @@ namespace roee_nes {
         uint8_t mapper_number = (cart->header.flags_6 & 0xf0) | (cart->header.flags_7 >> 4);
 
         switch (mapper_number) {
-        case 0:
-            return new NROM_0(cart);
-        default:
-            std::cerr << "Mapper not implemented yet!" << std::endl;
-            return nullptr;
+            case 0:
+                return new NROM_0(cart);
+            default:
+                std::cerr << "Mapper not implemented yet!" << std::endl;
+                return nullptr;
         }
     }
 

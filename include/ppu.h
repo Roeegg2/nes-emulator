@@ -7,16 +7,14 @@
 #include "bus.h"
 #include "nes_screen.h"
 
-namespace roee_nes
-{
+namespace roee_nes {
 
-    constexpr uint8_t lsb = 0b00001000;
-    constexpr uint8_t msb = 0b00000000;
+    constexpr uint8_t LSB = 0b00001000;
+    constexpr uint8_t MSB = 0b00000000;
 
     class Bus;
-    
-    enum PPU_State
-    {
+
+    enum PPU_State {
         FETCH_NT,
         FETCH_AT,
         FETCH_PT_LSB,
@@ -24,8 +22,7 @@ namespace roee_nes
         LOAD_SHIFT_REGS
     };
 
-    struct Background_Regs
-    {
+    struct Background_Regs {
         uint16_t pt_shift_lsb;
         uint16_t pt_shift_msb;
 
@@ -38,23 +35,21 @@ namespace roee_nes
         uint8_t pt_latch_msb;
     };
 
-    struct External_Registers
-    {
+    struct External_Registers {
         uint8_t ppuctrl;
         uint8_t ppumask;
         uint8_t ppustatus;
         uint8_t oamaddr;
     };
 
-    class PPU
-    {
-    public:
-        PPU(Bus *bus, NES_Screen *screen);
+    class PPU {
+        public:
+        PPU(Bus* bus, NES_Screen* screen);
 
         void run_ppu(uint8_t cycles);
         void reset();
 
-    private:
+        private:
         void prerender_and_visible_scanline();
         void vblank_scanline();
 
@@ -70,7 +65,7 @@ namespace roee_nes
 
         void render_pixel();
 
-    public:
+        public:
         uint16_t v;
         uint16_t t;
         uint8_t x;
@@ -83,12 +78,12 @@ namespace roee_nes
         int curr_scanline; // why does static cause an error here?
         int curr_cycle;
         uint8_t odd_even_frame; // for pre-render scanline
-        
+
         uint8_t nmi;
 
-    public:
-        Bus *bus;
-        NES_Screen *screen;
+        public:
+        Bus* bus;
+        NES_Screen* screen;
     };
 }
 #endif
