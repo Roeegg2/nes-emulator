@@ -37,7 +37,6 @@ namespace roee_nes {
     uint8_t CPU::run_cpu() {
         fetch_decode_inst();
         execute_inst();
-        log();
 
         return inst->cycles;
     }
@@ -55,9 +54,11 @@ namespace roee_nes {
     }
 
     void CPU::fetch_decode_inst() { // this is also ugly, might rewrite it in the future
+        bytes = 0; // clearing operands from last operations
         IR = fetch(0);
         inst = &lookup[IR];
 
+        log(1);
         switch (inst->mode) {
         case REL:
         case IMM:
@@ -69,53 +70,55 @@ namespace roee_nes {
             PC++;
             break;
         case ABS:
+            bytes = convert_to_2byte(fetch(1), fetch(2));
             PC += 3;
-            bytes = convert_to_2byte(fetch(2), fetch(1));
             break;
         case ZP:
-            PC += 2;
             bytes = convert_to_2byte(fetch(1), 0);
+            PC += 2;
             break;
         case ZP_X:
-            PC += 2;
             bytes = convert_to_2byte(fetch(1), 0);
             bytes += X;
+            PC += 2;
             break;
         case ZP_Y:
-            PC += 2;
             bytes = convert_to_2byte(fetch(1), 0);
             bytes += Y;
+            PC += 2;
             break;
         case ABS_X:
-            PC += 3;
             bytes = convert_to_2byte(fetch(1), fetch(2));
             bytes += X;
+            PC += 3;
             break;
         case ABS_Y:
-            PC += 3;
             bytes = convert_to_2byte(fetch(1), fetch(2));
             bytes += Y;
+            PC += 3;
             break;
         case IND:
-            PC += 3;
             bytes = convert_to_2byte(fetch(1), fetch(2));
             bytes = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes + 1)); // might be the other way around
+            PC += 3;
             break;
         case X_IND:
-            PC += 2;
             bytes = convert_to_2byte(fetch(1), 0);
             bytes = bus->cpu_read(bytes);
+            PC += 2;
             break;
         case IND_Y:
-            PC += 2;
             bytes = convert_to_2byte(fetch(1), 0);
             bytes = bus->cpu_read(bytes);
             bytes += Y;
+            PC += 2;
             break;
         default:
             std::cout << "ERROR: Invalid addressing mode!" << std::endl;
             break;
         }
+
+        log(2);
     }
 
 
@@ -153,18 +156,23 @@ namespace roee_nes {
     }
 
     /* Printing util */
-    void CPU::log() {
+    void CPU::log(uint8_t part) {
         static std::ofstream log("testr/nestest/roeenes.log", std::ios::out | std::ios::trunc);
 
+        if (part == 1){
         log << std::hex << std::uppercase << PC << " ";
-        log << std::hex << std::uppercase << (uint16_t)IR << " ";
-        log << std::hex << std::uppercase << (uint16_t)(bytes >> 8) << " ";
-        log << std::hex << std::uppercase << (uint16_t)(bytes << 8) << " \t";
-        log << std::hex << std::uppercase << "A:" << (uint16_t)A << " ";
-        log << std::hex << std::uppercase << "X:" << (uint16_t)X << " ";
-        log << std::hex << std::uppercase << "Y:" << (uint16_t)Y << " ";
-        log << std::hex << std::uppercase << "P:" << (uint16_t)P << " ";
-        log << std::hex << std::uppercase << "SP:" << (uint16_t)S << " ";
+        log << std::hex << std::uppercase << (int)IR << " ";
+        }
+        // log << std::hex << std::uppercase << (int)(bytes << 8) << " ";
+        // log << std::hex << std::uppercase << (int)(bytes >> 8) << " \t";
+        else {
+        log << std::hex << std::uppercase << (int)(bytes) << " ";
+        log << std::hex << std::uppercase << "A:" << (int)A << " ";
+        log << std::hex << std::uppercase << "X:" << (int)X << " ";
+        log << std::hex << std::uppercase << "Y:" << (int)Y << " ";
+        log << std::hex << std::uppercase << "P:" << (int)P << " ";
+        log << std::hex << std::uppercase << "SP:" << (int)S << " ";
         log << std::endl;
+        }
     }
 }

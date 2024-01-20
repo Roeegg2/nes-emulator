@@ -12,7 +12,10 @@ int main(){
     Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"));
     CPU cpu = CPU(&bus);
     PPU ppu = PPU(&bus, new NES_Screen());
-    
+    bus.cpu = &cpu;
+    bus.ppu = &ppu;
+
+    ppu.reset();
     while(true) {
         cycles = cpu.run_cpu();
         ppu.run_ppu(cycles * 3);
@@ -21,7 +24,7 @@ int main(){
             cpu.nmi();
         
         if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
-            exit(1);
+            break;
         
     }
     return 0;

@@ -67,7 +67,7 @@ namespace roee_nes {
         void execute_inst();
 
         // temporary util functions
-        void log();
+        void log(uint8_t part);
 
         CPU(Bus* bus);
 

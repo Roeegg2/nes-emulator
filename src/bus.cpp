@@ -77,7 +77,6 @@ namespace roee_nes
         }
         else if (0x2000 <= addr && addr <= 0x3fff)
         {
-            std::cout << "cpu read: " << (unsigned int)(addr % 8) << std::endl;
             switch (addr % 8)
             {
             case PPUCTRL:
@@ -86,10 +85,10 @@ namespace roee_nes
             case PPUMASK:
                 break;
             case PPUSTATUS:
+                std::cout << "ppustatus: " << (int)ppu->ext_regs.ppustatus << std::endl;
+                // return ppu->ext_regs.ppustatus;
                 ppu->w = 0;
                 ppu->ext_regs.ppustatus = ppu->ext_regs.ppustatus & 0b01111111;
-                std::cout << "ppustatus: " << (int)ppu->ext_regs.ppustatus << std::endl;
-                return ppu->ext_regs.ppustatus;
                 break;
             case OAMADDR:
                 break;

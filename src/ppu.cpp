@@ -16,16 +16,10 @@ namespace roee_nes
         {
             if (curr_scanline == 0)
                 screen->wierd_wrapper();
-            if (241 <= curr_scanline && curr_scanline <= 260) // vblank scanline
-                vblank_scanline();
             if (-1 <= curr_scanline && curr_scanline <= 239)
-            {
-                static std::ofstream log("testr/nestest/ppu.log", std::ios::out | std::ios::trunc);
-                log << "prerender and visible scanline before" << curr_scanline << std::endl;
-                // pre-render and visible scanlines
                 prerender_and_visible_scanline();
-                log << "prerender and visible scanline after" << curr_scanline << std::endl;
-            }
+            else if (241 <= curr_scanline && curr_scanline <= 260) // vblank scanline
+                vblank_scanline();
 
             increment_counters(1);
         }
@@ -71,6 +65,7 @@ namespace roee_nes
         if (curr_scanline == 241 && curr_cycle == 1)
         {
             ext_regs.ppustatus |= 0b10000000;
+            std::cout << "nmi set" << std::endl;
             if (ext_regs.ppuctrl & 0b10000000) // if nmi on vblank is enabled
                 nmi = 1;
         }
@@ -207,8 +202,18 @@ namespace roee_nes
         curr_scanline = 0;
         odd_even_frame = 0;
         nmi = 0;
-        bg_regs = {};
-        ext_regs = {};
+        bg_regs.at_latch = 0;
+        bg_regs.attr_shift_lsb = 0;
+        bg_regs.attr_shift_msb = 0;
+        bg_regs.nt_latch = 0;
+        bg_regs.pt_latch_lsb = 0;
+        bg_regs.pt_latch_msb = 0;
+        bg_regs.pt_shift_lsb = 0;
+        bg_regs.pt_shift_msb = 0;
+        ext_regs.ppuctrl = 0;
+        ext_regs.ppumask = 0;
+        ext_regs.ppustatus = 0;
+        ext_regs.oamaddr = 0;
     }
 
     void PPU::render_pixel()
