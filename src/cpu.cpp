@@ -43,8 +43,7 @@ namespace roee_nes {
     }
     
     uint8_t CPU::fetch(uint8_t offset) {
-        uint8_t data = bus->cpu_read(PC) + offset;
-        PC++;
+        uint8_t data = bus->cpu_read(PC + offset);
         return data;
     }
 
@@ -62,43 +61,54 @@ namespace roee_nes {
         switch (inst->mode) {
         case REL:
         case IMM:
-            bytes = fetch(0);
+            bytes = fetch(1);
+            PC += 2;
             break;
         case ACC:
         case IMP:
+            PC++;
             break;
         case ABS:
-            bytes = convert_to_2byte(fetch(0), fetch(0));
+            PC += 3;
+            bytes = convert_to_2byte(fetch(2), fetch(1));
             break;
         case ZP:
-            bytes = convert_to_2byte(fetch(0), 0);
+            PC += 2;
+            bytes = convert_to_2byte(fetch(1), 0);
             break;
         case ZP_X:
-            bytes = convert_to_2byte(fetch(0), 0);
+            PC += 2;
+            bytes = convert_to_2byte(fetch(1), 0);
             bytes += X;
             break;
         case ZP_Y:
-            bytes = convert_to_2byte(fetch(0), 0);
+            PC += 2;
+            bytes = convert_to_2byte(fetch(1), 0);
             bytes += Y;
             break;
         case ABS_X:
-            bytes = convert_to_2byte(fetch(0), fetch(0));
+            PC += 3;
+            bytes = convert_to_2byte(fetch(1), fetch(2));
             bytes += X;
             break;
         case ABS_Y:
-            bytes = convert_to_2byte(fetch(0), fetch(0));
+            PC += 3;
+            bytes = convert_to_2byte(fetch(1), fetch(2));
             bytes += Y;
             break;
         case IND:
-            bytes = convert_to_2byte(fetch(0), fetch(0));
-            bytes = bus->cpu_read(bytes);
+            PC += 3;
+            bytes = convert_to_2byte(fetch(1), fetch(2));
+            bytes = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes + 1)); // might be the other way around
             break;
         case X_IND:
-            bytes = convert_to_2byte(fetch(0) + X, 0);
+            PC += 2;
+            bytes = convert_to_2byte(fetch(1), 0);
             bytes = bus->cpu_read(bytes);
             break;
         case IND_Y:
-            bytes = convert_to_2byte(fetch(0), 0);
+            PC += 2;
+            bytes = convert_to_2byte(fetch(1), 0);
             bytes = bus->cpu_read(bytes);
             bytes += Y;
             break;

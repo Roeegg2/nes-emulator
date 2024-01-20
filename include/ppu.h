@@ -67,8 +67,8 @@ namespace roee_nes
         void reset();
 
     private:
-        void prerender_and_visible_scanline(uint8_t cycles);
-        void vblank_scanline(uint8_t cycles);
+        void prerender_and_visible_scanline();
+        void vblank_scanline();
 
         void increment_counters(uint8_t cycles);
 
@@ -92,10 +92,10 @@ namespace roee_nes
 
         External_Registers ext_regs;
 
-        uint32_t curr_scanline; // why does static cause an error here?
-        uint32_t curr_cycle;
+        int curr_scanline; // why does static cause an error here?
+        int curr_cycle;
         uint8_t odd_even_frame; // for pre-render scanline
-
+        
         uint8_t nmi;
 
     public:

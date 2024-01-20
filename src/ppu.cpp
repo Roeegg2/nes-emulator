@@ -12,62 +12,68 @@ namespace roee_nes
 
     void PPU::run_ppu(uint8_t cycles)
     {
-        if (-1 <= curr_scanline <= 239) // pre-render and visible scanlines
-            prerender_and_visible_scanline(cycles);
-        else if (241 <= curr_scanline <= 260) // vblank scanlines
-            vblank_scanline(cycles);
-        else // idle scanline - do nothing, just increment counters
-            increment_counters(cycles);
-    }
-
-    /* I am a bit simplfying this, usually there is an insertion and fetch in different address*/
-    void PPU::prerender_and_visible_scanline(uint8_t cycles)
-    {
-        static uint8_t fetching_cycle_counter = 0;
-        static PPU_State next_fetch = FETCH_NT;
-
-        if (curr_cycle == 0 && 0 <= curr_scanline <= 239)
-            cycles--; // do later, but pretty much just idle.
-
-        fetching_cycle_counter += cycles;
-
         for (uint8_t i = 0; i < cycles; i++)
         {
-            if (1 <= curr_cycle <= 256) // rendering cycle
-                render_pixel();
-
-            if (next_fetch == LOAD_SHIFT_REGS) // loading takes one cycle, so if we need to load, we always can
+            if (curr_scanline == 0)
+                screen->wierd_wrapper();
+            if (241 <= curr_scanline && curr_scanline <= 260) // vblank scanline
+                vblank_scanline();
+            if (-1 <= curr_scanline && curr_scanline <= 239)
             {
-                load_bg_shift_regs();
-                next_fetch = static_cast<PPU_State>(static_cast<int>(next_fetch) + 1);
+                static std::ofstream log("testr/nestest/ppu.log", std::ios::out | std::ios::trunc);
+                log << "prerender and visible scanline before" << curr_scanline << std::endl;
+                // pre-render and visible scanlines
+                prerender_and_visible_scanline();
+                log << "prerender and visible scanline after" << curr_scanline << std::endl;
             }
-            if (fetching_cycle_counter > 1) // making sure we have at least 2 cycles in the bank
-            {
-                fetch_rendering_data(next_fetch);
-
-                next_fetch = static_cast<PPU_State>(static_cast<int>(next_fetch) + 1);
-                fetching_cycle_counter -= 2;
-            }
-            if (fetching_cycle_counter == 256) // if we reached the end of the scanline
-                increment_y();
-
-            if (odd_even_frame == 1 && curr_scanline == -1 && curr_cycle == 339) // on odd frames we skip the last cycle of the pre-render scanline
-                increment_counters(1);
 
             increment_counters(1);
         }
     }
 
-    void PPU::vblank_scanline(uint8_t cycles)
+    /* I am a bit simplfying this, usually there is an insertion and fetch in different address*/
+    void PPU::prerender_and_visible_scanline()
     {
+        static uint8_t fetching_cycle_counter = 0;
+        static PPU_State next_fetch = FETCH_NT;
+
+        fetching_cycle_counter += 1;
+
+        if (curr_cycle == 0 && 0 <= curr_scanline <= 239)
+            return; // do later, but pretty much just idle.
+
+        if (1 <= curr_cycle <= 256) // rendering cycle
+            render_pixel();
+
+        if (next_fetch == LOAD_SHIFT_REGS) // loading takes one cycle, so if we need to load, we always can
+        {
+            load_bg_shift_regs();
+            next_fetch = static_cast<PPU_State>(static_cast<int>(next_fetch) + 1);
+        }
+        if (fetching_cycle_counter > 1) // making sure we have at least 2 cycles in the bank
+        {
+            fetch_rendering_data(next_fetch);
+
+            next_fetch = static_cast<PPU_State>(static_cast<int>(next_fetch) + 1);
+            fetching_cycle_counter -= 2;
+        }
+        if (curr_cycle == 256) // if we reached the end of the scanline
+            increment_y();
+
+        if (odd_even_frame == 1 && curr_scanline == -1 && curr_cycle == 339) // on odd frames we skip the last cycle of the pre-render scanline
+            increment_counters(1);
+    }
+
+    void PPU::vblank_scanline()
+    {
+        if (curr_scanline == 261)
+            curr_scanline = -1;
         if (curr_scanline == 241 && curr_cycle == 1)
         {
             ext_regs.ppustatus |= 0b10000000;
             if (ext_regs.ppuctrl & 0b10000000) // if nmi on vblank is enabled
                 nmi = 1;
         }
-        if (curr_scanline == 260)
-            curr_scanline = -1;
     }
 
     uint16_t PPU::fetch_pt_byte(uint8_t byte_significance)
@@ -148,7 +154,8 @@ namespace roee_nes
     {
         curr_cycle += cycles;
 
-        if (curr_cycle >= 341){
+        if (curr_cycle >= 341)
+        {
             curr_cycle %= 340;
             curr_scanline++;
         }
@@ -215,6 +222,7 @@ namespace roee_nes
         attr_data &= 0b00000011;
 
         uint8_t color = bus->ppu_read(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
+
         screen->draw_pixel(color, curr_cycle, curr_scanline);
     }
 }

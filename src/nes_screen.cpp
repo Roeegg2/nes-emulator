@@ -17,6 +17,9 @@ namespace roee_nes
                                   256 * 3, 240 * 3, 0);
 
         renderer = SDL_CreateRenderer(window, -1, 0);
+        
+        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+        SDL_RenderClear(renderer);
     }
 
     NES_Screen::~NES_Screen()
@@ -35,8 +38,6 @@ namespace roee_nes
 
         SDL_SetRenderDrawColor(renderer, r, g, b, 255);
         SDL_RenderDrawPoint(renderer, x, y);
-        SDL_RenderPresent(renderer);
-
         // for (uint8_t i = 0; i < SCALE; i++)
         // {
         //     for (uint8_t j = 0; j < SCALE; j++)
@@ -47,4 +48,8 @@ namespace roee_nes
         // }
     }
 
+    void NES_Screen::wierd_wrapper()
+    {
+        SDL_RenderPresent(renderer);
+    }
 }

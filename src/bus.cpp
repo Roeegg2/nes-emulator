@@ -1,17 +1,22 @@
 #include "../include/bus.h"
-namespace roee_nes {
+namespace roee_nes
+{
 
-    Bus::Bus(Mapper* mapper) {
+    Bus::Bus(Mapper *mapper)
+    {
         this->mapper = mapper;
     }
 
-    void Bus::cpu_write(uint16_t addr, uint8_t data) {
+    void Bus::cpu_write(uint16_t addr, uint8_t data)
+    {
         uint16_t temp = data;
 
         if (0 <= addr && addr <= 0x1fff)
             ram[addr % 0x800] = data;
-        else if (0x2000 <= addr && addr <= 0x3fff) {
-            switch (addr % 8) {
+        else if (0x2000 <= addr && addr <= 0x3fff)
+        {
+            switch (addr % 8)
+            {
             case PPUCTRL:
                 // ppu->t = ppu->t & (0b00000011 & data);
                 break;
@@ -24,12 +29,14 @@ namespace roee_nes {
             case OAMDATA:
                 break;
             case PPUSCROLL:
-                if (ppu->w == 0) {
+                if (ppu->w == 0)
+                {
                     ppu->t = ((ppu->t >> 5) << 5) & (temp >> 3);
                     ppu->x = temp & 0b00000111;
                     ppu->w = 1; // NOTE: move this out of the if statement
                 }
-                else {
+                else
+                {
                     ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
                     ppu->t = ppu->t | (temp << 12);
                     ppu->t = ppu->t | ((temp >> 3) << 5);
@@ -37,20 +44,21 @@ namespace roee_nes {
                 }
                 break;
             case PPUADDR:
-                if (ppu->w == 0) {
+                if (ppu->w == 0)
+                {
                     temp = temp & 0b00111111;
                     ppu->t = (ppu->t & 0b0000000011111111) | (data << 8);
                     ppu->w = 1; // NOTE: move this out of the if statement
                 }
-                else {
+                else
+                {
                     ppu->t = (ppu->t & 0b1111111100000000) | temp;
                     ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
-                    ppu->w = 0; // NOTE: move this out of the if statement
+                    ppu->w = 0;      // NOTE: move this out of the if statement
                 }
                 break;
             case PPUDATA:
                 break;
-
             }
         }
         else if (0x4000 <= addr && addr <= 0x4017)
@@ -61,19 +69,27 @@ namespace roee_nes {
             mapper->cpu_write(addr, data);
     }
 
-    uint8_t Bus::cpu_read(uint16_t addr) {
-        if (0 <= addr && addr <= 0x1fff) {
+    uint8_t Bus::cpu_read(uint16_t addr)
+    {
+        if (0 <= addr && addr <= 0x1fff)
+        {
             return ram[addr % 0x800];
         }
-        else if (0x2000 <= addr && addr <= 0x3fff) {
-            switch (addr % 8) {
+        else if (0x2000 <= addr && addr <= 0x3fff)
+        {
+            std::cout << "cpu read: " << (unsigned int)(addr % 8) << std::endl;
+            switch (addr % 8)
+            {
             case PPUCTRL:
+                std::cout << "ppuctrl: " << std::endl;
                 break;
             case PPUMASK:
                 break;
             case PPUSTATUS:
                 ppu->w = 0;
                 ppu->ext_regs.ppustatus = ppu->ext_regs.ppustatus & 0b01111111;
+                std::cout << "ppustatus: " << (int)ppu->ext_regs.ppustatus << std::endl;
+                return ppu->ext_regs.ppustatus;
                 break;
             case OAMADDR:
                 break;
@@ -85,35 +101,41 @@ namespace roee_nes {
                 break;
             case PPUDATA:
                 break;
-
             }
         }
-        else if (0x4000 <= addr && addr <= 0x4017) {
+        else if (0x4000 <= addr && addr <= 0x4017)
+        {
             return 0; // apu related - didnt implement yet
         }
-        else if (0x4018 <= addr && addr <= 0x401f) {
+        else if (0x4018 <= addr && addr <= 0x401f)
+        {
             return 0; // apu related - didnt implement yet
         }
-        else if (0x4020 <= addr && addr <= 0xffff) {
+        else if (0x4020 <= addr && addr <= 0xffff)
+        {
             return mapper->cpu_read(addr);
         }
 
         return 0;
     }
 
-    uint8_t Bus::ppu_read(uint16_t addr) {
-        if (0 <= addr && addr <= 0x1fff){
+    uint8_t Bus::ppu_read(uint16_t addr)
+    {
+        if (0 <= addr && addr <= 0x1fff)
+        {
             return mapper->ppu_read(addr); // pattern table
         }
-        else if (0x2000 <= addr && addr <= 0x3eff){
+        else if (0x2000 <= addr && addr <= 0x3eff)
+        {
             return mapper->ppu_read(addr); // nametable and attribute table
         }
-        else if (0x3f00 <= addr && addr <= 0x3fff){
+        else if (0x3f00 <= addr && addr <= 0x3fff)
+        {
             addr %= 32;
             // change the following later!
             if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1c)
                 addr -= 0x10;
-            
+
             return palette[addr];
         }
 

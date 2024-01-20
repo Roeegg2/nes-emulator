@@ -16,15 +16,15 @@ namespace roee_nes {
     class PPU;
     class CPU;
 
-    enum PPU_Regs : uint16_t {
-        PPUCTRL = 0x2000,
-        PPUMASK = 0x2001,
-        PPUSTATUS = 0x2002,
-        OAMADDR = 0x2003,
-        OAMDATA = 0x2004,
-        PPUSCROLL = 0x2005,
-        PPUADDR = 0x2006,
-        PPUDATA = 0x2007
+    enum PPU_Regs : uint8_t {
+        PPUCTRL = 0,
+        PPUMASK = 1,
+        PPUSTATUS = 2,
+        OAMADDR = 3,
+        OAMDATA = 4,
+        PPUSCROLL = 5,
+        PPUADDR = 6,
+        PPUDATA = 7
     };
 
     class Bus {

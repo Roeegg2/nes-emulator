@@ -17,7 +17,7 @@ namespace roee_nes {
         ~NES_Screen();
 
         void draw_pixel(uint32_t color, uint8_t x, uint8_t y);
-
+        void wierd_wrapper();
     private:
         SDL_Window* window;
         SDL_Renderer* renderer;

@@ -488,10 +488,15 @@ namespace roee_nes
     /* the actual LD implementation */
     void CPU::reg_LD_actual(uint8_t *reg)
     {
+        static int counter = 0;
+        std::cout << (int)bytes << std::endl;
         if (inst->mode != IMM)
             bytes = bus->cpu_read(bytes);
 
-        *(reg) = (uint8_t)bytes;
+        // if (counter < 10 ||data != 0)
+        //     std::cout << "data: " << (int)data << std::endl;
+        // counter++;
+        *(reg) = (uint8_t)bytes;    
 
         set_flag(ZERO_BIT, *(reg) == 0);
         set_flag(NEGATIVE_BIT, *(reg) & 0b10000000);

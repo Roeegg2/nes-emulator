@@ -6,14 +6,13 @@
 using namespace roee_nes;
 
 int main(){
+    SDL_Event event;
     uint8_t cycles;
 
     Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"));
     CPU cpu = CPU(&bus);
     PPU ppu = PPU(&bus, new NES_Screen());
-
-    cpu.log();
-
+    
     while(true) {
         cycles = cpu.run_cpu();
         ppu.run_ppu(cycles * 3);
@@ -21,7 +20,8 @@ int main(){
         if (ppu.nmi)
             cpu.nmi();
         
-        std::cout << "scanline: " << (int)ppu.curr_scanline << " cycle: " << (int)ppu.curr_cycle << std::endl;
+        if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
+            exit(1);
         
     }
     return 0;
