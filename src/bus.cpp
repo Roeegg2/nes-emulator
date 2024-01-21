@@ -1,4 +1,5 @@
 #include "../include/bus.h"
+
 namespace roee_nes {
     Bus::Bus(Mapper* mapper, std::string palette_path) {
         this->mapper = mapper;
@@ -22,48 +23,7 @@ namespace roee_nes {
         if (0 <= addr && addr <= 0x1fff)
             ram[addr % 0x800] = data;
         else if (0x2000 <= addr && addr <= 0x3fff) {
-            switch (addr % 8) {
-                case PPUCTRL:
-                ppu->ext_regs.ppuctrl = data;
-                ppu->t = ppu->t | ((0b00000011 & data) << 10);
-                break;
-                case PPUMASK:
-                ppu->ext_regs.ppumask = data;
-                break;
-                case PPUSTATUS:
-                break;
-                case OAMADDR:
-                break;
-                case OAMDATA:
-                break;
-                case PPUSCROLL:
-                if (ppu->w == 0) {
-                    ppu->t = ((ppu->t >> 5) << 5) & (data >> 3);
-                    ppu->x = data & 0b00000111;
-                    ppu->w = 1; // NOTE: move this out of the if statement
-                } else {
-                    ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
-                    ppu->t = ppu->t | (data << 12);
-                    ppu->t = ppu->t | ((data >> 3) << 5);
-                    ppu->w = 0; // NOTE: move this out of the if statement
-                }
-                break;
-                case PPUADDR:
-                if (ppu->w == 0) {
-                    data = data & 0b00111111;
-                    ppu->t = (ppu->t & 0b0000000011111111) | (data << 8);
-                    ppu->w = 1; // NOTE: move this out of the if statement
-                } else {
-                    ppu->t = (ppu->t & 0b1111111100000000) | data;
-                    ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
-                    ppu->w = 0;      // NOTE: move this out of the if statement
-                }
-                break;
-                case PPUDATA:
-                vram[ppu->v] = data;                                     // not sure about this
-                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // not sure about this
-                break;
-            }
+            cpu_write_ppu(addr % 8, data);
         } else if (0x4000 <= addr && addr <= 0x4017)
             return; // apu related - didnt implement yet
         else if (0x4018 <= addr && addr <= 0x401f)
@@ -73,29 +33,10 @@ namespace roee_nes {
     }
 
     uint8_t Bus::cpu_read(uint16_t addr) {
-        uint16_t tee;
         if (0 <= addr && addr <= 0x1fff)
             return ram[addr % 0x800];
         else if (0x2000 <= addr && addr <= 0x3fff) {
-            switch (addr % 8) {
-                case PPUCTRL:
-                case PPUMASK:
-                break;
-                case PPUSTATUS: // TODO: implement something with games using the ppustatus register for valid data
-                tee = ppu->ext_regs.ppustatus;
-                ppu->w = 0;
-                ppu->ext_regs.ppustatus = ppu->ext_regs.ppustatus & 0b01111111;
-                return tee;
-                case OAMADDR:
-                case OAMDATA:
-                case PPUSCROLL:
-                case PPUADDR:
-                break;
-                case PPUDATA:
-                uint8_t temp = vram[ppu->v];
-                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // not sure about this
-                return temp;
-            }
+            return cpu_read_ppu(addr % 8);
         } else if (0x4000 <= addr && addr <= 0x4017) {
             return 0; // apu related - didnt implement yet
         } else if (0x4018 <= addr && addr <= 0x401f) {
@@ -128,4 +69,85 @@ namespace roee_nes {
         } else
             return nullptr;
     }
+
+    void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
+        uint16_t data16 = data;
+
+        switch (addr % 8) {
+            case PPUCTRL:
+                // if (total_frames <= 30000) return; // but not really important
+                ppu->ext_regs.ppuctrl = data;
+                ppu->t = ppu->t | ((0b00000011 & data) << 10);
+                break;
+            case PPUMASK:
+                ppu->ext_regs.ppumask = data;
+                break;
+            case PPUSTATUS:
+                break;
+            case OAMADDR:
+                break;
+            case OAMDATA:
+                break;
+            case PPUSCROLL:
+                if (ppu->w == 0) {
+                    ppu->t = ((ppu->t >> 5) << 5) | (data16 >> 3); // setting coarse x
+                    ppu->x = data16 & 0b00000111; // setting fine x
+                    ppu->w = 1; // NOTE: move this out of the if statement
+                } 
+                else { //setting coarse y and fine y
+                    ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
+                    ppu->t = ppu->t | (data16 << 12);
+                    ppu->t = ppu->t | ((data16 >> 3) << 5);
+                    ppu->w = 0; // NOTE: move this out of the if statement
+                }
+                break;
+            case PPUADDR:
+                if (ppu->w == 0) {
+                    data16 = data16 & 0b00111111;
+                    ppu->t = (ppu->t & 0b0000000011111111) | (data16 << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
+                    ppu->w = 1; // NOTE: move this out of the if statement
+                } 
+                else {
+                    ppu->t = (ppu->t & 0b0011111100000000) | data;
+                    ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
+                    ppu->w = 0;      // NOTE: move this out of the if statement
+                }
+                break;
+            case PPUDATA:
+                vram[ppu->v] = data; // might have a problem with other mappers different than NROM here i think.
+                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // not sure about this
+                break;
+        }
+    }
+
+    uint8_t Bus::cpu_read_ppu(uint16_t addr) {
+        uint8_t ret = 0;
+
+        switch (addr) {
+            case PPUCTRL:
+            case PPUMASK:
+                break;
+            case PPUSTATUS:
+                ppu->w = 0;
+                ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_cpu_latch & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
+                ppu->ext_regs.ppustatus = ppu->ext_regs.ppustatus & 0b01111111;
+                break;
+            case OAMADDR:
+            case OAMDATA:
+            case PPUSCROLL:
+            case PPUADDR:
+                break;
+            case PPUDATA:
+                ret = ppu_cpu_latch;
+                ppu_cpu_latch = vram[ppu->v]; // not sure about this
+                if (addr >= 0x3f00)
+                    ret = vram[ppu->v];
+                // else return palette data
+                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // MIGHT CAUSE PROBLEM
+                break;
+        }
+
+        return ret;
+    }
 }
+

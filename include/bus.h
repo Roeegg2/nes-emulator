@@ -33,7 +33,7 @@ namespace roee_nes {
         uint8_t b;
     };
     class Bus {
-        public:
+    public:
         std::array<uint8_t, 0x800> ram; // 0x0000 - 0x07FF, 3 mirrors + real | 0x2000 size
         std::array<uint8_t, 0x1000> vram;
 
@@ -43,7 +43,9 @@ namespace roee_nes {
         PPU* ppu;
         CPU* cpu;
 
-        public:
+        uint8_t ppu_cpu_latch;
+
+    public:
         Bus(Mapper* mapper, std::string palette_path);
 
         uint8_t cpu_read(uint16_t addr);
@@ -52,7 +54,10 @@ namespace roee_nes {
         uint32_t ppu_read(uint16_t addr);
         Color* ppu_get_color(uint16_t addr);
 
-        private:
+        uint8_t cpu_read_ppu(uint16_t addr);
+        void cpu_write_ppu(uint16_t addr, uint8_t data);
+
+    private:
         void init_palette(std::string palette_path);
     };
 

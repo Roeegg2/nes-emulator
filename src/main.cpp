@@ -5,10 +5,39 @@
 
 using namespace roee_nes;
 
-int main() {
+void print_debugger() {
+    // printf("------------- DEBUGGER STARTED --------------\n\n");
+
+    // printf("COMMANDS:\n");
+    // printf("c/run - continue\n");
+    // printf("s - step\n");
+    // printf("b <addr> - add breakpoint at <addr>\n");
+    // printf("pc - print cpu registers (NOTE: not implemented yet)\n");
+    // printf("pp - print ppu registers (NOTE: not implemented yet)\n");
+    // printf("pm <addr> - print memory at <addr> (NOTE: not implemented yet)\n");
+    // printf("q - quit\n");
+}
+
+int run_emulator(CPU* cpu, PPU* ppu) {
     SDL_Event event;
     uint8_t cycles;
+    
+    cycles = cpu->run_cpu();
+    ppu->run_ppu(cycles * 3);
 
+    if (ppu->ext_regs.ppustatus & 0b10000000) {
+        std::cout << ppu->ext_regs.ppustatus << std::endl;
+        ppu->ext_regs.ppustatus &= 0b01111111;
+        ppu->nmi = 0;
+        cpu->nmi();
+    }
+
+    // if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
+    //     exit(1);
+    return 0;
+}
+
+int main() {
     Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"), "testr/gameroms/palette.pal");
     CPU cpu = CPU(&bus);
     PPU ppu = PPU(&bus, new NES_Screen());
@@ -16,17 +45,26 @@ int main() {
     bus.ppu = &ppu;
 
     ppu.reset();
-    while(1) {
-        cycles = cpu.run_cpu();
-        ppu.run_ppu(cycles * 3);
+    cpu.reset();
 
-        if (ppu.ext_regs.ppustatus | 0b10000000){
-            cpu.nmi();
-            ppu.ext_regs.ppustatus &= 0b01111111;
-        }
+    while (1) {
+        std::cout << "\n>>";
+        char command = getchar();
 
-        if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
+        switch (command) {
+            case 'c':
+                while (1)
+                    run_emulator(&cpu, &ppu);
             break;
+            
+            case 's':
+                run_emulator(&cpu, &ppu);
+            break;
+
+            case 'q':
+                return 0;
+            break;
+        }
     }
 
     return 0;

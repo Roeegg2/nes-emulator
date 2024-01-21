@@ -37,6 +37,7 @@ namespace roee_nes {
     struct Instruction;
 
     struct Instruction {
+        std::string name;
         void (CPU::* exec)(); // pointer to the instruction to execute
 
         AddressingMode mode;
@@ -102,7 +103,7 @@ namespace roee_nes {
         void STX();	void STY();	void TAX();	void TAY();
         void TSX();	void TXA();	void TXS();	void TYA();
         // this one is a nop which i call for each illegal instruction. I plan to add support for most of them (because some are a pain in the ass to implement) later.
-        void ILLEGAL();
+        void ILL();
 
         // to avoid code duplications in some instructions, i added these functions (see implementation)
         void reg_CMP_actual(uint8_t* reg);

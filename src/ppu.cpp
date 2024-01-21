@@ -11,6 +11,8 @@ namespace roee_nes {
 
     void PPU::run_ppu(uint8_t cycles) {
         for (uint8_t i = 0; i < cycles; i++) {
+            // if (curr_scanline == -1)
+            //     ext_regs.ppustatus |= 0b00100000; // setting sprite evaluation flag to 
             if (-1 <= curr_scanline && curr_scanline <= 239)
                 prerender_and_visible_scanline();
             else if (241 <= curr_scanline && curr_scanline <= 260) // vblank scanline
@@ -55,8 +57,10 @@ namespace roee_nes {
     void PPU::vblank_scanline() {
         if (curr_scanline == 261)
             curr_scanline = -1;
-        if (curr_scanline == 241 && curr_cycle == 1 && ext_regs.ppuctrl & 0b10000000)
+        if (curr_scanline == 241 && curr_cycle == 1 && ext_regs.ppuctrl & 0b10000000){
+            nmi = 1;
             ext_regs.ppustatus |= 0b10000000;
+        }
 
     }
 
