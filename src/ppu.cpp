@@ -13,7 +13,7 @@ namespace roee_nes {
         for (uint8_t i = 0; i < cycles; i++) {
             if (curr_cycle == 256 && Get_rendering_status()) // if we reached the end of the scanline
                 increment_v_y();
-
+            
             if (curr_scanline == -1){
                 if (280 <= curr_cycle <= 304 && Get_rendering_status())
                     v = t;
@@ -23,7 +23,7 @@ namespace roee_nes {
             else if (241 <= curr_scanline && curr_scanline <= 260) // vblank scanline
                 vblank_scanline();
 
-            if ((256 <= curr_cycle || 328 <= curr_cycle) && curr_cycle % 8 == 0 && Get_rendering_status())
+            if (( curr_cycle <= 256 || 328 <= curr_cycle) && curr_cycle % 8 == 0 && Get_rendering_status())
                 increment_v_x();
 
             increment_counters(1);
@@ -63,8 +63,10 @@ namespace roee_nes {
     }
 
     void PPU::vblank_scanline() {
-        if (curr_scanline == 261)
+        if (curr_scanline == 261 && curr_cycle == 340){
             curr_scanline = -1;
+            curr_frame += 1;
+        }
         if (curr_scanline == 241 && curr_cycle == 1 /*&& ext_regs.ppuctrl & 0b10000000 */) {
             nmi = 1;
             ext_regs.ppustatus |= 0b10000000;
@@ -95,6 +97,7 @@ namespace roee_nes {
         // 0, 1 -> 4|, 5
         // 1, 0 -> 0|, 1
         // 1, 1 -> 6|, 7
+        // getting the attribute bits for the palette table
         auto get_first_bit = [](uint8_t coarse_x, uint8_t coarse_y) -> uint8_t { // will rewrite this lambda later
             if (coarse_x % 2 == 0) {
                 if (coarse_y % 2 == 0)
@@ -114,7 +117,7 @@ namespace roee_nes {
         bg_regs.attr_shift_msb = (bg_regs.at_latch >> attr_loading_shift) && 0b00000001;
         bg_regs.attr_shift_lsb = (bg_regs.at_latch >> (attr_loading_shift + 1)) && 0b00000001;
 
-        // if reg = 0b01 -> 0b11111111, if reg = 0b00 -> 0b00000000
+        // if reg = 0b01 => 0b11111111, if reg = 0b00 => 0b00000000
         bg_regs.attr_shift_lsb *= 0b11111111;
         bg_regs.attr_shift_msb *= 0b11111111;
     }

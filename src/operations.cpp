@@ -228,10 +228,10 @@ namespace roee_nes {
     /* logical shift right (wrapper function to avoid code duplication)*/
     void CPU::LSR() {
         if (inst->mode == ACC)
-            actual_LSR(&A);
+            LSR_actual(&A);
         else {
             uint8_t data = bus->cpu_read(bytes);
-            actual_LSR(&data);
+            LSR_actual(&data);
             bus->cpu_write(bytes, data);
         }
     }
@@ -277,10 +277,10 @@ namespace roee_nes {
     /* rotate left */
     void CPU::ROL() { // NOTE: I know there is code duplication here, maybe ill fix later.
         if (inst->mode == ACC)
-            actual_ROL(&A);
+            ROL_actual(&A);
         else {
             uint8_t data = bus->cpu_read(bytes);
-            actual_ROL(&data);
+            ROL_actual(&data);
             bus->cpu_write(bytes, data);
         }
     }
@@ -288,10 +288,10 @@ namespace roee_nes {
     /* rotate right */
     void CPU::ROR() {
         if (inst->mode == ACC)
-            actual_ROR(&A);
+            ROR_actual(&A);
         else {
             uint8_t data = bus->cpu_read(bytes);
-            actual_ROR(&data);
+            ROR_actual(&data);
             bus->cpu_write(bytes, data);
         }
     }
@@ -440,7 +440,7 @@ namespace roee_nes {
     }
 
     /* the actual LSR implementation */
-    void CPU::actual_LSR(uint8_t* reg) {
+    void CPU::LSR_actual(uint8_t* reg) {
         set_flag(CARRY_BIT, *(reg) & 0b00000001);
         *(reg) = *(reg) >> 1;
         set_flag(ZERO_BIT, *(reg) == 0);
@@ -448,7 +448,7 @@ namespace roee_nes {
     }
 
     /* the actual ROL implementation */
-    void CPU::actual_ROL(uint8_t* val) {
+    void CPU::ROL_actual(uint8_t* val) {
         uint8_t foo = *(val) & 0b10000000;
         *(val) = *(val) << 1;
         *(val) |= get_flag_status(CARRY_BIT);
@@ -458,7 +458,7 @@ namespace roee_nes {
     }
 
     /* the actual ROR implementation */
-    void CPU::actual_ROR(uint8_t* val) {
+    void CPU::ROR_actual(uint8_t* val) {
         uint8_t foo = *(val) & 0b00000001;
 
         *(val) = *(val) >> 1;

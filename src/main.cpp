@@ -21,7 +21,7 @@ void print_debugger() {
 int run_emulator(CPU* cpu, PPU* ppu) {
     SDL_Event event;
     uint8_t cycles;
-    
+
     cycles = cpu->run_cpu();
     ppu->run_ppu(cycles * 3);
 
@@ -53,17 +53,19 @@ int main() {
 
         switch (command) {
             case 'c':
-                while (1)
+                while (1){
                     run_emulator(&cpu, &ppu);
-            break;
-            
+                    bus.log();
+                }
+                break;
+
             case 's':
                 run_emulator(&cpu, &ppu);
-            break;
+                bus.log();
+                break;
 
             case 'q':
                 return 0;
-            break;
         }
     }
 

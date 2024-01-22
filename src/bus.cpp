@@ -60,8 +60,7 @@ namespace roee_nes {
                     vram[0][addr] = data;
                 else
                     vram[1][addr] = data;
-            } 
-            else if (mapper->Get_mirroring() == 'V') {
+            } else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
                     vram[0][addr] = data;
                 else
@@ -73,7 +72,7 @@ namespace roee_nes {
     uint8_t Bus::ppu_read(uint16_t addr) {
         if (0 <= addr && addr <= 0x1fff)
             return mapper->ppu_read(addr); // pattern table
-        
+
         else if (0x2000 <= addr && addr <= 0x3eff) {
             uint16_t foo = addr;
 
@@ -85,8 +84,7 @@ namespace roee_nes {
                     return vram[0][addr];
                 else
                     return vram[1][addr];
-            } 
-            else if (mapper->Get_mirroring() == 'V') {
+            } else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
                     return vram[0][addr];
                 else
@@ -185,6 +183,35 @@ namespace roee_nes {
         }
 
         return ret;
+    }
+
+    void Bus::log() const {
+        static std::ofstream log("testr/logs/ROEE_NES.log", std::ios::out | std::ios::trunc);
+
+        log << "------------- PPU SECTION -------------" << std::endl;
+        log << "frame: " << std::hex << std::uppercase << ppu->curr_frame << std::endl;
+        log << "scanline: " << std::hex << std::uppercase << ppu->curr_scanline << std::endl;
+        log << "cycle: " << std::hex << std::uppercase << ppu->curr_cycle << std::endl;
+        log << "t: " << std::hex << std::uppercase << (int)ppu->v << std::endl;
+        log << "v: " << std::hex << std::uppercase << (int)ppu->t << std::endl;
+        log << "x: " << std::hex << std::uppercase << (int)ppu->x << std::endl;
+        log << "w: " << std::hex << std::uppercase << (int)ppu->w << std::endl;
+        log << "ppuctrl: " << std::hex << std::uppercase << (int)ppu->ext_regs.ppuctrl << std::endl;
+        log << "ppumask: " << std::hex << std::uppercase << (int)ppu->ext_regs.ppumask << std::endl;
+        log << "ppustatus: " << std::hex << std::uppercase << (int)ppu->ext_regs.ppustatus << std::endl;
+        log << "---------------------------------------" << std::endl;
+
+        log << "------------- CPU SECTION -------------" << std::endl;
+        log << std::hex << std::uppercase << "PC: $" << cpu->log_PC << std::endl;
+        log << std::hex << std::uppercase << "Opcode: " << (int)cpu->IR << std::endl;
+        log << "Operation: " << cpu->inst->name << std::endl;
+        log << std::hex << std::uppercase << "Params " << (int)(cpu->bytes) << std::endl;
+        log << std::hex << std::uppercase << "A: " << (int)cpu->A << std::endl;
+        log << std::hex << std::uppercase << "X: " << (int)cpu->X << std::endl;
+        log << std::hex << std::uppercase << "Y: " << (int)cpu->Y << std::endl;
+        log << std::uppercase << "P: " << get_binary(cpu->P, 8) << std::endl;
+        log << std::hex << std::uppercase << "SP: " << (int)cpu->S << std::endl;
+        log << "---------------------------------------" << std::endl;
     }
 }
 

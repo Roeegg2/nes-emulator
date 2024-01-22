@@ -27,6 +27,7 @@ namespace roee_nes {
             { "cpx", &a::CPX, IMM, 2 },{ "sbc", &a::SBC, X_IND, 6 },{ "ill", &a::NOP, IMP, 2 },{ "ill", &a::ILL, IMP, 8 },{ "cpx", &a::CPX, ZP, 3 },{ "sbc", &a::SBC, ZP, 3 },{ "inc", &a::INC, ZP, 5 },{ "ill", &a::ILL, IMP, 5 },{ "inx", &a::INX, IMP, 2 },{ "sbc", &a::SBC, IMM, 2 },{ "nop", &a::NOP, IMP, 2 },{ "ill", &a::SBC, IMP, 2 },{ "cpx", &a::CPX, ABS, 4 },{ "sbc", &a::SBC, ABS, 4 },{ "inc", &a::INC, ABS, 6 },{ "ill", &a::ILL, IMP, 6 },
             { "beq", &a::BEQ, REL, 2 },{ "sbc", &a::SBC, IND_Y, 5 },{ "ill", &a::ILL, IMP, 2 },{ "ill", &a::ILL, IMP, 8 },{ "ill", &a::NOP, IMP, 4 },{ "sbc", &a::SBC, ZP_X, 4 },{ "inc", &a::INC, ZP_X, 6 },{ "ill", &a::ILL, IMP, 6 },{ "sed", &a::SED, IMP, 2 },{ "sbc", &a::SBC, ABS_Y, 4 },{ "nop", &a::NOP, IMP, 2 },{ "ill", &a::ILL, IMP, 7 },{ "ill", &a::NOP, IMP, 4 },{ "sbc", &a::SBC, ABS_X, 4 },{ "inc", &a::INC, ABS_X, 7 },{ "ill", &a::ILL, IMP, 7 },
         };
+
         this->bus = bus;
 
         reset();
@@ -34,32 +35,26 @@ namespace roee_nes {
 
     uint8_t CPU::run_cpu() {
         fetch_decode_inst();
-        execute_inst();
+        (this->*inst->exec)();
+        // sleep?
 
         return inst->cycles;
     }
 
-    uint8_t CPU::fetch(uint8_t offset) {
-        return bus->cpu_read(PC + offset);
-    }
-
-    void CPU::execute_inst() {
-        (this->*inst->exec)();
-
-        // std::chrono::microseconds sleepDuration(get_sleep_time(inst->cycles));
-        // std::this_thread::sleep_for(sleepDuration);
+    uint8_t CPU::Get_from_op(uint8_t offset) const { 
+        return bus->cpu_read(PC + offset); 
     }
 
     void CPU::fetch_decode_inst() { // this is also ugly, might rewrite it in the future
         bytes = 0; // clearing operands from last operations
-        IR = fetch(0);
+        IR = Get_from_op(0);
         inst = &lookup[IR];
 
-        log(1);
+        log_PC = PC;
         switch (inst->mode) {
             case REL:
             case IMM:
-                bytes = fetch(1);
+                bytes = Get_from_op(1);
                 PC += 2;
                 break;
             case ACC:
@@ -67,52 +62,50 @@ namespace roee_nes {
                 PC++;
                 break;
             case ABS:
-                bytes = convert_to_2byte(fetch(1), fetch(2));
+                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
                 PC += 3;
                 break;
             case ZP:
-                bytes = convert_to_2byte(fetch(1), 0);
+                bytes = convert_to_2byte(Get_from_op(1), 0);
                 PC += 2;
                 break;
             case ZP_X:
-                bytes = convert_to_2byte(fetch(1), 0);
+                bytes = convert_to_2byte(Get_from_op(1), 0);
                 bytes += X;
                 PC += 2;
                 break;
             case ZP_Y:
-                bytes = convert_to_2byte(fetch(1), 0);
+                bytes = convert_to_2byte(Get_from_op(1), 0);
                 bytes += Y;
                 PC += 2;
                 break;
             case ABS_X:
-                bytes = convert_to_2byte(fetch(1), fetch(2));
+                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
                 bytes += X;
                 PC += 3;
                 break;
             case ABS_Y:
-                bytes = convert_to_2byte(fetch(1), fetch(2));
+                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
                 bytes += Y;
                 PC += 3;
                 break;
             case IND:
-                bytes = convert_to_2byte(fetch(1), fetch(2));
+                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
                 bytes = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes + 1)); // might be the other way around
                 PC += 3;
                 break;
             case X_IND:
-                bytes = convert_to_2byte(fetch(1), 0);
+                bytes = convert_to_2byte(Get_from_op(1), 0);
                 bytes = bus->cpu_read(bytes);
                 PC += 2;
                 break;
             case IND_Y:
-                bytes = convert_to_2byte(fetch(1), 0);
+                bytes = convert_to_2byte(Get_from_op(1), 0);
                 bytes = bus->cpu_read(bytes);
                 bytes += Y;
                 PC += 2;
                 break;
         }
-
-        log(2);
     }
 
 
@@ -142,24 +135,5 @@ namespace roee_nes {
     void CPU::push(uint8_t value) {
         bus->cpu_write(STACK_BASE + S, value); // could be passing arguments in the wrong order; check that
         S--;
-    }
-
-    /* Printing util */
-    void CPU::log(uint8_t part) {
-        static std::ofstream log("testr/logs/CPU.log", std::ios::out | std::ios::trunc);
-
-        if (part == 1)
-            log << std::hex << std::uppercase << "PC: $" << PC << std::endl;
-        else {
-            log << std::hex << std::uppercase << "Opcode: " << (int)IR << std::endl;
-            log << "Operation: " << inst->name << std::endl;
-            log << std::hex << std::uppercase << "Params " << (int)(bytes) << std::endl;
-            log << std::hex << std::uppercase << "A: " << (int)A << std::endl;
-            log << std::hex << std::uppercase << "X: " << (int)X << std::endl;
-            log << std::hex << std::uppercase << "Y: " << (int)Y << std::endl;
-            log << std::uppercase << "P: " << get_binary(P, 8) << std::endl; 
-            log << std::hex << std::uppercase << "SP: " << (int)S << std::endl;
-            log << std::endl;
-        }
     }
 }

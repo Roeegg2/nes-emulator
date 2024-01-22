@@ -77,6 +77,7 @@ namespace roee_nes {
 
         int32_t curr_scanline; // why does static cause an error here?
         int32_t curr_cycle;
+        uint64_t curr_frame;
 
         uint8_t nmi;
         uint8_t odd_even_frame; // for pre-render scanline

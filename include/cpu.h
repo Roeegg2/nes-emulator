@@ -3,6 +3,7 @@
 
 #include "bus.h"
 #include "ppu.h"
+#include "utils.h"
 
 #include <cstdint>
 #include <vector>
@@ -45,7 +46,7 @@ namespace roee_nes {
     };
 
     class CPU {
-        private:
+    public:
         uint8_t A;
         uint8_t P;
         uint16_t PC;
@@ -61,14 +62,11 @@ namespace roee_nes {
 
         std::vector<Instruction> lookup;
 
-        public:
+        uint16_t log_PC;
+    public:
         uint8_t run_cpu();
 
         void fetch_decode_inst();
-        void execute_inst();
-
-        // temporary util functions
-        void log(uint8_t part);
 
         CPU(Bus* bus);
 
@@ -77,9 +75,9 @@ namespace roee_nes {
         void irq(); // maskable
         void reset(); // reset
 
-        private:
-        uint8_t fetch(uint8_t offset);
-        // 
+    private:
+        uint8_t Get_from_op(uint8_t offset) const;
+        
         void set_flag(StatusFlag flag, uint8_t res);
         uint8_t get_flag_status(StatusFlag flag) const;
 
@@ -111,9 +109,9 @@ namespace roee_nes {
         void mem_INCDEC_actual(int8_t val);
         void reg_LD_actual(uint8_t* reg);
         void reg_T_actual(uint8_t* dst_reg, uint8_t* src_reg);
-        void actual_LSR(uint8_t* reg);
-        void actual_ROL(uint8_t* val);
-        void actual_ROR(uint8_t* val);
+        void LSR_actual(uint8_t* reg);
+        void ROL_actual(uint8_t* val);
+        void ROR_actual(uint8_t* val);
     };
 
 }

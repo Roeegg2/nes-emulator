@@ -58,6 +58,8 @@ namespace roee_nes {
         uint8_t cpu_read_ppu(uint16_t addr);
         void cpu_write_ppu(uint16_t addr, uint8_t data);
 
+        void log() const;
+
     private:
         void init_palette(std::string palette_path);
     };
