@@ -17,9 +17,12 @@ namespace roee_nes {
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
     }
 
     NES_Screen::~NES_Screen() {
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
         SDL_Quit();
     }
 

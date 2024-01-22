@@ -210,8 +210,8 @@ namespace roee_nes {
 
     /* load accumulator with value */
     void CPU::LDA() {
-        if (PC == 0xC7AB)
-            std::cout << "LDA: " << std::hex << (int)bytes << std::endl;
+        // if (PC == 0xC7AB)
+        //     std::cout << "LDA: " << std::hex << (int)bytes << std::endl;
         reg_LD_actual(&A);
     }
 

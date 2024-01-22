@@ -135,17 +135,12 @@ namespace roee_nes {
     uint8_t CPU::pop() {
         S++;
         uint8_t data = bus->cpu_read(STACK_BASE + S);
-        if (S >= 0xff)
-            std::cerr << "WARNING: Stack underflowing! Could be affecting game memory." << std::endl;
 
         return data;
     }
 
     void CPU::push(uint8_t value) {
         bus->cpu_write(STACK_BASE + S, value); // could be passing arguments in the wrong order; check that
-        if (S <= 0)
-            std::cerr << "WARNING: Stack overflowing into zero page!" << std::endl;
-
         S--;
     }
 
@@ -154,7 +149,7 @@ namespace roee_nes {
         static std::ofstream log("testr/logs/CPU.log", std::ios::out | std::ios::trunc);
 
         if (part == 1)
-            log << std::hex << std::uppercase << "PC: " << PC << std::endl;
+            log << std::hex << std::uppercase << "PC: $" << PC << std::endl;
         else {
             log << std::hex << std::uppercase << "Opcode: " << (int)IR << std::endl;
             log << "Operation: " << inst->name << std::endl;
@@ -162,7 +157,7 @@ namespace roee_nes {
             log << std::hex << std::uppercase << "A: " << (int)A << std::endl;
             log << std::hex << std::uppercase << "X: " << (int)X << std::endl;
             log << std::hex << std::uppercase << "Y: " << (int)Y << std::endl;
-            log << std::hex << std::uppercase << "P: " << (int)P << std::endl;
+            log << std::uppercase << "P: " << get_binary(P, 8) << std::endl; 
             log << std::hex << std::uppercase << "SP: " << (int)S << std::endl;
             log << std::endl;
         }

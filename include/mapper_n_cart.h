@@ -30,13 +30,13 @@ namespace roee_nes {
     };
 
     class Cartridge {
-        friend class Mapper;
-        friend class NROM_0;
+    friend class Mapper;
+    friend class NROM_0;
 
-        public:
+    public:
         Cartridge(std::string rom_path);
 
-        private:
+    private:
         Cartridge_Header header;
 
         std::vector<uint8_t> prg_rom;
@@ -47,17 +47,18 @@ namespace roee_nes {
     };
 
     class Mapper {
-        public:
+    public:
         Mapper(Cartridge* cart) : cart(cart) {}
+        
+        static Mapper* create_mapper(std::string rom_path);
 
         virtual uint8_t cpu_read(uint16_t addr) = 0;
         virtual void cpu_write(uint16_t addr, uint8_t data) = 0;
-
         virtual uint8_t ppu_read(uint16_t addr) = 0;
 
-        static Mapper* create_mapper(std::string rom_path);
+        inline char Get_mirroring() { return (cart->header.flags_6 & 0b00000001) ? 'V' : 'H'; } // NOTE: might need to rewrite this when implementing more mappers
 
-        protected:
+    protected:
         Cartridge* cart;
     };
 

@@ -11,12 +11,20 @@ namespace roee_nes {
 
     void PPU::run_ppu(uint8_t cycles) {
         for (uint8_t i = 0; i < cycles; i++) {
-            // if (curr_scanline == -1)
-            //     ext_regs.ppustatus |= 0b00100000; // setting sprite evaluation flag to 
+            if (curr_cycle == 256 && Get_rendering_status()) // if we reached the end of the scanline
+                increment_v_y();
+
+            if (curr_scanline == -1){
+                if (280 <= curr_cycle <= 304 && Get_rendering_status())
+                    v = t;
+            }
             if (-1 <= curr_scanline && curr_scanline <= 239)
                 prerender_and_visible_scanline();
             else if (241 <= curr_scanline && curr_scanline <= 260) // vblank scanline
                 vblank_scanline();
+
+            if ((256 <= curr_cycle || 328 <= curr_cycle) && curr_cycle % 8 == 0 && Get_rendering_status())
+                increment_v_x();
 
             increment_counters(1);
         }
@@ -32,8 +40,10 @@ namespace roee_nes {
         if (curr_cycle == 0 && 0 <= curr_scanline <= 239)
             return; // do later, but pretty much just idle.
 
-        if (1 <= curr_cycle <= 256) // rendering cycle
-            render_pixel();
+        if (1 <= curr_cycle <= 256 && curr_scanline != -1) {// rendering cycle
+            Color* color = get_pixel_to_render();
+            screen->draw_pixel(curr_cycle, curr_scanline, color->r, color->g, color->b);
+        }
 
         if (next_fetch == LOAD_SHIFT_REGS) // loading takes one cycle, so if we need to load, we always can
         {
@@ -47,8 +57,6 @@ namespace roee_nes {
             next_fetch = static_cast<PPU_State>(static_cast<int>(next_fetch) + 1);
             fetching_cycle_counter -= 2;
         }
-        if (curr_cycle == 256) // if we reached the end of the scanline
-            increment_y();
 
         if (odd_even_frame == 1 && curr_scanline == -1 && curr_cycle == 339) // on odd frames we skip the last cycle of the pre-render scanline
             increment_counters(1);
@@ -57,7 +65,7 @@ namespace roee_nes {
     void PPU::vblank_scanline() {
         if (curr_scanline == 261)
             curr_scanline = -1;
-        if (curr_scanline == 241 && curr_cycle == 1 && ext_regs.ppuctrl & 0b10000000){
+        if (curr_scanline == 241 && curr_cycle == 1 /*&& ext_regs.ppuctrl & 0b10000000 */) {
             nmi = 1;
             ext_regs.ppustatus |= 0b10000000;
         }
@@ -70,7 +78,7 @@ namespace roee_nes {
         pt_byte_addr |= v >> 12;                  // 0b0000ddddddddvvvv
         pt_byte_addr |= byte_significance;        // fetching msb/lsb // 0b0000ddddddddsvvv
         pt_byte_addr |= (ext_regs.ppuctrl & 0b00010000) << 8;
-
+        
         return bus->ppu_read(pt_byte_addr);
     }
 
@@ -117,14 +125,13 @@ namespace roee_nes {
                 bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF)); // CHECK THAT!
                 break;
             case FETCH_AT:
-                bg_regs.at_latch = bus->ppu_read(0010001111000000 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
+                bg_regs.at_latch = bus->ppu_read(/*0010001111000000 | */ (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
                 break;
             case FETCH_PT_LSB:
                 bg_regs.pt_latch_lsb = fetch_pt_byte(LSB);
                 break;
             case FETCH_PT_MSB:
                 bg_regs.pt_latch_msb = fetch_pt_byte(MSB);
-                increment_coarse_x();
                 break;
         }
     }
@@ -140,7 +147,7 @@ namespace roee_nes {
             curr_scanline = -1;
     }
 
-    void PPU::increment_coarse_x() { // pseudocode taken from the nesDEV wiki
+    void PPU::increment_v_x() { // pseudocode taken from the nesDEV wiki
         if (v & 0b00011111 == 31) {
             v &= 0b0111111111100000; // setting coarse x to 0
             v ^= 0b0000010000000000; // moving to the next nametable
@@ -148,7 +155,7 @@ namespace roee_nes {
             v += 1;
     }
 
-    void PPU::increment_y() { // pseudocode taken from the nesDEV wiki
+    void PPU::increment_v_y() { // pseudocode taken from the nesDEV wiki
         if (v & 0b011100000000000 != 0b011100000000000)
             v += 0b0000100000000000;
         else {
@@ -189,7 +196,7 @@ namespace roee_nes {
         ext_regs.oamaddr = 0;
     }
 
-    void PPU::render_pixel() {
+    struct Color* PPU::get_pixel_to_render() {
         uint8_t pt_data = bg_regs.pt_shift_lsb >> (7 - x);
         pt_data |= (bg_regs.pt_shift_msb >> (7 - x)) << 1;
         pt_data &= 0b00000011;
@@ -198,8 +205,6 @@ namespace roee_nes {
         attr_data |= (bg_regs.attr_shift_msb >> (7 - x)) << 1;
         attr_data &= 0b00000011;
 
-        Color* color = bus->ppu_get_color(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
-
-        screen->draw_pixel(curr_cycle, curr_scanline, color->r, color->g, color->b);
+        return bus->ppu_get_color(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
     }
 }

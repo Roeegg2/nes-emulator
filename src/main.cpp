@@ -26,14 +26,14 @@ int run_emulator(CPU* cpu, PPU* ppu) {
     ppu->run_ppu(cycles * 3);
 
     if (ppu->ext_regs.ppustatus & 0b10000000) {
-        std::cout << ppu->ext_regs.ppustatus << std::endl;
         ppu->ext_regs.ppustatus &= 0b01111111;
-        ppu->nmi = 0;
         cpu->nmi();
+        ppu->nmi = 0;
     }
 
-    // if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
-    //     exit(1);
+    if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
+        exit(1);
+
     return 0;
 }
 

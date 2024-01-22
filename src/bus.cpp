@@ -24,11 +24,11 @@ namespace roee_nes {
             ram[addr % 0x800] = data;
         else if (0x2000 <= addr && addr <= 0x3fff) {
             cpu_write_ppu(addr % 8, data);
-        } else if (0x4000 <= addr && addr <= 0x4017)
+        } /* else if (0x4000 <= addr && addr <= 0x4017)
             return; // apu related - didnt implement yet
         else if (0x4018 <= addr && addr <= 0x401f)
             return; // apu related - didnt implement yet
-        else if (0x4020 <= addr && addr <= 0xffff)
+        */ else if (0x4020 <= addr && addr <= 0xffff)
             mapper->cpu_write(addr, data);
     }
 
@@ -37,28 +37,67 @@ namespace roee_nes {
             return ram[addr % 0x800];
         else if (0x2000 <= addr && addr <= 0x3fff) {
             return cpu_read_ppu(addr % 8);
-        } else if (0x4000 <= addr && addr <= 0x4017) {
+        } /* else if (0x4000 <= addr && addr <= 0x4017) {
             return 0; // apu related - didnt implement yet
         } else if (0x4018 <= addr && addr <= 0x401f) {
             return 0; // apu related - didnt implement yet
-        } else if (0x4020 <= addr && addr <= 0xffff) {
+        } */ else if (0x4020 <= addr && addr <= 0xffff) {
             return mapper->cpu_read(addr);
         }
 
         return 0;
     }
 
-    uint32_t Bus::ppu_read(uint16_t addr) {
-        if (0 <= addr && addr <= 0x1fff) {
+    void Bus::ppu_write(uint16_t addr, uint8_t data) {
+        if (0x2000 <= addr && addr <= 0x3eff) {
+            uint16_t foo = addr;
+
+            addr %= 0x1000;
+            addr %= 0x400;
+
+            if (mapper->Get_mirroring() == 'H') {
+                if (0 <= foo && foo <= 0x800)
+                    vram[0][addr] = data;
+                else
+                    vram[1][addr] = data;
+            } 
+            else if (mapper->Get_mirroring() == 'V') {
+                if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
+                    vram[0][addr] = data;
+                else
+                    vram[1][addr] = data;
+            }
+        }
+    }
+
+    uint8_t Bus::ppu_read(uint16_t addr) {
+        if (0 <= addr && addr <= 0x1fff)
             return mapper->ppu_read(addr); // pattern table
-        } else if (0x2000 <= addr && addr <= 0x3eff) {
-            return mapper->ppu_read(addr); // nametable and attribute table
+        
+        else if (0x2000 <= addr && addr <= 0x3eff) {
+            uint16_t foo = addr;
+
+            addr %= 0x1000;
+            addr %= 0x400;
+
+            if (mapper->Get_mirroring() == 'H') {
+                if (0 <= foo && foo <= 0x800)
+                    return vram[0][addr];
+                else
+                    return vram[1][addr];
+            } 
+            else if (mapper->Get_mirroring() == 'V') {
+                if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
+                    return vram[0][addr];
+                else
+                    return vram[1][addr];
+            }
         }
 
         return 0;
     }
 
-    Color* Bus::ppu_get_color(uint16_t addr) {
+    struct Color* Bus::ppu_get_color(uint16_t addr) {
         if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 32;
             // TODO: later change to avoid the black screen in super mario
@@ -93,8 +132,7 @@ namespace roee_nes {
                     ppu->t = ((ppu->t >> 5) << 5) | (data16 >> 3); // setting coarse x
                     ppu->x = data16 & 0b00000111; // setting fine x
                     ppu->w = 1; // NOTE: move this out of the if statement
-                } 
-                else { //setting coarse y and fine y
+                } else { //setting coarse y and fine y
                     ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
                     ppu->t = ppu->t | (data16 << 12);
                     ppu->t = ppu->t | ((data16 >> 3) << 5);
@@ -106,15 +144,14 @@ namespace roee_nes {
                     data16 = data16 & 0b00111111;
                     ppu->t = (ppu->t & 0b0000000011111111) | (data16 << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
                     ppu->w = 1; // NOTE: move this out of the if statement
-                } 
-                else {
+                } else {
                     ppu->t = (ppu->t & 0b0011111100000000) | data;
                     ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
                     ppu->w = 0;      // NOTE: move this out of the if statement
                 }
                 break;
-            case PPUDATA:
-                vram[ppu->v] = data; // might have a problem with other mappers different than NROM here i think.
+            case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
+                ppu_write(ppu->v, data);
                 ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // not sure about this
                 break;
         }
@@ -139,9 +176,9 @@ namespace roee_nes {
                 break;
             case PPUDATA:
                 ret = ppu_cpu_latch;
-                ppu_cpu_latch = vram[ppu->v]; // not sure about this
+                ppu_cpu_latch = ppu_read(ppu->v); // not sure about this
                 if (addr >= 0x3f00)
-                    ret = vram[ppu->v];
+                    ret = ppu_read(ppu->v);
                 // else return palette data
                 ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // MIGHT CAUSE PROBLEM
                 break;

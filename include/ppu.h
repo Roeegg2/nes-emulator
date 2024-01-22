@@ -49,23 +49,23 @@ namespace roee_nes {
         void run_ppu(uint8_t cycles);
         void reset();
 
-        private:
+    private:
         void prerender_and_visible_scanline();
         void vblank_scanline();
 
         void increment_counters(uint8_t cycles);
 
-        void increment_coarse_x();
-        void increment_y();
+        void increment_v_x();
+        void increment_v_y();
 
         void load_bg_shift_regs();
 
         uint16_t fetch_pt_byte(uint8_t byte_significance);
         void fetch_rendering_data(uint8_t next_fetch);
 
-        void render_pixel();
+        struct Color* get_pixel_to_render();
 
-        public:
+    public:
         uint16_t v;
         uint16_t t;
         uint8_t x;
@@ -75,15 +75,18 @@ namespace roee_nes {
 
         External_Registers ext_regs;
 
-        int curr_scanline; // why does static cause an error here?
-        int curr_cycle;
-        uint8_t odd_even_frame; // for pre-render scanline
+        int32_t curr_scanline; // why does static cause an error here?
+        int32_t curr_cycle;
 
         uint8_t nmi;
+        uint8_t odd_even_frame; // for pre-render scanline
 
-        public:
+    public:
         Bus* bus;
         NES_Screen* screen;
+
+    private:
+        inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; }
     };
 }
 #endif
