@@ -12,6 +12,16 @@ namespace roee_nes {
     constexpr uint8_t LSB = 0b00001000;
     constexpr uint8_t MSB = 0b00000000;
 
+    constexpr uint8_t PRE_RENDER_SCANLINE = -1;
+    constexpr uint8_t RENDER_START_SCANLINE = 0;
+    constexpr uint8_t RENDER_END_SCANLINE = 239;
+    constexpr uint8_t POST_RENDER_SCANLINE = 240;
+    constexpr uint8_t VBLANK_START_SCANLINE = 241;
+    constexpr uint8_t VBLANK_END_SCANLINE = 260;
+
+    constexpr uint8_t ODD_FRAME = 1;
+    constexpr uint8_t EVEN_FRAME = 0;
+
     class Bus;
 
     enum PPU_State {
@@ -43,27 +53,33 @@ namespace roee_nes {
     };
 
     class PPU {
-        public:
+    public:
         PPU(Bus* bus, NES_Screen* screen);
 
         void run_ppu(uint8_t cycles);
-        void reset();
+    //     void reset();
 
+    // private:
+    //     void prerender_and_visible_scanline();
+    //     void vblank_scanline();
+
+    //     void increment_counters(uint8_t cycles);
+
+    //     void increment_v_x();
+    //     void increment_v_y();
+
+    //     void load_bg_shift_regs();
+
+    //     uint16_t fetch_pt_byte(uint8_t byte_significance);
+    //     void fetch_rendering_data(uint8_t next_fetch);
+
+    //     struct Color* get_pixel_to_render();
     private:
-        void prerender_and_visible_scanline();
+        void prerender_scanline();
+        void render_scanline();
         void vblank_scanline();
-
-        void increment_counters(uint8_t cycles);
-
-        void increment_v_x();
-        void increment_v_y();
-
-        void load_bg_shift_regs();
-
-        uint16_t fetch_pt_byte(uint8_t byte_significance);
-        void fetch_rendering_data(uint8_t next_fetch);
-
-        struct Color* get_pixel_to_render();
+        void fetch_rendering_data();
+        void render_pixel();
 
     public:
         uint16_t v;
@@ -77,17 +93,16 @@ namespace roee_nes {
 
         int32_t curr_scanline; // why does static cause an error here?
         int32_t curr_cycle;
-        uint64_t curr_frame;
 
         uint8_t nmi;
-        uint8_t odd_even_frame; // for pre-render scanline
+        uint8_t frame_oddness;
 
     public:
         Bus* bus;
         NES_Screen* screen;
 
     private:
-        inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; }
+        inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
     };
 }
 #endif

@@ -60,7 +60,8 @@ namespace roee_nes {
                     vram[0][addr] = data;
                 else
                     vram[1][addr] = data;
-            } else if (mapper->Get_mirroring() == 'V') {
+            } 
+            else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
                     vram[0][addr] = data;
                 else
@@ -84,7 +85,8 @@ namespace roee_nes {
                     return vram[0][addr];
                 else
                     return vram[1][addr];
-            } else if (mapper->Get_mirroring() == 'V') {
+            } 
+            else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
                     return vram[0][addr];
                 else
@@ -103,7 +105,8 @@ namespace roee_nes {
                 addr -= 0x10;
 
             return &(palette[addr]);
-        } else
+        } 
+        else
             return nullptr;
     }
 
@@ -119,34 +122,31 @@ namespace roee_nes {
             case PPUMASK:
                 ppu->ext_regs.ppumask = data;
                 break;
-            case PPUSTATUS:
-                break;
-            case OAMADDR:
-                break;
-            case OAMDATA:
-                break;
             case PPUSCROLL:
                 if (ppu->w == 0) {
                     ppu->t = ((ppu->t >> 5) << 5) | (data16 >> 3); // setting coarse x
-                    ppu->x = data16 & 0b00000111; // setting fine x
-                    ppu->w = 1; // NOTE: move this out of the if statement
-                } else { //setting coarse y and fine y
+                    ppu->x = data16 & 0b0000000000000111; // setting fine x
+                }
+                else { //setting coarse y and fine y
                     ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
                     ppu->t = ppu->t | (data16 << 12);
                     ppu->t = ppu->t | ((data16 >> 3) << 5);
-                    ppu->w = 0; // NOTE: move this out of the if statement
                 }
+
+                ppu->w = 1 - ppu->w;
                 break;
             case PPUADDR:
                 if (ppu->w == 0) {
+                    ppu->v &= 0b0011111111111111; // clearing bit 14 on first write.
                     data16 = data16 & 0b00111111;
                     ppu->t = (ppu->t & 0b0000000011111111) | (data16 << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
-                    ppu->w = 1; // NOTE: move this out of the if statement
-                } else {
+                } 
+                else {
                     ppu->t = (ppu->t & 0b0011111100000000) | data;
                     ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
-                    ppu->w = 0;      // NOTE: move this out of the if statement
                 }
+
+                ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
                 break;
             case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
                 ppu_write(ppu->v, data);
@@ -159,18 +159,10 @@ namespace roee_nes {
         uint8_t ret = 0;
 
         switch (addr) {
-            case PPUCTRL:
-            case PPUMASK:
-                break;
             case PPUSTATUS:
                 ppu->w = 0;
                 ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_cpu_latch & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
-                ppu->ext_regs.ppustatus = ppu->ext_regs.ppustatus & 0b01111111;
-                break;
-            case OAMADDR:
-            case OAMDATA:
-            case PPUSCROLL:
-            case PPUADDR:
+                ppu->ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
                 break;
             case PPUDATA:
                 ret = ppu_cpu_latch;
@@ -189,7 +181,7 @@ namespace roee_nes {
         static std::ofstream log("testr/logs/ROEE_NES.log", std::ios::out | std::ios::trunc);
 
         log << "------------- PPU SECTION -------------" << std::endl;
-        log << "frame: " << std::hex << std::uppercase << ppu->curr_frame << std::endl;
+        log << "frame oddness: " << std::hex << std::uppercase << ppu->frame_oddness << std::endl;
         log << "scanline: " << std::hex << std::uppercase << ppu->curr_scanline << std::endl;
         log << "cycle: " << std::hex << std::uppercase << ppu->curr_cycle << std::endl;
         log << "t: " << std::hex << std::uppercase << (int)ppu->v << std::endl;
