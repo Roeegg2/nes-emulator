@@ -9,27 +9,35 @@
 
 namespace roee_nes {
 
-    constexpr uint8_t LSB = 0b00001000;
-    constexpr uint8_t MSB = 0b00000000;
-
-    constexpr uint8_t PRE_RENDER_SCANLINE = -1;
-    constexpr uint8_t RENDER_START_SCANLINE = 0;
-    constexpr uint8_t RENDER_END_SCANLINE = 239;
-    constexpr uint8_t POST_RENDER_SCANLINE = 240;
-    constexpr uint8_t VBLANK_START_SCANLINE = 241;
-    constexpr uint8_t VBLANK_END_SCANLINE = 260;
+    constexpr uint8_t PT_LSB = 0b00001000;
+    constexpr uint8_t PT_MSB = 0b00000000;
 
     constexpr uint8_t ODD_FRAME = 1;
     constexpr uint8_t EVEN_FRAME = 0;
 
+    enum Scanline_Ranges : int16_t {
+        PRE_RENDER_SCANLINE = -1,
+        RENDER_START_SCANLINE = 0,
+        RENDER_END_SCANLINE = 239,
+        POST_RENDER_SCANLINE = 240,
+        VBLANK_START_SCANLINE = 241,
+        VBLANK_END_SCANLINE = 260
+    };
+
+    enum Fetch_Modes : uint8_t {
+        REGULAR_FETCH,
+        GARBAGE_NT_FETCH,
+        ONLY_NT_FETCH
+    };
+
+
     class Bus;
 
-    enum PPU_State {
-        FETCH_NT,
-        FETCH_AT,
-        FETCH_PT_LSB,
-        FETCH_PT_MSB,
-        LOAD_SHIFT_REGS
+    enum Fetch_Type {
+        FETCH_1 = 2,
+        FETCH_2 = 4,
+        FETCH_3 = 6,
+        FETCH_4 = 0,
     };
 
     struct Background_Regs {
@@ -57,29 +65,22 @@ namespace roee_nes {
         PPU(Bus* bus, NES_Screen* screen);
 
         void run_ppu(uint8_t cycles);
-    //     void reset();
-
-    // private:
-    //     void prerender_and_visible_scanline();
-    //     void vblank_scanline();
-
-    //     void increment_counters(uint8_t cycles);
-
-    //     void increment_v_x();
-    //     void increment_v_y();
-
-    //     void load_bg_shift_regs();
-
-    //     uint16_t fetch_pt_byte(uint8_t byte_significance);
-    //     void fetch_rendering_data(uint8_t next_fetch);
-
-    //     struct Color* get_pixel_to_render();
+        void reset();
+        
     private:
         void prerender_scanline();
         void render_scanline();
         void vblank_scanline();
-        void fetch_rendering_data();
+        void fetch_rendering_data(Fetch_Modes fetch_mode);
         void render_pixel();
+
+        void increment_cycle(uint8_t cycles);
+        void increment_y();
+        void increment_coarse_x();
+
+        uint8_t fetch_pt_byte(uint8_t byte_significance);
+
+        void load_attr_shift_regs();
 
     public:
         uint16_t v;

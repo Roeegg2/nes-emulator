@@ -49,6 +49,8 @@ namespace roee_nes {
     }
 
     void Bus::ppu_write(uint16_t addr, uint8_t data) {
+        ppu_bus_latch = data;
+
         if (0x2000 <= addr && addr <= 0x3eff) {
             uint16_t foo = addr;
 
@@ -111,6 +113,7 @@ namespace roee_nes {
     }
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
+        ppu_bus_latch = data;
         uint16_t data16 = data;
 
         switch (addr % 8) {
@@ -161,12 +164,12 @@ namespace roee_nes {
         switch (addr) {
             case PPUSTATUS:
                 ppu->w = 0;
-                ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_cpu_latch & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
+                ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_bus_latch & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
                 ppu->ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
                 break;
             case PPUDATA:
-                ret = ppu_cpu_latch;
-                ppu_cpu_latch = ppu_read(ppu->v); // not sure about this
+                ret = ppu_bus_latch;
+                ppu_bus_latch = ppu_read(ppu->v); // not sure about this
                 if (addr >= 0x3f00)
                     ret = ppu_read(ppu->v);
                 // else return palette data
@@ -178,12 +181,16 @@ namespace roee_nes {
     }
 
     void Bus::log() const {
+        uint16_t index = 0x10;
+        
         static std::ofstream log("testr/logs/ROEE_NES.log", std::ios::out | std::ios::trunc);
 
         log << "------------- PPU SECTION -------------" << std::endl;
-        log << "frame oddness: " << std::hex << std::uppercase << ppu->frame_oddness << std::endl;
-        log << "scanline: " << std::hex << std::uppercase << ppu->curr_scanline << std::endl;
-        log << "cycle: " << std::hex << std::uppercase << ppu->curr_cycle << std::endl;
+        // log << std::hex << std::uppercase << "Memory at: " << index << "is: " << (int)ram[index] << std::endl;
+
+        log << "frame oddness: " << std::hex << std::uppercase << (int)ppu->frame_oddness << std::endl;
+        log << "scanline: " << std::dec << ppu->curr_scanline << std::endl;
+        log << "cycle: " << std::dec << ppu->curr_cycle << std::endl;
         log << "t: " << std::hex << std::uppercase << (int)ppu->v << std::endl;
         log << "v: " << std::hex << std::uppercase << (int)ppu->t << std::endl;
         log << "x: " << std::hex << std::uppercase << (int)ppu->x << std::endl;
@@ -197,11 +204,11 @@ namespace roee_nes {
         log << std::hex << std::uppercase << "PC: $" << cpu->log_PC << std::endl;
         log << std::hex << std::uppercase << "Opcode: " << (int)cpu->IR << std::endl;
         log << "Operation: " << cpu->inst->name << std::endl;
-        log << std::hex << std::uppercase << "Params " << (int)(cpu->bytes) << std::endl;
+        log << std::hex << std::uppercase << "Params " << (int)(cpu->log_bytes) << std::endl;
         log << std::hex << std::uppercase << "A: " << (int)cpu->A << std::endl;
         log << std::hex << std::uppercase << "X: " << (int)cpu->X << std::endl;
         log << std::hex << std::uppercase << "Y: " << (int)cpu->Y << std::endl;
-        log << std::uppercase << "P: " << get_binary(cpu->P, 8) << std::endl;
+        log << std::uppercase << "P: " << get_binary(cpu->P, 8) << " (" << std::dec << (int)cpu->P << ")" << std::endl;
         log << std::hex << std::uppercase << "SP: " << (int)cpu->S << std::endl;
         log << "---------------------------------------" << std::endl;
     }

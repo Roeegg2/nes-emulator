@@ -11,16 +11,18 @@ namespace roee_nes {
 
     void PPU::run_ppu(uint8_t cycles) {
         for (uint8_t i = 0; i < cycles; i++) {
-            // in this situation we need to skip a cycle 
             if (Get_rendering_status()) {
                 if (frame_oddness == ODD_FRAME && curr_scanline == PRE_RENDER_SCANLINE && curr_cycle == 339) // on odd frames we skip the last cycle of the pre-render scanline
-                    increment_counters(1);
+                    increment_cycle(1);
                 if (curr_cycle == 256) // increment y component of v
                     increment_y();
-                if (curr_cycle == 257)
-                    // copy all horizontal bits from t onto v;
-                if ((328 <= curr_cycle || curr_cycle <= 256) && curr_cycle & 8 == 0)
-                    // increment the coarse x component of v
+                if (curr_cycle == 257) { // copy all horizontal bits from t onto v
+                    v = (v >> 5) << 5; // resetting the coarse x bits
+                    v |= t & 0b0000000000011111;
+                }
+                if ((328 <= curr_cycle || curr_cycle <= 256) && curr_cycle & 8 == 0) { // increment the coarse x component of v
+                    increment_coarse_x();
+                }
             }
 
             if (curr_scanline == PRE_RENDER_SCANLINE)
@@ -29,16 +31,24 @@ namespace roee_nes {
                 render_scanline();
             else if (VBLANK_START_SCANLINE <= curr_scanline && curr_scanline <= VBLANK_END_SCANLINE)
                 vblank_scanline();
-            else if (curr_scanline == POST_RENDER_SCANLINE)
-                // do nothing!
+            // else if (curr_scanline == POST_RENDER_SCANLINE)
+            //     continue;
+
+            increment_cycle(1);
         }
     }
 
     void PPU::prerender_scanline() {
-        if (curr_cycle == 1)
-            ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
-        else if (Get_rendering_status() && 280 <= curr_cycle && curr_cycle <= 304)
-            // copy vertical bits from t onto v;
+        // if (curr_cycle == 1) {
+        //     ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
+        //     nmi = 0;
+        // }
+        if (Get_rendering_status() && 280 <= curr_cycle && curr_cycle <= 304) {
+            v &= 0b0000110000011111; // reset coarse y and fine y in v
+            v |= t & 0b0111001111100000; // setting v to t's y values
+        }
+        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336))
+            fetch_rendering_data(REGULAR_FETCH);
         /**
          * if (curr_cycle is between 1-256 or between 321-336)
          *   fetch_bytes()
@@ -46,6 +56,23 @@ namespace roee_nes {
     }
 
     void PPU::render_scanline() {
+        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336)) {
+            if ((1 <= curr_cycle && curr_cycle <= 256))
+                render_pixel();
+            fetch_rendering_data(REGULAR_FETCH);
+        } else if (257 <= curr_cycle && curr_cycle <= 320)
+            fetch_rendering_data(GARBAGE_NT_FETCH); // garbage nt0, nt1, pt low, pt high 
+
+        else if (337 <= curr_cycle && curr_cycle <= 340)
+            fetch_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
+
+        if ((curr_cycle - 1) % 8 == 0) { // on cycles 9, 17, 25, etc load latches into shift registers
+            bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
+            bg_regs.pt_shift_msb = (bg_regs.pt_shift_msb & 0xFF00) | bg_regs.pt_latch_msb;
+
+            load_attr_shift_regs();
+        }
+
         /**
          * if (curr_cycle is between 1-256 or between 321-336){
          *   fetch_bytes()
@@ -63,15 +90,17 @@ namespace roee_nes {
          * if (curr cycle is 8th cycle)
          *   transfer attr 2 bits (01, 23, 45, or 67) into the *high bits* of attr_shift_reg
          *   transfer pt0 into the *high bits* of pt0_shift_reg
-         *   increment scroll x component of v
+         *   increment scroll x component of v ??????  not sure
          *
         */
     }
 
     void PPU::vblank_scanline() {
-        if (curr_scanline == VBLANK_START_SCANLINE && curr_cycle == 1)
+        if (curr_scanline == VBLANK_START_SCANLINE && curr_cycle == 1) {
             ext_regs.ppustatus |= 0b10000000; // set blank flag
-
+            if (ext_regs.ppuctrl & 0b10000000)
+                nmi = 1;
+        }
         /**
          * set scroll position at the end of vblank
          * NOTE: Set the scroll last. After using PPUADDR ($2006), the program must always set PPUSCROLL again. They have a shared internal register and using PPUADDR will overwrite the scroll position.
@@ -79,7 +108,37 @@ namespace roee_nes {
         */
     }
 
-    void PPU::fetch_rendering_data() {
+    void PPU::fetch_rendering_data(Fetch_Modes fetch_mode) {
+        if (curr_cycle % 2 == 1 || curr_cycle == 0)
+            return; // if cycles are not multiples of 2, we return, since memory fetching actually takes 2 ppu cycles. 
+
+        uint8_t fetch_type = curr_cycle % 8; // getting 2, 4, 6, or 0 representing what do we need to fetch
+
+        if (fetch_mode == ONLY_NT_FETCH) {
+            bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF)); // fetch nt
+            return;
+        }
+
+        switch (fetch_type) {
+            case FETCH_1: // fetch nt
+                bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF));
+                break;
+            case FETCH_2: // if its a GARBAGE_NT_FETCH, fetch nt. otherwise its a regular fetch, fetch attr
+                if (fetch_mode == GARBAGE_NT_FETCH)
+                    bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF));
+                else
+                    bg_regs.at_latch = bus->ppu_read(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
+                break;
+            case FETCH_3: // fetch pt lsb
+                bg_regs.pt_latch_lsb = fetch_pt_byte(PT_LSB);
+                break;
+            case FETCH_4: // fetch pt msb
+                bg_regs.pt_latch_lsb = fetch_pt_byte(PT_MSB);
+                break;
+            default:
+                break; // return error
+        }
+
         /**
          * fetch nt, then attr, then pt0, then pt1
          * {
@@ -87,17 +146,136 @@ namespace roee_nes {
          *  place data on the ppu bus
          * else
          *  read the data from the ppu bus
+         *
+         * fetch tile:
+         * 0x2000 | (v & 0x0FFF)
+         * fetch attr:
+         * 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07)
+         *
          * }
         */
     }
 
     void PPU::render_pixel() {
-        /**
-         * get pt bit high using x reg
-         * get pt bit low using x reg
-         * get attr bit high using x reg
-         * get attr bit low using x reg
-        */
+
+        auto get_color_bit = [](uint8_t shift_reg_lsb, uint8_t shift_reg_msb, uint8_t x) -> uint8_t {
+            uint8_t data = 0;
+            data |= 0b00000001 & (shift_reg_lsb >> (7 - x));
+            data |= 0b00000010 & ((shift_reg_msb >> (7 - x)) << 1);
+
+            return data;
+        };
+
+        uint8_t pt_data = get_color_bit(bg_regs.pt_shift_lsb, bg_regs.pt_shift_msb, x);
+        uint8_t attr_data = get_color_bit(bg_regs.attr_shift_lsb, bg_regs.attr_shift_msb, x);
+
+        Color* color = bus->ppu_get_color(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
+
+        screen->draw_pixel(curr_cycle, curr_scanline, color->r, color->g, color->b);
+    }
+
+    /* function to increment the fine y and coarse y component of v */
+    void PPU::increment_y() {
+        if ((v & 0b0111000000000000) != 0b0111000000000000) // if fine y < 7 (normal incrementing)
+            v += 0001000000000000;
+        else {
+            v &= 0b0111000000000000;
+            uint8_t coarse_y = (v & 0b0000001111100000) >> 5; // extracting coarse y out of v
+            if (coarse_y == 29) {
+                coarse_y = 0;
+                v ^= 0b0000100000000000; // switching vertical nametable
+            } else if (coarse_y == 31)
+                coarse_y = 0;
+            else
+                coarse_y++;
+
+            v = (v & ~0b0000001111100000) | (coarse_y << 5); // placing coarse y back onto v
+        }
+    }
+
+    void PPU::increment_coarse_x() {
+        if ((v & 0b0000000000011111) == 31) { // if coarse x = 31 (the limit)
+            v &= ~0b0000000000011111; // coarse x = 0
+            v ^= 0b0000010000000000; // switching horizontal nametable NOTE: not sure about this!
+        } else
+            v++; // otherwise, increment v normally
+    }
+
+    /* function to increment the curr_cycle internal counter (and curr_scanline accordingly) */
+    void PPU::increment_cycle(uint8_t cycles) {
+        curr_cycle += cycles;
+
+        if (curr_cycle > 340) {
+            curr_scanline++;
+            if (curr_scanline == 261) // i mark pre render scanline as -1 instead of 261 for convinience.
+                curr_scanline = -1;
+        }
+
+        curr_cycle %= 341; // wrapping over if its bigger than 340
+    }
+
+    uint8_t PPU::fetch_pt_byte(uint8_t byte_significance) {
+        uint16_t pt_byte_addr = bg_regs.nt_latch; // 0b00000000dddddddd
+        pt_byte_addr <<= 4;                       // 0b0000dddddddd0000
+        pt_byte_addr |= v >> 12;                  // 0b0000ddddddddvvvv
+        pt_byte_addr |= byte_significance;        // fetching msb/lsb // 0b0000ddddddddsvvv
+        pt_byte_addr |= (ext_regs.ppuctrl & 0b00010000) << 8;
+
+        return bus->ppu_read(pt_byte_addr);
+    }
+
+    void PPU::load_attr_shift_regs() {
+        uint8_t shift_amout;
+
+        uint8_t coarse_x = v & 0b0000000000011111;
+        uint8_t coarse_y = (v >> 5) & 0b0000000000011111;
+
+        // (0, 0) -> 2| (bits 2, 3) fetch bits for top right
+        // (0, 1) -> 4| (bits 4, 5) fetch bits for bottom right
+        // (1, 0) -> 0| (bits 0, 1) fetch bits for top left
+        // (1, 1) -> 6| (bits 6, 7) fetch bits for bottom left
+
+        if (coarse_x % 2 == 0) {
+            if (coarse_y % 2 == 0)
+                shift_amout = 2;
+            else
+                shift_amout = 4;
+        } else {
+            if (coarse_y % 2 == 0)
+                shift_amout = 0;
+            else
+                shift_amout = 6;
+        }
+
+        uint8_t lsb_data = (bg_regs.at_latch >> (shift_amout + 1)) && 0b00000001;
+        uint8_t msb_data = (bg_regs.at_latch >> shift_amout) && 0b00000001;
+
+        //  if sb_data = 0b1 we get 0b11111111, if sb_data = 0b0 we get 0b00000000
+        bg_regs.attr_shift_lsb |= lsb_data * 0b11111111;
+        bg_regs.attr_shift_msb |= msb_data * 0b11111111;
+    }
+
+    void PPU::reset() { // change later!
+        x = 0;
+        w = 0;
+        v = 0;
+        t = 0;
+        curr_cycle = 0;
+        curr_scanline = 0;
+        frame_oddness = 0;
+        nmi = 0;
+        bg_regs.at_latch = 0;
+        bg_regs.attr_shift_lsb = 0;
+        bg_regs.attr_shift_msb = 0;
+        bg_regs.nt_latch = 0;
+        bg_regs.pt_latch_lsb = 0;
+        bg_regs.pt_latch_msb = 0;
+        bg_regs.pt_shift_lsb = 0;
+        bg_regs.pt_shift_msb = 0;
+        ext_regs.ppuctrl = 0;
+        ext_regs.ppumask = 0;
+        ext_regs.ppustatus = 0;
+        ext_regs.oamaddr = 0;
     }
 
     // /* I am a bit simplfying this, usually there is an insertion and fetch in different address*/
@@ -137,21 +315,8 @@ namespace roee_nes {
 
     // }
 
-    // uint16_t PPU::fetch_pt_byte(uint8_t byte_significance) {
-    //     uint16_t pt_byte_addr = bg_regs.nt_latch; // 0b00000000dddddddd
-    //     pt_byte_addr <<= 4;                       // 0b0000dddddddd0000
-    //     pt_byte_addr |= v >> 12;                  // 0b0000ddddddddvvvv
-    //     pt_byte_addr |= byte_significance;        // fetching msb/lsb // 0b0000ddddddddsvvv
-    //     pt_byte_addr |= (ext_regs.ppuctrl & 0b00010000) << 8;
-
-    //     return bus->ppu_read(pt_byte_addr);
-    // }
-
     // void PPU::load_bg_shift_regs() {
     //     uint8_t attr_loading_shift;
-
-    //     bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
-    //     bg_regs.pt_shift_msb = (bg_regs.pt_shift_msb & 0xFF00) | bg_regs.pt_latch_msb;
 
     //     auto get_coarse_x = [](uint16_t v) -> uint8_t { return v & 0b00011111; };
     //     auto get_coarse_y = [](uint16_t v) -> uint8_t { return (v & 0b11111000000) >> 5; };
@@ -180,7 +345,7 @@ namespace roee_nes {
     //     bg_regs.attr_shift_msb = (bg_regs.at_latch >> attr_loading_shift) && 0b00000001;
     //     bg_regs.attr_shift_lsb = (bg_regs.at_latch >> (attr_loading_shift + 1)) && 0b00000001;
 
-    //     // if reg = 0b01 => 0b11111111, if reg = 0b00 => 0b00000000
+    //     // if reg = 0b1 => 0b11111111, if reg = 0b0 => 0b00000000
     //     bg_regs.attr_shift_lsb *= 0b11111111;
     //     bg_regs.attr_shift_msb *= 0b11111111;
     // }
@@ -239,29 +404,6 @@ namespace roee_nes {
     //             v = (v & ~0b0000001111100000) | (y << 5); // putting coarse y back in v
     //         }
     //     }
-    // }
-
-    // void PPU::reset() { // change later!
-    //     x = 0;
-    //     w = 0;
-    //     v = 0;
-    //     t = 0;
-    //     curr_cycle = 0;
-    //     curr_scanline = 0;
-    //     odd_even_frame = 0;
-    //     nmi = 0;
-    //     bg_regs.at_latch = 0;
-    //     bg_regs.attr_shift_lsb = 0;
-    //     bg_regs.attr_shift_msb = 0;
-    //     bg_regs.nt_latch = 0;
-    //     bg_regs.pt_latch_lsb = 0;
-    //     bg_regs.pt_latch_msb = 0;
-    //     bg_regs.pt_shift_lsb = 0;
-    //     bg_regs.pt_shift_msb = 0;
-    //     ext_regs.ppuctrl = 0;
-    //     ext_regs.ppumask = 0;
-    //     ext_regs.ppustatus = 0;
-    //     ext_regs.oamaddr = 0;
     // }
 
     // struct Color* PPU::get_pixel_to_render() {

@@ -205,13 +205,12 @@ namespace roee_nes {
         PC--;
         push((PC >> 8) & 0x00ff);
         push(PC & 0x00ff);
+        set_flag(BRK_BIT, 1);
         PC = bytes;
     }
 
     /* load accumulator with value */
     void CPU::LDA() {
-        // if (PC == 0xC7AB)
-        //     std::cout << "LDA: " << std::hex << (int)bytes << std::endl;
         reg_LD_actual(&A);
     }
 
@@ -260,6 +259,7 @@ namespace roee_nes {
     /* push processor status flag on stack */
     void CPU::PHP() {
         push(P);
+        set_flag(BRK_BIT, 1);
     }
 
     /* pop accumulator from stack */
@@ -299,19 +299,22 @@ namespace roee_nes {
     /* return from interrupt */
     void CPU::RTI() {
         P = pop();
-        PC = pop();
-        PC |= pop() << 8; // might be wrong here!
+        P &= ~BRK_BIT;
+        P &= ~UNUSED_BIT;
+
+        PC = (uint16_t)pop();
+        PC |= (uint16_t)(pop() << 8);
     }
 
     /* return from subroutine */
     void CPU::RTS() {
         PC = pop();
-        PC |= pop() << 8; // might be wrong here!
+        PC |= (pop() << 8);
         PC++;
     }
 
     /* subtract with carry */
-    void CPU::SBC() {
+    void CPU::SBC() { // NOTE: CHECK AGAIN!!!
         if (inst->mode != IMM)
             bytes = bus->cpu_read(bytes);
 
@@ -474,15 +477,15 @@ namespace roee_nes {
 
     /* non maskable - triggered by the PPU */
     void CPU::nmi() {
-        push(P);
         push((PC >> 8) & 0x00ff);
         push(PC & 0x00ff);
 
-        PC = convert_to_2byte(bus->cpu_read(0xfffa), bus->cpu_read(0xfffb));
-
         set_flag(DISINT_BIT, 1);
         set_flag(BRK_BIT, 0);
+        set_flag(UNUSED_BIT, 1);
+        push(P);
 
+        PC = convert_to_2byte(bus->cpu_read(0xfffa), bus->cpu_read(0xfffb));
         // std::chrono::microseconds sleepDuration(get_sleep_time(NMI_CYCLES));
         // std::this_thread::sleep_for(sleepDuration);
     }
@@ -493,24 +496,27 @@ namespace roee_nes {
         S = S - 3;
 
         set_flag(DISINT_BIT, 1);
-
         // std::chrono::microseconds sleepDuration(get_sleep_time(RST_CYCLES));
         // std::this_thread::sleep_for(sleepDuration);
     }
 
     /* maskable interrupt*/
     void CPU::irq() {
-        push(P);
-        push((PC >> 8) & 0x00ff);
-        push(PC & 0x00ff);
+        if (get_flag_status(DISINT_BIT) == 0) {
+            push((PC >> 8) & 0x00ff);
+            push(PC & 0x00ff);
 
-        PC = convert_to_2byte(bus->cpu_read(0xfffe), bus->cpu_read(0xffff));
 
-        set_flag(DISINT_BIT, 1);
-        set_flag(BRK_BIT, 0);
+            set_flag(DISINT_BIT, 1);
+            set_flag(BRK_BIT, 0);
+            set_flag(UNUSED_BIT, 1);
+            push(P);
 
-        // std::chrono::microseconds sleepDuration(get_sleep_time(IRQ_CYCLES));
-        // std::this_thread::sleep_for(sleepDuration);
+            PC = convert_to_2byte(bus->cpu_read(0xfffe), bus->cpu_read(0xffff));
+
+            // std::chrono::microseconds sleepDuration(get_sleep_time(IRQ_CYCLES));
+            // std::this_thread::sleep_for(sleepDuration);
+        }
     }
 
 }

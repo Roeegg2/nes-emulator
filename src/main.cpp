@@ -25,10 +25,9 @@ int run_emulator(CPU* cpu, PPU* ppu) {
     cycles = cpu->run_cpu();
     ppu->run_ppu(cycles * 3);
 
-    if (ppu->ext_regs.ppustatus & 0b10000000) {
-        ppu->ext_regs.ppustatus &= 0b01111111;
-        cpu->nmi();
+    if (ppu->nmi == 1) {
         ppu->nmi = 0;
+        cpu->nmi();
     }
 
     if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
@@ -38,15 +37,16 @@ int run_emulator(CPU* cpu, PPU* ppu) {
 }
 
 int main() {
-    Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"), "testr/gameroms/palette.pal");
+    Bus bus = Bus(Mapper::create_mapper("testr/nestest/nestest.nes"), "testr/gameroms/palette.pal");
     CPU cpu = CPU(&bus);
     PPU ppu = PPU(&bus, new NES_Screen());
     bus.cpu = &cpu;
     bus.ppu = &ppu;
 
     ppu.reset();
-    cpu.reset();
+    // cpu.reset();
 
+    std::cout << cpu.P << std::endl;
     while (1) {
         std::cout << "\n>>";
         char command = getchar();

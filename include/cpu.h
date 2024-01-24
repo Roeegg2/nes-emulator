@@ -25,7 +25,7 @@ namespace roee_nes {
         ZERO_BIT = 0b00000010,
         DISINT_BIT = 0b00000100, // hardware interrupt flag
         DECIMAL_BIT = 0b00001000, // decimal mode flag - unused in the NES's 6502 implementation
-        BRK_BIT = 0b00010000, // software (brk) interrupt flag
+        BRK_BIT = 0b00010000, // software (brk) interrupt flag.
         UNUSED_BIT = 0b00100000, // unused flag in 6502
         OVERFLOW_BIT = 0b01000000,
         NEGATIVE_BIT = 0b10000000
@@ -63,6 +63,7 @@ namespace roee_nes {
         std::vector<Instruction> lookup;
 
         uint16_t log_PC;
+        uint16_t log_bytes;
     public:
         uint8_t run_cpu();
 
@@ -83,7 +84,7 @@ namespace roee_nes {
 
         // stack functions
         uint8_t pop();
-        void push(uint8_t data);
+        void push(uint8_t value);
 
         /* the functions called for each instruction */
         void ADC();	void AND();	void ASL();	void BCC();

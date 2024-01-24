@@ -43,7 +43,7 @@ namespace roee_nes {
         PPU* ppu;
         CPU* cpu;
 
-        uint8_t ppu_cpu_latch;
+        uint8_t ppu_bus_latch;
 
     public:
         Bus(Mapper* mapper, std::string palette_path);
@@ -53,6 +53,7 @@ namespace roee_nes {
 
         uint8_t ppu_read(uint16_t addr);
         void ppu_write(uint16_t addr, uint8_t data);
+
         struct Color* ppu_get_color(uint16_t addr);
 
         uint8_t cpu_read_ppu(uint16_t addr);

@@ -30,7 +30,7 @@ namespace roee_nes {
 
         this->bus = bus;
 
-        reset();
+        PC = 0xc000;
     }
 
     uint8_t CPU::run_cpu() {
@@ -106,6 +106,8 @@ namespace roee_nes {
                 PC += 2;
                 break;
         }
+
+        log_bytes = bytes;
     }
 
 
