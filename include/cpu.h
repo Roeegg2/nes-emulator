@@ -64,6 +64,11 @@ namespace roee_nes {
 
         uint16_t log_PC;
         uint16_t log_bytes;
+        uint8_t log_A;
+        uint8_t log_P;
+        uint8_t log_S;
+        uint8_t log_X;
+        uint8_t log_Y;
     public:
         uint8_t run_cpu();
 

@@ -5,6 +5,9 @@
 #include <array>
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 #include "mapper_n_cart.h"
 #include "mappers/nrom_0.h"
@@ -60,6 +63,7 @@ namespace roee_nes {
         void cpu_write_ppu(uint16_t addr, uint8_t data);
 
         void log() const;
+        void find_difference() const;
 
     private:
         void init_palette(std::string palette_path);

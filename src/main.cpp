@@ -46,28 +46,11 @@ int main() {
     ppu.reset();
     // cpu.reset();
 
-    std::cout << cpu.P << std::endl;
-    while (1) {
-        std::cout << "\n>>";
-        char command = getchar();
-
-        switch (command) {
-            case 'c':
-                while (1){
-                    run_emulator(&cpu, &ppu);
-                    bus.log();
-                }
-                break;
-
-            case 's':
-                run_emulator(&cpu, &ppu);
-                bus.log();
-                break;
-
-            case 'q':
-                return 0;
-        }
+    for (int i = 0; i < 8993; i++) {
+        run_emulator(&cpu, &ppu);
+        bus.log();
     }
 
+    bus.find_difference();
     return 0;
 }

@@ -9,12 +9,14 @@ namespace roee_nes {
             bytes = bus->cpu_read(bytes);
 
         uint16_t foo = A + bytes + get_flag_status(CARRY_BIT);
+        
+        // UNDERSTAND THIS!
+        set_flag(OVERFLOW_BIT, (~((uint16_t)A ^ (uint16_t)bytes) & ((uint16_t)A ^ (uint16_t)foo)) & 0x0080);
         A = (uint8_t)foo;
 
         set_flag(ZERO_BIT, A == 0);
         set_flag(NEGATIVE_BIT, A & 0b10000000);
         set_flag(CARRY_BIT, foo != A);
-        set_flag(OVERFLOW_BIT, A != (int8_t)foo);
     }
 
     /* accumulator bitwise AND */
@@ -205,7 +207,7 @@ namespace roee_nes {
         PC--;
         push((PC >> 8) & 0x00ff);
         push(PC & 0x00ff);
-        set_flag(BRK_BIT, 1);
+        // set_flag(BRK_BIT, 1); REMOVED FROM NESTEST
         PC = bytes;
     }
 
@@ -258,8 +260,9 @@ namespace roee_nes {
 
     /* push processor status flag on stack */
     void CPU::PHP() {
-        push(P);
         set_flag(BRK_BIT, 1);
+        push(P);
+        set_flag(BRK_BIT, 0);
     }
 
     /* pop accumulator from stack */
@@ -272,6 +275,8 @@ namespace roee_nes {
     /* pop processor status flag from stack */
     void CPU::PLP() {
         P = pop();
+        set_flag(BRK_BIT, 0);
+        set_flag(UNUSED_BIT, 1);
     }
 
     /* rotate left */
@@ -299,8 +304,8 @@ namespace roee_nes {
     /* return from interrupt */
     void CPU::RTI() {
         P = pop();
-        P &= ~BRK_BIT;
-        P &= ~UNUSED_BIT;
+        set_flag(BRK_BIT, 0);
+        set_flag(UNUSED_BIT, 1);
 
         PC = (uint16_t)pop();
         PC |= (uint16_t)(pop() << 8);
@@ -314,18 +319,26 @@ namespace roee_nes {
     }
 
     /* subtract with carry */
-    void CPU::SBC() { // NOTE: CHECK AGAIN!!!
+    void CPU::SBC() { // NOTE: REWRITE ON YOUR OWN LATER!
         if (inst->mode != IMM)
             bytes = bus->cpu_read(bytes);
 
-        uint16_t foo = A - bytes - (1 - get_flag_status(CARRY_BIT));
-        A = (uint8_t)foo;
+        uint16_t val = ((uint16_t)bytes) ^ 0x00FF;
 
-        set_flag(ZERO_BIT, A == 0);
-        set_flag(NEGATIVE_BIT, A & 0b10000000);
-        // not entiry sure if the following is correct
-        set_flag(CARRY_BIT, (uint16_t)A != foo);  // if the 16bit version is different than the 8bit version then there was a carry
-        set_flag(OVERFLOW_BIT, A != (int8_t)foo); // if the signed version is different than the unsigned version then there was an overflow
+        uint32_t foo = (uint16_t)A + val + (uint16_t)get_flag_status(CARRY_BIT);
+        set_flag(CARRY_BIT, foo & 0xFF00 || foo == 0); // the || is my addition
+	    set_flag(ZERO_BIT, ((foo & 0x00FF) == 0));
+	    set_flag(OVERFLOW_BIT, (foo ^ (uint16_t)A) & (foo ^ val) & 0x0080);
+	    set_flag(NEGATIVE_BIT, foo & 0x0080);
+	    A = foo & 0x00FF;
+        // uint16_t foo = A - bytes - (1 - get_flag_status(CARRY_BIT));
+        // A = (uint8_t)foo;
+
+        // set_flag(ZERO_BIT, A == 0);
+        // set_flag(NEGATIVE_BIT, A & 0b10000000);
+        // // not entiry sure if the following is correct
+        // set_flag(CARRY_BIT, (uint16_t)A != foo);  // if the 16bit version is different than the 8bit version then there was a carry
+        // set_flag(OVERFLOW_BIT, A != (int8_t)foo); // if the signed version is different than the unsigned version then there was an overflow
     }
 
     /* set carry bit */

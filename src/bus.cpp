@@ -62,8 +62,7 @@ namespace roee_nes {
                     vram[0][addr] = data;
                 else
                     vram[1][addr] = data;
-            } 
-            else if (mapper->Get_mirroring() == 'V') {
+            } else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
                     vram[0][addr] = data;
                 else
@@ -87,8 +86,7 @@ namespace roee_nes {
                     return vram[0][addr];
                 else
                     return vram[1][addr];
-            } 
-            else if (mapper->Get_mirroring() == 'V') {
+            } else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
                     return vram[0][addr];
                 else
@@ -107,8 +105,7 @@ namespace roee_nes {
                 addr -= 0x10;
 
             return &(palette[addr]);
-        } 
-        else
+        } else
             return nullptr;
     }
 
@@ -129,8 +126,7 @@ namespace roee_nes {
                 if (ppu->w == 0) {
                     ppu->t = ((ppu->t >> 5) << 5) | (data16 >> 3); // setting coarse x
                     ppu->x = data16 & 0b0000000000000111; // setting fine x
-                }
-                else { //setting coarse y and fine y
+                } else { //setting coarse y and fine y
                     ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
                     ppu->t = ppu->t | (data16 << 12);
                     ppu->t = ppu->t | ((data16 >> 3) << 5);
@@ -143,8 +139,7 @@ namespace roee_nes {
                     ppu->v &= 0b0011111111111111; // clearing bit 14 on first write.
                     data16 = data16 & 0b00111111;
                     ppu->t = (ppu->t & 0b0000000011111111) | (data16 << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
-                } 
-                else {
+                } else {
                     ppu->t = (ppu->t & 0b0011111100000000) | data;
                     ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
                 }
@@ -181,36 +176,188 @@ namespace roee_nes {
     }
 
     void Bus::log() const {
-        uint16_t index = 0x10;
-        
-        static std::ofstream log("testr/logs/ROEE_NES.log", std::ios::out | std::ios::trunc);
-
-        log << "------------- PPU SECTION -------------" << std::endl;
-        // log << std::hex << std::uppercase << "Memory at: " << index << "is: " << (int)ram[index] << std::endl;
-
-        log << "frame oddness: " << std::hex << std::uppercase << (int)ppu->frame_oddness << std::endl;
-        log << "scanline: " << std::dec << ppu->curr_scanline << std::endl;
-        log << "cycle: " << std::dec << ppu->curr_cycle << std::endl;
-        log << "t: " << std::hex << std::uppercase << (int)ppu->v << std::endl;
-        log << "v: " << std::hex << std::uppercase << (int)ppu->t << std::endl;
-        log << "x: " << std::hex << std::uppercase << (int)ppu->x << std::endl;
-        log << "w: " << std::hex << std::uppercase << (int)ppu->w << std::endl;
-        log << "ppuctrl: " << std::hex << std::uppercase << (int)ppu->ext_regs.ppuctrl << std::endl;
-        log << "ppumask: " << std::hex << std::uppercase << (int)ppu->ext_regs.ppumask << std::endl;
-        log << "ppustatus: " << std::hex << std::uppercase << (int)ppu->ext_regs.ppustatus << std::endl;
-        log << "---------------------------------------" << std::endl;
-
-        log << "------------- CPU SECTION -------------" << std::endl;
-        log << std::hex << std::uppercase << "PC: $" << cpu->log_PC << std::endl;
-        log << std::hex << std::uppercase << "Opcode: " << (int)cpu->IR << std::endl;
-        log << "Operation: " << cpu->inst->name << std::endl;
-        log << std::hex << std::uppercase << "Params " << (int)(cpu->log_bytes) << std::endl;
-        log << std::hex << std::uppercase << "A: " << (int)cpu->A << std::endl;
-        log << std::hex << std::uppercase << "X: " << (int)cpu->X << std::endl;
-        log << std::hex << std::uppercase << "Y: " << (int)cpu->Y << std::endl;
-        log << std::uppercase << "P: " << get_binary(cpu->P, 8) << " (" << std::dec << (int)cpu->P << ")" << std::endl;
-        log << std::hex << std::uppercase << "SP: " << (int)cpu->S << std::endl;
-        log << "---------------------------------------" << std::endl;
+        static FILE* file = fopen("testr/logs/ROEE_NES.log", "w");
+        // char sign[4]; 
+        fprintf(file, "%02X  %02X %02X %-10X %s", (int)cpu->log_PC, (int)cpu->IR, cpu->bytes & 0x00ff, cpu->bytes >> 8, cpu->inst->name.c_str());
+        fprintf(file, "\t A:%02X X:%02X Y:%02X P:%02X SP:%02X", cpu->log_A, cpu->log_X, cpu->log_Y, cpu->log_P, cpu->log_S);
+        fprintf(file, " PPU: %d, %d, CYC:%d\n", ppu->curr_scanline, ppu->curr_cycle, ppu->curr_cycle / 3);
     }
-}
 
+
+    void Bus::find_difference() const {
+        std::ifstream roee_file("testr/logs/ROEE_NES.log");
+        std::ifstream nestest_file("testr/nestest/nestest.log");
+
+        if (!roee_file.is_open() || !nestest_file.is_open()) {
+            std::cerr << "Error opening files." << std::endl;
+            return;
+        }
+
+        int line_cnt = 0;
+        std::string roee_line, nestest_line;
+
+        while (std::getline(roee_file, roee_line) && std::getline(nestest_file, nestest_line)) {
+            line_cnt++;
+
+            std::istringstream roee_ss(roee_line);
+            std::istringstream nestest_ss(nestest_line);
+
+            std::string roee_token, nestest_token;
+
+            roee_ss >> roee_token;
+            nestest_ss >> nestest_token;
+
+            if (roee_token != nestest_token) {
+                std::cerr << "Difference found in address! Line: " << line_cnt << std::endl;
+                return;
+            }
+
+            roee_ss >> roee_token;
+            nestest_ss >> nestest_token;
+
+            if (roee_token != nestest_token) {
+                std::cerr << "Difference found in opcode! Line: " << line_cnt << std::endl;
+                return;
+            }
+
+            while (roee_token.compare(0, 2, "A:") != 0)
+                roee_ss >> roee_token;
+
+            while (nestest_token.compare(0, 2, "A:") != 0)
+                nestest_ss >> nestest_token;
+
+            if (roee_token != nestest_token) {
+                std::cerr << "Difference found in A value! Line: " << line_cnt << std::endl;
+                return;
+            }
+
+            while (roee_token.compare(0, 2, "X:") != 0)
+                roee_ss >> roee_token;
+
+            while (nestest_token.compare(0, 2, "X:") != 0)
+                nestest_ss >> nestest_token;
+
+            if (roee_token != nestest_token) {
+                std::cerr << "Difference found in X value! Line: " << line_cnt << std::endl;
+                return;
+            }
+
+            while (roee_token.compare(0, 2, "Y:") != 0)
+                roee_ss >> roee_token;
+
+            while (nestest_token.compare(0, 2, "Y:") != 0)
+                nestest_ss >> nestest_token;
+
+            if (roee_token != nestest_token) {
+                std::cerr << "Difference found in Y value! Line: " << line_cnt << std::endl;
+                return;
+            }
+
+            while (roee_token.compare(0, 2, "P:") != 0)
+                roee_ss >> roee_token;
+
+            while (nestest_token.compare(0, 2, "P:") != 0)
+                nestest_ss >> nestest_token;
+
+            if (roee_token != nestest_token) {
+                std::cerr << "Difference found in P value! Line: " << line_cnt << std::endl;
+                return;
+            }
+
+            while (roee_token.compare(0, 3, "SP:") != 0)
+                roee_ss >> roee_token;
+
+            while (nestest_token.compare(0, 3, "SP:") != 0)
+                nestest_ss >> nestest_token;
+
+            if (roee_token != nestest_token) {
+                std::cerr << "Difference found in SP value! Line: " << line_cnt << std::endl;
+                return;
+            }
+        }
+
+        std::cout << "all goodie!" << std::endl;
+    }
+
+    //     void Bus::find_difference() const {
+    //         FILE* roee_file = fopen("testr/logs/ROEE_NES.log", "r");
+    //         FILE* nestest_file = fopen("testr/nestest/nestest.log", "r");
+
+    //         int line_cnt = 0;
+    //         char* roee_line = (char*)malloc(sizeof(char) * 400);
+    //         char* nestest_line = (char*)malloc(sizeof(char) * 400);
+    //         char* roee_token;
+    //         char* nestest_token;
+
+    //         for (line_cnt = 0; line_cnt < 8990; line_cnt++){
+    //             line_cnt++;
+    //             fgets(roee_line, 100, roee_file); 
+    //             fgets(nestest_line, 100, nestest_file);
+
+    //             roee_token = strtok(roee_line, "     ");
+    //             nestest_token = strtok(nestest_line, "     ");
+
+    //             if (strcmp(roee_token, nestest_token) != 0){
+    //                 printf("difference found in address! line: %d", line_cnt);
+    //                 exit(1);
+    //             }
+
+    //             roee_token = strtok(NULL, " ");
+    //             nestest_token = strtok(NULL, " ");
+
+    //             printf("%s\n", roee_token);
+    //             printf("%s\n", nestest_token);
+    //             if (strcmp(roee_token, nestest_token) != 0){
+    //                 printf("difference found in opcode! line: %d", line_cnt);
+    //                 exit(1);
+    //             }
+
+    //             while (strncmp(roee_token, "A:", 2) != 0)
+    //                 roee_token = strtok(NULL, " \t\n");
+
+    //             while (strncmp(nestest_token, "A:", 2) != 0)
+    //                 nestest_token = strtok(NULL, " \t\n");
+
+    //             if (strcmp(roee_token, nestest_token) != 0){
+    //                 printf("difference found in A value! line: %d", line_cnt);
+    //                 exit(1);
+    //             }
+
+    //             while (strncmp(roee_token, "X:", 2) != 0)
+    //                 roee_token = strtok(NULL, " \t\n");
+
+    //             while (strncmp(nestest_token, "X:", 2) != 0)
+    //                 nestest_token = strtok(NULL, " \t\n");
+
+    //             if (strcmp(roee_token, nestest_token) != 0){
+    //                 printf("difference found in X value! line: %d", line_cnt);
+    //                 exit(1);
+    //             }
+
+    //             while (strncmp(roee_token, "Y:", 2) != 0)
+    //                 roee_token = strtok(NULL, " \t\n");
+
+    //             while (strncmp(nestest_token, "Y:", 2) != 0)
+    //                 nestest_token = strtok(NULL, " \t\n");
+
+    //             if (strcmp(roee_token, nestest_token) != 0){
+    //                 printf("difference found in Y value! line: %d", line_cnt);
+    //                 exit(1);
+    //             }
+
+    //             while (strncmp(roee_token, "SP:", 2) != 0)
+    //                 roee_token = strtok(NULL, " \t\n");
+
+    //             while (strncmp(nestest_token, "SP:", 2) != 0)
+    //                 nestest_token = strtok(NULL, " \t\n");
+
+    //             if (strcmp(roee_token, nestest_token) != 0){
+    //                 printf("difference found in SP value! line: %d", line_cnt);
+    //                 exit(1);
+    //             }
+    //         } 
+
+    //         printf("number of lines looped: %d\n", line_cnt);
+    //     }
+    // }
+}
