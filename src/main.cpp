@@ -37,16 +37,16 @@ int run_emulator(CPU* cpu, PPU* ppu) {
 }
 
 int main() {
-    Bus bus = Bus(Mapper::create_mapper("testr/nestest/nestest.nes"), "testr/gameroms/palette.pal");
+    Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"), "testr/gameroms/palette.pal");
     CPU cpu = CPU(&bus);
     PPU ppu = PPU(&bus, new NES_Screen());
     bus.cpu = &cpu;
     bus.ppu = &ppu;
 
     ppu.reset();
-    // cpu.reset();
+    cpu.reset();
 
-    for (int i = 0; i < 8993; i++) {
+    while(1) {
         run_emulator(&cpu, &ppu);
         bus.log();
     }

@@ -196,10 +196,8 @@ namespace roee_nes {
 
     /* jump to new location */
     void CPU::JMP() {
-        if (inst->mode == ABS)
-            PC = bytes;
-        else
-            PC = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes + 1)); // WARN: might need to swap the order here
+        // std::cout << "here is PC for ya: " << PC << std::endl;
+        PC = bytes;
     }
 
     /* jump to new location saving return address */

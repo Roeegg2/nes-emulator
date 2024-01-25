@@ -176,11 +176,21 @@ namespace roee_nes {
     }
 
     void Bus::log() const {
-        static FILE* file = fopen("testr/logs/ROEE_NES.log", "w");
-        // char sign[4]; 
-        fprintf(file, "%02X  %02X %02X %-10X %s", (int)cpu->log_PC, (int)cpu->IR, cpu->bytes & 0x00ff, cpu->bytes >> 8, cpu->inst->name.c_str());
-        fprintf(file, "\t A:%02X X:%02X Y:%02X P:%02X SP:%02X", cpu->log_A, cpu->log_X, cpu->log_Y, cpu->log_P, cpu->log_S);
-        fprintf(file, " PPU: %d, %d, CYC:%d\n", ppu->curr_scanline, ppu->curr_cycle, ppu->curr_cycle / 3);
+        static std::ofstream roee_file("testr/logs/ROEE_NES.log");
+
+        roee_file << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(cpu->log_PC) << " "
+            << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->IR) << " "
+            << std::hex << std::setw(2) << std::setfill('0') << (cpu->log_bytes & 0x00ff) << " "
+            << std::hex << std::setw(2) << std::setfill('0') << (cpu->log_bytes >> 8) << " "
+            << cpu->inst->name;
+
+        roee_file << "\t A:" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_A)
+            << " X:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_X)
+            << " Y:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_Y)
+            << " P:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_P)
+            << " SP:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_S) << std::dec;
+
+        roee_file << " PPU: " << ppu->curr_scanline << ", " << ppu->curr_cycle << ", CYC:" << ppu->curr_cycle / 3 << std::endl;
     }
 
 
@@ -195,14 +205,13 @@ namespace roee_nes {
 
         int line_cnt = 0;
         std::string roee_line, nestest_line;
-
+        std::string roee_token, nestest_token;
+            
         while (std::getline(roee_file, roee_line) && std::getline(nestest_file, nestest_line)) {
             line_cnt++;
 
             std::istringstream roee_ss(roee_line);
             std::istringstream nestest_ss(nestest_line);
-
-            std::string roee_token, nestest_token;
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;

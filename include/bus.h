@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <iomanip>
 
 #include "mapper_n_cart.h"
 #include "mappers/nrom_0.h"

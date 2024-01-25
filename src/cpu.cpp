@@ -10,13 +10,13 @@ namespace roee_nes {
         using a = CPU;
         lookup = 
         {
-            { "BRK", &a::BRK, IMM, 7 },{ "ORA", &a::ORA, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 3 },{ "ORA", &a::ORA, ZP, 3 },{ "ASL", &a::ASL, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PHP", &a::PHP, IMP, 3 },{ "ORA", &a::ORA, IMM, 2 },{ "ASL", &a::ASL, IMP, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::NOP, IMP, 4 },{ "ORA", &a::ORA, ABS, 4 },{ "ASL", &a::ASL, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
+            { "BRK", &a::BRK, IMM, 7 },{ "ORA", &a::ORA, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 3 },{ "ORA", &a::ORA, ZP, 3 },{ "ASL", &a::ASL, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PHP", &a::PHP, IMP, 3 },{ "ORA", &a::ORA, IMM, 2 },{ "ASL", &a::ASL, ACC, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::NOP, IMP, 4 },{ "ORA", &a::ORA, ABS, 4 },{ "ASL", &a::ASL, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
             { "BPL", &a::BPL, REL, 2 },{ "ORA", &a::ORA, IND_Y, 5 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 4 },{ "ORA", &a::ORA, ZP_X, 4 },{ "ASL", &a::ASL, ZP_X, 6 },{ "ILL", &a::ILL, IMP, 6 },{ "CLC", &a::CLC, IMP, 2 },{ "ORA", &a::ORA, ABS_Y, 4 },{ "ILL", &a::NOP, IMP, 2 },{ "ILL", &a::ILL, IMP, 7 },{ "ILL", &a::NOP, IMP, 4 },{ "ORA", &a::ORA, ABS_X, 4 },{ "ASL", &a::ASL, ABS_X, 7 },{ "ILL", &a::ILL, IMP, 7 },
-            { "JSR", &a::JSR, ABS, 6 },{ "AND", &a::AND, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "BIT", &a::BIT, ZP, 3 },{ "AND", &a::AND, ZP, 3 },{ "ROL", &a::ROL, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PLP", &a::PLP, IMP, 4 },{ "AND", &a::AND, IMM, 2 },{ "ROL", &a::ROL, IMP, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "BIT", &a::BIT, ABS, 4 },{ "AND", &a::AND, ABS, 4 },{ "ROL", &a::ROL, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
+            { "JSR", &a::JSR, ABS, 6 },{ "AND", &a::AND, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "BIT", &a::BIT, ZP, 3 },{ "AND", &a::AND, ZP, 3 },{ "ROL", &a::ROL, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PLP", &a::PLP, IMP, 4 },{ "AND", &a::AND, IMM, 2 },{ "ROL", &a::ROL, ACC, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "BIT", &a::BIT, ABS, 4 },{ "AND", &a::AND, ABS, 4 },{ "ROL", &a::ROL, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
             { "BMI", &a::BMI, REL, 2 },{ "AND", &a::AND, IND_Y, 5 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 4 },{ "AND", &a::AND, ZP_X, 4 },{ "ROL", &a::ROL, ZP_X, 6 },{ "ILL", &a::ILL, IMP, 6 },{ "SEC", &a::SEC, IMP, 2 },{ "AND", &a::AND, ABS_Y, 4 },{ "ILL", &a::NOP, IMP, 2 },{ "ILL", &a::ILL, IMP, 7 },{ "ILL", &a::NOP, IMP, 4 },{ "AND", &a::AND, ABS_X, 4 },{ "ROL", &a::ROL, ABS_X, 7 },{ "ILL", &a::ILL, IMP, 7 },
-            { "RTI", &a::RTI, IMP, 6 },{ "EOR", &a::EOR, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 3 },{ "EOR", &a::EOR, ZP, 3 },{ "LSR", &a::LSR, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PHA", &a::PHA, IMP, 3 },{ "EOR", &a::EOR, IMM, 2 },{ "LSR", &a::LSR, IMP, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "JMP", &a::JMP, ABS, 3 },{ "EOR", &a::EOR, ABS, 4 },{ "LSR", &a::LSR, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
+            { "RTI", &a::RTI, IMP, 6 },{ "EOR", &a::EOR, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 3 },{ "EOR", &a::EOR, ZP, 3 },{ "LSR", &a::LSR, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PHA", &a::PHA, IMP, 3 },{ "EOR", &a::EOR, IMM, 2 },{ "LSR", &a::LSR, ACC, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "JMP", &a::JMP, ABS, 3 },{ "EOR", &a::EOR, ABS, 4 },{ "LSR", &a::LSR, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
             { "BVC", &a::BVC, REL, 2 },{ "EOR", &a::EOR, IND_Y, 5 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 4 },{ "EOR", &a::EOR, ZP_X, 4 },{ "LSR", &a::LSR, ZP_X, 6 },{ "ILL", &a::ILL, IMP, 6 },{ "CLI", &a::CLI, IMP, 2 },{ "EOR", &a::EOR, ABS_Y, 4 },{ "ILL", &a::NOP, IMP, 2 },{ "ILL", &a::ILL, IMP, 7 },{ "ILL", &a::NOP, IMP, 4 },{ "EOR", &a::EOR, ABS_X, 4 },{ "LSR", &a::LSR, ABS_X, 7 },{ "ILL", &a::ILL, IMP, 7 },
-            { "RTS", &a::RTS, IMP, 6 },{ "ADC", &a::ADC, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 3 },{ "ADC", &a::ADC, ZP, 3 },{ "ROR", &a::ROR, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PLA", &a::PLA, IMP, 4 },{ "ADC", &a::ADC, IMM, 2 },{ "ROR", &a::ROR, IMP, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "JMP", &a::JMP, IND, 5 },{ "ADC", &a::ADC, ABS, 4 },{ "ROR", &a::ROR, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
+            { "RTS", &a::RTS, IMP, 6 },{ "ADC", &a::ADC, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 3 },{ "ADC", &a::ADC, ZP, 3 },{ "ROR", &a::ROR, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PLA", &a::PLA, IMP, 4 },{ "ADC", &a::ADC, IMM, 2 },{ "ROR", &a::ROR, ACC, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "JMP", &a::JMP, IND, 5 },{ "ADC", &a::ADC, ABS, 4 },{ "ROR", &a::ROR, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
             { "BVS", &a::BVS, REL, 2 },{ "ADC", &a::ADC, IND_Y, 5 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 4 },{ "ADC", &a::ADC, ZP_X, 4 },{ "ROR", &a::ROR, ZP_X, 6 },{ "ILL", &a::ILL, IMP, 6 },{ "SEI", &a::SEI, IMP, 2 },{ "ADC", &a::ADC, ABS_Y, 4 },{ "ILL", &a::NOP, IMP, 2 },{ "ILL", &a::ILL, IMP, 7 },{ "ILL", &a::NOP, IMP, 4 },{ "ADC", &a::ADC, ABS_X, 4 },{ "ROR", &a::ROR, ABS_X, 7 },{ "ILL", &a::ILL, IMP, 7 },
             { "ILL", &a::NOP, IMP, 2 },{ "STA", &a::STA, X_IND, 6 },{ "ILL", &a::NOP, IMP, 2 },{ "ILL", &a::ILL, IMP, 6 },{ "STY", &a::STY, ZP, 3 },{ "STA", &a::STA, ZP, 3 },{ "STX", &a::STX, ZP, 3 },{ "ILL", &a::ILL, IMP, 3 },{ "DEY", &a::DEY, IMP, 2 },{ "ILL", &a::NOP, IMP, 2 },{ "TXA", &a::TXA, IMP, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "STY", &a::STY, ABS, 4 },{ "STA", &a::STA, ABS, 4 },{ "STX", &a::STX, ABS, 4 },{ "ILL", &a::ILL, IMP, 4 },
             { "BCC", &a::BCC, REL, 2 },{ "STA", &a::STA, IND_Y, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 6 },{ "STY", &a::STY, ZP_X, 4 },{ "STA", &a::STA, ZP_X, 4 },{ "STX", &a::STX, ZP_Y, 4 },{ "ILL", &a::ILL, IMP, 4 },{ "TYA", &a::TYA, IMP, 2 },{ "STA", &a::STA, ABS_Y, 5 },{ "TXS", &a::TXS, IMP, 2 },{ "ILL", &a::ILL, IMP, 5 },{ "ILL", &a::NOP, IMP, 5 },{ "STA", &a::STA, ABS_X, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "ILL", &a::ILL, IMP, 5 },
@@ -30,7 +30,7 @@ namespace roee_nes {
 
         this->bus = bus;
 
-        PC = 0xc000;
+        // PC = 0xc000;
         P = 0x24;
     }
 
@@ -47,20 +47,22 @@ namespace roee_nes {
     }
 
     void CPU::fetch_decode_inst() { // this is also ugly, might rewrite it in the future
+        uint16_t foo; // helper variable to 
         bytes = 0; // clearing operands from last operations
         IR = Get_from_op(0);
         inst = &lookup[IR];
-
+        
         log_PC = PC;
         log_A = A;
         log_X = X;
         log_Y = Y;
         log_P = P;
         log_S = S;
+
         switch (inst->mode) {
             case REL:
             case IMM:
-                bytes = Get_from_op(1);
+                log_bytes = bytes = Get_from_op(1);
                 PC += 2;
                 break;
             case ACC:
@@ -68,52 +70,64 @@ namespace roee_nes {
                 PC++;
                 break;
             case ABS:
-                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
+                log_bytes = bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
                 PC += 3;
                 break;
             case ZP:
-                bytes = convert_to_2byte(Get_from_op(1), 0);
+                log_bytes = bytes = convert_to_2byte(Get_from_op(1), 0);
                 PC += 2;
                 break;
             case ZP_X:
-                bytes = convert_to_2byte(Get_from_op(1), 0);
+                log_bytes = bytes = convert_to_2byte(Get_from_op(1), 0);
                 bytes += X;
                 PC += 2;
+                bytes &= 0x00ff;
                 break;
             case ZP_Y:
-                bytes = convert_to_2byte(Get_from_op(1), 0);
+                log_bytes = bytes = convert_to_2byte(Get_from_op(1), 0);
                 bytes += Y;
                 PC += 2;
+                bytes &= 0x00ff;
                 break;
             case ABS_X:
-                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
+                log_bytes = bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
                 bytes += X;
                 PC += 3;
                 break;
             case ABS_Y:
-                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
+                log_bytes = bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
                 bytes += Y;
                 PC += 3;
                 break;
             case IND:
-                bytes = convert_to_2byte(Get_from_op(1), Get_from_op(2));
-                bytes = convert_to_2byte(bus->cpu_read(bytes), bus->cpu_read(bytes + 1)); // might be the other way around
+                log_bytes = foo = convert_to_2byte(Get_from_op(1), Get_from_op(2));
+                bytes = 0x00ff & bus->cpu_read(foo);
+                foo = ((foo + 1) & 0x00ff) | (foo & 0xff00);
+                bytes |= ((0x00ff & bus->cpu_read(foo)) << 8);
                 PC += 3;
                 break;
             case X_IND:
-                bytes = convert_to_2byte(Get_from_op(1), 0);
-                bytes = bus->cpu_read(bytes);
+                log_bytes = foo = convert_to_2byte(Get_from_op(1), 0);
+                foo += X;
+                bytes = 0x00ff & bus->cpu_read((uint8_t)foo);
+                bytes |= ((0x00ff & bus->cpu_read((uint8_t)(foo+1))) << 8);
                 PC += 2;
                 break;
             case IND_Y:
-                bytes = convert_to_2byte(Get_from_op(1), 0);
-                bytes = bus->cpu_read(bytes);
+                log_bytes = foo = convert_to_2byte(Get_from_op(1), 0);
+                bytes = 0x00ff & bus->cpu_read((uint8_t)foo);
+                bytes |= ((0x00ff & bus->cpu_read((uint8_t)(foo+1))) << 8);
                 bytes += Y;
                 PC += 2;
                 break;
+            default:
+                PC++;
         }
 
-        log_bytes = bytes;
+        if (log_bytes == 0x2ff && IR == 0x6C) {
+            std::cout << std::hex << "foo is: " << (int)bytes << std::endl;
+        }
+        
     }
 
 
