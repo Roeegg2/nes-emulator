@@ -50,7 +50,7 @@ namespace roee_nes {
         uint8_t ppu_bus_latch;
 
     public:
-        Bus(Mapper* mapper, std::string palette_path);
+        Bus(Mapper* mapper, const std::string* palette_path);
 
         uint8_t cpu_read(uint16_t addr);
         void cpu_write(uint16_t addr, uint16_t data);
@@ -67,7 +67,7 @@ namespace roee_nes {
         void find_difference() const;
 
     private:
-        void init_palette(std::string palette_path);
+        void init_palette(const std::string* palette_path);
     };
 
 }

@@ -34,7 +34,7 @@ namespace roee_nes {
     friend class NROM_0;
 
     public:
-        Cartridge(std::string rom_path);
+        Cartridge(const std::string* rom_path);
 
     private:
         Cartridge_Header header;
@@ -50,7 +50,7 @@ namespace roee_nes {
     public:
         Mapper(Cartridge* cart) : cart(cart) {}
         
-        static Mapper* create_mapper(std::string rom_path);
+        static Mapper* create_mapper(const std::string* rom_path);
 
         virtual uint8_t cpu_read(uint16_t addr) = 0;
         virtual void cpu_write(uint16_t addr, uint8_t data) = 0;

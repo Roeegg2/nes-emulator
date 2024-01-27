@@ -1,13 +1,13 @@
 #include "../include/bus.h"
 
 namespace roee_nes {
-    Bus::Bus(Mapper* mapper, std::string palette_path) {
+    Bus::Bus(Mapper* mapper, const std::string* palette_path) {
         this->mapper = mapper;
         init_palette(palette_path);
     }
 
-    void Bus::init_palette(std::string palette_path) {
-        static std::ifstream pal_file(palette_path, std::ios::binary);
+    void Bus::init_palette(const std::string* palette_path) {
+        std::ifstream pal_file(*palette_path, std::ios::binary);
 
         if (!pal_file.is_open())
             std::cerr << "Failed to open palette file" << std::endl;
@@ -190,6 +190,14 @@ namespace roee_nes {
             << " P:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_P)
             << " SP:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_S) << std::dec;
 
+        roee_file << "\t t:" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->t)
+            << " v:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->v)
+            << " x:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->x)
+            << " w:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->w)
+            << " ppuctrl:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppuctrl)
+            << " ppumask:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppumask)
+            << " ppustatus:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppustatus) << std::dec;
+
         roee_file << " PPU: " << ppu->curr_scanline << ", " << ppu->curr_cycle << ", CYC:" << ppu->curr_cycle / 3 << std::endl;
     }
 
@@ -206,7 +214,8 @@ namespace roee_nes {
         int line_cnt = 0;
         std::string roee_line, nestest_line;
         std::string roee_token, nestest_token;
-            
+        bool error_found = false;
+        std::string error;
         while (std::getline(roee_file, roee_line) && std::getline(nestest_file, nestest_line)) {
             line_cnt++;
 
@@ -216,18 +225,18 @@ namespace roee_nes {
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
 
-            if (roee_token != nestest_token) {
-                std::cerr << "Difference found in address! Line: " << line_cnt << std::endl;
-                return;
+            if (roee_token != nestest_token && !error_found) {
+                error = "address!";
+                error_found = true;
             }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
 
-            if (roee_token != nestest_token) {
-                std::cerr << "Difference found in opcode! Line: " << line_cnt << std::endl;
-                return;
-            }
+            if (roee_token != nestest_token && !error_found) {
+                error = "opcode!";
+                error_found = true;
+            }   
 
             while (roee_token.compare(0, 2, "A:") != 0)
                 roee_ss >> roee_token;
@@ -235,9 +244,9 @@ namespace roee_nes {
             while (nestest_token.compare(0, 2, "A:") != 0)
                 nestest_ss >> nestest_token;
 
-            if (roee_token != nestest_token) {
-                std::cerr << "Difference found in A value! Line: " << line_cnt << std::endl;
-                return;
+            if (roee_token != nestest_token && !error_found) {
+                error = "A value!";
+                error_found = true;
             }
 
             while (roee_token.compare(0, 2, "X:") != 0)
@@ -246,9 +255,9 @@ namespace roee_nes {
             while (nestest_token.compare(0, 2, "X:") != 0)
                 nestest_ss >> nestest_token;
 
-            if (roee_token != nestest_token) {
-                std::cerr << "Difference found in X value! Line: " << line_cnt << std::endl;
-                return;
+            if (roee_token != nestest_token && !error_found) {
+                error = "X value!";
+                error_found = true;
             }
 
             while (roee_token.compare(0, 2, "Y:") != 0)
@@ -257,9 +266,9 @@ namespace roee_nes {
             while (nestest_token.compare(0, 2, "Y:") != 0)
                 nestest_ss >> nestest_token;
 
-            if (roee_token != nestest_token) {
-                std::cerr << "Difference found in Y value! Line: " << line_cnt << std::endl;
-                return;
+            if (roee_token != nestest_token && !error_found) {
+                error = "Y value!";
+                error_found = true;
             }
 
             while (roee_token.compare(0, 2, "P:") != 0)
@@ -268,9 +277,9 @@ namespace roee_nes {
             while (nestest_token.compare(0, 2, "P:") != 0)
                 nestest_ss >> nestest_token;
 
-            if (roee_token != nestest_token) {
-                std::cerr << "Difference found in P value! Line: " << line_cnt << std::endl;
-                return;
+            if (roee_token != nestest_token && !error_found) {
+                error = "P value!";
+                error_found = true;
             }
 
             while (roee_token.compare(0, 3, "SP:") != 0)
@@ -279,8 +288,13 @@ namespace roee_nes {
             while (nestest_token.compare(0, 3, "SP:") != 0)
                 nestest_ss >> nestest_token;
 
-            if (roee_token != nestest_token) {
-                std::cerr << "Difference found in SP value! Line: " << line_cnt << std::endl;
+            if (roee_token != nestest_token && !error_found) {
+                error = "SP value!";
+                error_found = true;
+            }
+
+            if (error_found == true) {
+                std::cerr << "Difference found in " << error << " Line: " << line_cnt << std::endl;
                 return;
             }
         }

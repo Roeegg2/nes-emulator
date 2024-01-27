@@ -5,20 +5,13 @@
 
 using namespace roee_nes;
 
-void print_debugger() {
-    // printf("------------- DEBUGGER STARTED --------------\n\n");
+extern void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* vram);
 
-    // printf("COMMANDS:\n");
-    // printf("c/run - continue\n");
-    // printf("s - step\n");
-    // printf("b <addr> - add breakpoint at <addr>\n");
-    // printf("pc - print cpu registers (NOTE: not implemented yet)\n");
-    // printf("pp - print ppu registers (NOTE: not implemented yet)\n");
-    // printf("pm <addr> - print memory at <addr> (NOTE: not implemented yet)\n");
-    // printf("q - quit\n");
-}
+Bus* bus;
+CPU* cpu;
+PPU* ppu;
 
-int run_emulator(CPU* cpu, PPU* ppu) {
+uint16_t emulator_tick() {
     SDL_Event event;
     uint8_t cycles;
 
@@ -33,24 +26,25 @@ int run_emulator(CPU* cpu, PPU* ppu) {
     if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
         exit(1);
 
-    return 0;
+    return cpu->PC;
 }
 
 int main() {
-    Bus bus = Bus(Mapper::create_mapper("testr/gameroms/DK.nes"), "testr/gameroms/palette.pal");
-    CPU cpu = CPU(&bus);
-    PPU ppu = PPU(&bus, new NES_Screen());
-    bus.cpu = &cpu;
-    bus.ppu = &ppu;
+    const std::string rom_path = "testr/gameroms/DK.nes";
+    const std::string palette_path = "testr/gameroms/palette.pal";
 
-    ppu.reset();
-    cpu.reset();
+    bus = new Bus(Mapper::create_mapper(&rom_path), &palette_path);
+    cpu = new CPU(bus);
+    ppu = new PPU(bus, new NES_Screen());
+    bus->cpu = cpu;
+    bus->ppu = ppu;
 
-    while(1) {
-        run_emulator(&cpu, &ppu);
-        bus.log();
-    }
+    ppu->reset();
+    cpu->reset();
 
-    bus.find_difference();
+    while (1)
+        debugger_run(&bus->vram);
+
+    // bus.find_difference();
     return 0;
 }

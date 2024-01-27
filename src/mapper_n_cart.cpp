@@ -3,13 +3,13 @@
 
 namespace roee_nes {
 
-    Mapper* Mapper::create_mapper(std::string rom_path) {
+    Mapper* Mapper::create_mapper(const std::string* rom_path) {
         Cartridge* cart = new Cartridge(rom_path);
 
         uint8_t mapper_number = (cart->header.flags_6 & 0xf0) | (cart->header.flags_7 >> 4);
 
         switch (mapper_number) {
-            case 0:
+            case 0: // mapper number 0 (NROM)
                 return new NROM_0(cart);
             default:
                 std::cerr << "Mapper not implemented yet!" << std::endl;
@@ -18,8 +18,8 @@ namespace roee_nes {
     }
 
     // need also to take care of the case there is a trainer section
-    Cartridge::Cartridge(std::string rom_path) {
-        static std::ifstream rom_file(rom_path, std::ios::binary);
+    Cartridge::Cartridge(const std::string* rom_path) {
+        std::ifstream rom_file(*rom_path, std::ios::binary);
 
         if (!rom_file.is_open()) {
             std::cerr << "Error opening file" << std::endl;

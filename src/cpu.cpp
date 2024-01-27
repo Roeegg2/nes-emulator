@@ -30,7 +30,6 @@ namespace roee_nes {
 
         this->bus = bus;
 
-        // PC = 0xc000;
         P = 0x24;
     }
 
@@ -122,10 +121,6 @@ namespace roee_nes {
                 break;
             default:
                 PC++;
-        }
-
-        if (log_bytes == 0x2ff && IR == 0x6C) {
-            std::cout << std::hex << "foo is: " << (int)bytes << std::endl;
         }
         
     }
