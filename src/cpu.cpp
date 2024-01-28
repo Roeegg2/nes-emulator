@@ -29,14 +29,13 @@ namespace roee_nes {
         };
 
         this->bus = bus;
-
-        P = 0x24;
     }
 
     uint8_t CPU::run_cpu() {
         fetch_decode_inst();
         (this->*inst->exec)();
         // sleep?
+        std::this_thread::sleep_for(std::chrono::nanoseconds(555));
 
         return inst->cycles;
     }

@@ -47,7 +47,7 @@ namespace roee_nes {
         PPU* ppu;
         CPU* cpu;
 
-        uint8_t ppu_bus_latch;
+        uint8_t ppu_stupid_buffer;
 
     public:
         Bus(Mapper* mapper, const std::string* palette_path);

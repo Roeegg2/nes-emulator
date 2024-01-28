@@ -497,8 +497,6 @@ namespace roee_nes {
         push(P);
 
         PC = convert_to_2byte(bus->cpu_read(0xfffa), bus->cpu_read(0xfffb));
-        // std::chrono::microseconds sleepDuration(get_sleep_time(NMI_CYCLES));
-        // std::this_thread::sleep_for(sleepDuration);
     }
 
     /* reset */
@@ -507,8 +505,6 @@ namespace roee_nes {
         S = S - 3;
 
         set_flag(DISINT_BIT, 1);
-        // std::chrono::microseconds sleepDuration(get_sleep_time(RST_CYCLES));
-        // std::this_thread::sleep_for(sleepDuration);
     }
 
     /* maskable interrupt*/
@@ -524,9 +520,6 @@ namespace roee_nes {
             push(P);
 
             PC = convert_to_2byte(bus->cpu_read(0xfffe), bus->cpu_read(0xffff));
-
-            // std::chrono::microseconds sleepDuration(get_sleep_time(IRQ_CYCLES));
-            // std::this_thread::sleep_for(sleepDuration);
         }
     }
 

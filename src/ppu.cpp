@@ -20,9 +20,9 @@ namespace roee_nes {
                     v = (v >> 5) << 5; // resetting the coarse x bits
                     v |= t & 0b0000000000011111;
                 }
-                if ((328 <= curr_cycle || curr_cycle <= 256) && curr_cycle & 8 == 0) { // increment the coarse x component of v
+
+                if ((328 <= curr_cycle || 0 <= curr_cycle <= 256) && (curr_cycle % 8 == 0)) // increment the coarse x component of v
                     increment_coarse_x();
-                }
             }
 
             if (curr_scanline == PRE_RENDER_SCANLINE)
@@ -35,17 +35,54 @@ namespace roee_nes {
             //     continue;
 
             increment_cycle(1);
+            log();
         }
     }
 
+    void PPU::log_nametable(uint64_t frame_number) const {
+        static std::ofstream nt_out_file("testr/logs/ROEE_NAMETABLE.log");
+        using vram_it = std::array<uint8_t, 0x400>::iterator;
+
+        vram_it it;
+        nt_out_file << "\n";
+        nt_out_file << "----------- THIS IS OF FRAME NUMBER: " << frame_number << "-----------" << std::endl;
+        for (it = bus->vram[1].begin(); it != bus->vram[1].end(); it++) { // for every entry in the nametable (for every tile)
+            uint8_t scroll_x, scroll_y;
+            if (std::distance(bus->vram[1].begin(), it) % 31 == 0) { // getting the position in the nametable, when visulized as a table
+                nt_out_file << "\n";
+            }
+            nt_out_file << " 0x" << std::hex << std::setw(2) << std::setfill('0') << (int)*it;
+        }
+    }
+
+    void PPU::log() const {
+        static std::ofstream roee_file("testr/logs/ROEE_NES.log");
+
+        roee_file << "\t t: " << std::hex << std::setw(4) << std::setfill('0') << std::uppercase << static_cast<int>(t)
+            << ", v: " << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(v)
+            << ", x: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(x)
+            << ", w: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(w)
+            << ", ctrl: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppuctrl)
+            << ", mask: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppumask)
+            << ", status: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppustatus)
+            << ", sl: " << std::dec << static_cast<int>(curr_scanline)
+            << ", dot: " << std::dec << static_cast<int>(curr_cycle) << std::endl;
+
+    }
+
     void PPU::prerender_scanline() {
-        // if (curr_cycle == 1) {
-        //     ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
-        //     nmi = 0;
-        // }
+        static uint64_t frame_counter = 0;
+        if (curr_cycle == 0) {
+            log_nametable(frame_counter);
+            frame_counter++;
+        }
+        if (curr_cycle == 1) {
+            ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
+            nmi = 0;
+        }
         if (Get_rendering_status() && 280 <= curr_cycle && curr_cycle <= 304) {
             v &= 0b0000110000011111; // reset coarse y and fine y in v
-            v |= t & 0b0111001111100000; // setting v to t's y values
+            v |= (t & 0b0111001111100000); // setting v to t's y values
         }
         if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336))
             fetch_rendering_data(REGULAR_FETCH);
@@ -65,47 +102,20 @@ namespace roee_nes {
 
         else if (337 <= curr_cycle && curr_cycle <= 340)
             fetch_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
-
         if ((curr_cycle - 1) % 8 == 0) { // on cycles 9, 17, 25, etc load latches into shift registers
             bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
             bg_regs.pt_shift_msb = (bg_regs.pt_shift_msb & 0xFF00) | bg_regs.pt_latch_msb;
 
             load_attr_shift_regs();
         }
-
-        /**
-         * if (curr_cycle is between 1-256 or between 321-336){
-         *   fetch_bytes()
-         *   render_pixel()
-         * }
-         * else if (curr_cycle is between 257 and 320) {
-         *   fetch garbage nt byte0
-         *   fetch garbage nt byte1
-         *   fetch pattern table low
-         *   fetch pattern table high
-         * }
-         * else if (curr_cycle is between 337 and 340)
-         *   fetch nt byte0
-         *   fetch nt byte1
-         * if (curr cycle is 8th cycle)
-         *   transfer attr 2 bits (01, 23, 45, or 67) into the *high bits* of attr_shift_reg
-         *   transfer pt0 into the *high bits* of pt0_shift_reg
-         *   increment scroll x component of v ??????  not sure
-         *
-        */
     }
 
     void PPU::vblank_scanline() {
         if (curr_scanline == VBLANK_START_SCANLINE && curr_cycle == 1) {
-            ext_regs.ppustatus |= 0b10000000; // set blank flag
+            ext_regs.ppustatus |= 0b10000000; // set vblank flag
             if (ext_regs.ppuctrl & 0b10000000)
                 nmi = 1;
         }
-        /**
-         * set scroll position at the end of vblank
-         * NOTE: Set the scroll last. After using PPUADDR ($2006), the program must always set PPUSCROLL again. They have a shared internal register and using PPUADDR will overwrite the scroll position.
-         *
-        */
     }
 
     void PPU::fetch_rendering_data(Fetch_Modes fetch_mode) {
@@ -127,63 +137,58 @@ namespace roee_nes {
                 if (fetch_mode == GARBAGE_NT_FETCH)
                     bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF));
                 else
-                    bg_regs.at_latch = bus->ppu_read(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
+                bg_regs.at_latch = bus->ppu_read(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
                 break;
             case FETCH_3: // fetch pt lsb
                 bg_regs.pt_latch_lsb = fetch_pt_byte(PT_LSB);
                 break;
             case FETCH_4: // fetch pt msb
-                bg_regs.pt_latch_lsb = fetch_pt_byte(PT_MSB);
+                bg_regs.pt_latch_msb = fetch_pt_byte(PT_MSB);
                 break;
             default:
+                std::cerr << "error!!" << std::endl;
                 break; // return error
         }
-
-        /**
-         * fetch nt, then attr, then pt0, then pt1
-         * {
-         * if (fetch_num == 1)
-         *  place data on the ppu bus
-         * else
-         *  read the data from the ppu bus
-         *
-         * fetch tile:
-         * 0x2000 | (v & 0x0FFF)
-         * fetch attr:
-         * 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07)
-         *
-         * }
-        */
     }
 
     void PPU::render_pixel() {
-
-        auto get_color_bit = [](uint8_t shift_reg_lsb, uint8_t shift_reg_msb, uint8_t x) -> uint8_t {
+        static std::ofstream pattern_log("testr/logs/ROEE_NES_PALETTE_TABLE.log");
+        static std::ofstream attribute_log("testr/logs/ROEE_NES_PALETTE_TABLE.log");
+        
+        auto get_color_bit = [](uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x) -> uint8_t {
             uint8_t data = 0;
-            data |= 0b00000001 & (shift_reg_lsb >> (7 - x));
-            data |= 0b00000010 & ((shift_reg_msb >> (7 - x)) << 1);
+            data |= (0b00000001 & (shift_reg_lsb >> (15 - x)));
+            data |= (0b00000010 & (shift_reg_msb >> (14 - x)));
 
             return data;
         };
 
         uint8_t pt_data = get_color_bit(bg_regs.pt_shift_lsb, bg_regs.pt_shift_msb, x);
-        uint8_t attr_data = get_color_bit(bg_regs.attr_shift_lsb, bg_regs.attr_shift_msb, x);
+        pattern_log << std::hex << "pt value: " << (int)pt_data << std::endl;
 
-        Color* color = bus->ppu_get_color(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
+        uint8_t attr_data = get_color_bit(bg_regs.attr_shift_lsb, bg_regs.attr_shift_msb, x);
+        attribute_log << std::hex << "at value: " << (int)attr_data << std::endl;
+
+        Color* color = bus->ppu_get_color(0x3f00 + (attr_data * 4) + pt_data);
 
         screen->draw_pixel(curr_cycle, curr_scanline, color->r, color->g, color->b);
+
+        bg_regs.pt_shift_lsb <<= 1;
+        bg_regs.pt_shift_msb <<= 1;
+        bg_regs.attr_shift_lsb <<= 1;
+        bg_regs.attr_shift_msb <<= 1;
     }
 
     /* function to increment the fine y and coarse y component of v */
     void PPU::increment_y() {
         if ((v & 0b0111000000000000) != 0b0111000000000000) // if fine y < 7 (normal incrementing)
-            v += 0001000000000000;
+            v += 0b0001000000000000;
         else {
-            v &= 0b0111000000000000;
+            v &= ~0b0111000000000000;
             uint8_t coarse_y = (v & 0b0000001111100000) >> 5; // extracting coarse y out of v
             if (coarse_y == 29) {
                 coarse_y = 0;
-                v ^= 0b0000100000000000; // switching vertical nametable
+                v ^= 0b0001000000000000; // switching vertical nametable
             } else if (coarse_y == 31)
                 coarse_y = 0;
             else
@@ -225,6 +230,7 @@ namespace roee_nes {
     }
 
     void PPU::load_attr_shift_regs() {
+        static std::ofstream attr_file("testr/logs/ROEE_NES_ATTRIBUTE_BYTES.log");
         uint8_t shift_amout;
 
         uint8_t coarse_x = v & 0b0000000000011111;
@@ -247,8 +253,9 @@ namespace roee_nes {
                 shift_amout = 6;
         }
 
-        uint8_t lsb_data = (bg_regs.at_latch >> (shift_amout + 1)) && 0b00000001;
-        uint8_t msb_data = (bg_regs.at_latch >> shift_amout) && 0b00000001;
+        attr_file << "attribute latch is: " << (int)bg_regs.at_latch << std::endl; 
+        uint8_t lsb_data = (bg_regs.at_latch >> (shift_amout + 1)) & 0b00000001;
+        uint8_t msb_data = (bg_regs.at_latch >> shift_amout) & 0b00000001;
 
         //  if sb_data = 0b1 we get 0b11111111, if sb_data = 0b0 we get 0b00000000
         bg_regs.attr_shift_lsb |= lsb_data * 0b11111111;
@@ -277,144 +284,4 @@ namespace roee_nes {
         ext_regs.ppustatus = 0;
         ext_regs.oamaddr = 0;
     }
-
-    // /* I am a bit simplfying this, usually there is an insertion and fetch in different address*/
-    // void PPU::prerender_and_visible_scanline() {
-    //     static uint8_t fetching_cycle_counter = 0;
-    //     static PPU_State next_fetch = FETCH_NT;
-
-    //     fetching_cycle_counter += 1;
-
-    //     if (curr_cycle == 0 && 0 <= curr_scanline <= 239)
-    //         return; // do later, but pretty much just idle.
-
-    //     if (1 <= curr_cycle <= 256 && curr_scanline != -1) {// rendering cycle
-    //         Color* color = get_pixel_to_render();
-    //         screen->draw_pixel(curr_cycle, curr_scanline, color->r, color->g, color->b);
-    //     }
-
-    //     if (next_fetch == LOAD_SHIFT_REGS) // loading takes one cycle, so if we need to load, we always can
-    //     {
-    //         load_bg_shift_regs();
-    //         next_fetch = static_cast<PPU_State>(static_cast<int>(next_fetch) + 1);
-    //     }
-    //     if (fetching_cycle_counter > 1) // making sure we have at least 2 cycles in the bank
-    //     {
-    //         fetch_rendering_data(next_fetch);
-
-    //         next_fetch = static_cast<PPU_State>(static_cast<int>(next_fetch) + 1);
-    //         fetching_cycle_counter -= 2;
-    //     }
-    // }
-
-    // void PPU::vblank_scanline() {
-    //     if (curr_scanline == 241 && curr_cycle == 1 /*&& ext_regs.ppuctrl & 0b10000000 */) {
-    //         nmi = 1;
-    //         ext_regs.ppustatus |= 0b10000000;
-    //     }
-
-    // }
-
-    // void PPU::load_bg_shift_regs() {
-    //     uint8_t attr_loading_shift;
-
-    //     auto get_coarse_x = [](uint16_t v) -> uint8_t { return v & 0b00011111; };
-    //     auto get_coarse_y = [](uint16_t v) -> uint8_t { return (v & 0b11111000000) >> 5; };
-
-    //     // 0, 0 -> 2|, 3
-    //     // 0, 1 -> 4|, 5
-    //     // 1, 0 -> 0|, 1
-    //     // 1, 1 -> 6|, 7
-    //     // getting the attribute bits for the palette table
-    //     auto get_first_bit = [](uint8_t coarse_x, uint8_t coarse_y) -> uint8_t { // will rewrite this lambda later
-    //         if (coarse_x % 2 == 0) {
-    //             if (coarse_y % 2 == 0)
-    //                 return 2; // fetch bits for top right
-    //             else
-    //                 return 4; // fetch bits for bottom right
-    //         } else {
-    //             if (coarse_y % 2 == 0)
-    //                 return 0; // fetch bits for top left
-    //             else
-    //                 return 6; // fetch bits for bottom left
-    //         }
-    //         };
-
-    //     attr_loading_shift = get_first_bit(get_coarse_x(v), get_coarse_y(v));
-
-    //     bg_regs.attr_shift_msb = (bg_regs.at_latch >> attr_loading_shift) && 0b00000001;
-    //     bg_regs.attr_shift_lsb = (bg_regs.at_latch >> (attr_loading_shift + 1)) && 0b00000001;
-
-    //     // if reg = 0b1 => 0b11111111, if reg = 0b0 => 0b00000000
-    //     bg_regs.attr_shift_lsb *= 0b11111111;
-    //     bg_regs.attr_shift_msb *= 0b11111111;
-    // }
-
-    // void PPU::fetch_rendering_data(uint8_t next_fetch) {
-    //     switch (next_fetch) {
-    //         case FETCH_NT:
-    //             bg_regs.nt_latch = bus->ppu_read(0x2000 | (v & 0x0FFF)); // CHECK THAT!
-    //             break;
-    //         case FETCH_AT:
-    //             bg_regs.at_latch = bus->ppu_read(/*0010001111000000 | */ (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
-    //             break;
-    //         case FETCH_PT_LSB:
-    //             bg_regs.pt_latch_lsb = fetch_pt_byte(LSB);
-    //             break;
-    //         case FETCH_PT_MSB:
-    //             bg_regs.pt_latch_msb = fetch_pt_byte(MSB);
-    //             break;
-    //     }
-    // }
-
-    // void PPU::increment_counters(uint8_t cycles) {
-    //     curr_cycle += cycles;
-
-    //     if (curr_cycle >= 340) {
-    //         curr_cycle %= 340;
-    //         curr_scanline++;
-    //     }
-    //     if (curr_scanline == 261) {
-    //         curr_scanline = -1;
-    //         odd_even_frame = 1 - odd_even_frame; // toggeling odd_even_frame
-    //     }
-    // }
-
-    // void PPU::increment_v_x() { // pseudocode taken from the nesDEV wiki
-    //     if (v & 0b00011111 == 31) {
-    //         v &= 0b0111111111100000; // setting coarse x to 0
-    //         v ^= 0b0000010000000000; // moving to the next nametable
-    //     } else
-    //         v += 1;
-    // }
-
-    // void PPU::increment_v_y() { // pseudocode taken from the nesDEV wiki
-    //     if (v & 0b011100000000000 != 0b011100000000000)
-    //         v += 0b0000100000000000;
-    //     else {
-    //         v &= ~0b011100000000000;                   // setting fine scroll y to 0
-    //         uint8_t y = (v & 0b0000001111100000) >> 5; // extracting coarse y
-    //         if (y == 29) {
-    //             y = 0;
-    //             v ^= 0b0000100000000000; // switching vertical nametable
-    //         } else if (y == 31)
-    //             y = 0; // got to the end of the screen
-    //         else {
-    //             y += 1;                                   // increment coarse y
-    //             v = (v & ~0b0000001111100000) | (y << 5); // putting coarse y back in v
-    //         }
-    //     }
-    // }
-
-    // struct Color* PPU::get_pixel_to_render() {
-    //     uint8_t pt_data = bg_regs.pt_shift_lsb >> (7 - x);
-    //     pt_data |= (bg_regs.pt_shift_msb >> (7 - x)) << 1;
-    //     pt_data &= 0b00000011;
-
-    //     uint8_t attr_data = bg_regs.attr_shift_lsb >> (7 - x);
-    //     attr_data |= (bg_regs.attr_shift_msb >> (7 - x)) << 1;
-    //     attr_data &= 0b00000011;
-
-    //     return bus->ppu_get_color(0x3f00 + (bus->ppu_read(0x3F00 + (attr_data * 4) + pt_data)));
-    // }
 }

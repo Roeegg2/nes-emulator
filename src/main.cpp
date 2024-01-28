@@ -42,9 +42,10 @@ int main() {
     ppu->reset();
     cpu->reset();
 
-    while (1)
-        debugger_run(&bus->vram);
+    while (1) {
+        emulator_tick();
+        bus->log();
+    }
 
-    // bus.find_difference();
     return 0;
 }

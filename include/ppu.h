@@ -81,6 +81,8 @@ namespace roee_nes {
         uint8_t fetch_pt_byte(uint8_t byte_significance);
 
         void load_attr_shift_regs();
+        void log() const;
+        void log_nametable(uint64_t frame_number) const;
 
     public:
         uint16_t v;

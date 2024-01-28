@@ -12,6 +12,8 @@
 #include <thread>
 #include <chrono>
 
+constexpr double CPU_CLOCK_SPEED = 0.5586592178771;
+
 constexpr uint8_t IRQ_CYCLES = 7;
 constexpr uint8_t NMI_CYCLES = 8;
 constexpr uint8_t RST_CYCLES = 7;

@@ -27,8 +27,6 @@ namespace roee_nes
     {
         if (0x0000 <= addr && addr <= 0x1fff)
             return cart->chr_rom[addr]; // pattern table
-        else if (0x2000 <= addr && addr <= 0x3eff)
-            return cart->vram[addr % 0x800]; // dependent on mirroring i think
 
         return 0;
     }
