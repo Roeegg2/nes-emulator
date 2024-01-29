@@ -5,7 +5,7 @@ namespace roee_nes
 
     NROM_0::NROM_0(Cartridge *cart) : Mapper(cart)
     {
-        cart->vram.resize(0x800);
+        cart->nt_vram.resize(0x800);
     }
 
     uint8_t NROM_0::cpu_read(uint16_t addr)

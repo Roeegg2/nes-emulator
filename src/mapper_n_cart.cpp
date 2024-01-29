@@ -55,12 +55,4 @@ namespace roee_nes {
         else
             prg_ram.resize(0);
     }
-
-    uint8_t Mapper::cpu_read(uint16_t addr) {
-        return 0;
-    }
-
-    void Mapper::cpu_write(uint16_t addr, uint8_t data) {
-        return;
-    }
 }

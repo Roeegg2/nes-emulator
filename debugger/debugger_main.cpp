@@ -80,14 +80,14 @@ static uint32_t get_draw_data(uint8_t pt_data) {
     return ((0x000f & r) << 16) || ((0x000f & g) << 8) || ((0x000f & b));
 }
 
-static void display_mem(std::array<std::array<uint8_t, 0x400>, 4>* vram) {
-    using vram_it = std::array<uint8_t, 0x400>::iterator;
+static void display_mem(std::array<std::array<uint8_t, 0x400>, 4>* nt_vram) {
+    using nt_vram_it = std::array<uint8_t, 0x400>::iterator;
 
-    vram_it it;
+    nt_vram_it it;
     for (int i = 0; i < 4; i++) { // for every nametable (there are 4 nametables)
-        for (it = (*vram)[i].begin(); it != (*vram)[i].end(); it++) { // for every entry in the nametable (for every tile)
+        for (it = (*nt_vram)[i].begin(); it != (*nt_vram)[i].end(); it++) { // for every entry in the nametable (for every tile)
             uint8_t scroll_x, scroll_y;
-            if (std::distance((*vram)[i].begin(), it) % 31 == 0) { // getting the position in the nametable, when visulized as a table
+            if (std::distance((*nt_vram)[i].begin(), it) % 31 == 0) { // getting the position in the nametable, when visulized as a table
                 scroll_y++;
                 scroll_x = 0;
             } else
@@ -103,7 +103,7 @@ static void display_mem(std::array<std::array<uint8_t, 0x400>, 4>* vram) {
     }
 }
 
-void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* vram) {
+void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* nt_vram) {
     static uint16_t curr_addr;
     static struct Breakpoint* head = nullptr;
 
@@ -120,7 +120,7 @@ void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* vram) {
     else if (input.compare("continue") == 0 || input.compare("c") == 0) {
         while (get_breakpoint(head, curr_addr) == nullptr) { // not the most efficient way, but whatever
             curr_addr = emulator_tick();
-            display_mem(vram);
+            display_mem(nt_vram);
         }
     } else if (input.compare("break") == 0 || input.compare("b") == 0) {
         uint16_t addr;
@@ -132,5 +132,5 @@ void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* vram) {
     } else
         std::cerr << "no such command!" << std::endl;
 
-    display_mem(vram);
+    display_mem(nt_vram);
 }

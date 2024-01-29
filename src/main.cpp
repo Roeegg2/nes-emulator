@@ -5,7 +5,7 @@
 
 using namespace roee_nes;
 
-extern void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* vram);
+extern void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* nt_vram);
 
 Bus* bus;
 CPU* cpu;

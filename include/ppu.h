@@ -9,8 +9,8 @@
 
 namespace roee_nes {
 
-    constexpr uint8_t PT_LSB = 0b00001000;
-    constexpr uint8_t PT_MSB = 0b00000000;
+    constexpr uint8_t PT_MSB = 0b00001000;
+    constexpr uint8_t PT_LSB = 0b00000000;
 
     constexpr uint8_t ODD_FRAME = 1;
     constexpr uint8_t EVEN_FRAME = 0;
@@ -36,8 +36,8 @@ namespace roee_nes {
     enum Fetch_Type {
         FETCH_1 = 2,
         FETCH_2 = 4,
-        FETCH_3 = 6,
-        FETCH_4 = 0,
+        FETCH_3 = 0,
+        FETCH_4 = 6,
     };
 
     struct Background_Regs {
@@ -81,6 +81,7 @@ namespace roee_nes {
         uint8_t fetch_pt_byte(uint8_t byte_significance);
 
         void load_attr_shift_regs();
+        void log_palette_ram() const;
         void log() const;
         void log_nametable(uint64_t frame_number) const;
 

@@ -43,7 +43,7 @@ namespace roee_nes {
         std::vector<uint8_t> chr_rom;
         std::vector<uint8_t> prg_ram;
 
-        std::vector<uint8_t> vram;
+        std::vector<uint8_t> nt_vram;
     };
 
     class Mapper {

@@ -12,10 +12,10 @@ namespace roee_nes {
         if (!pal_file.is_open())
             std::cerr << "Failed to open palette file" << std::endl;
 
-        for (int i = 0; i < 64; i++) {
-            pal_file.read((char*)&palette[i].r, 1);
-            pal_file.read((char*)&palette[i].g, 1);
-            pal_file.read((char*)&palette[i].b, 1);
+        for (int i = 0; i < 64 * 3; i += 3) {
+            for (int j = 0; j < 3; j++) {
+                pal_file.read((char*)&color_palette[i+j], 1);
+            }
         }
     }
 
@@ -55,43 +55,55 @@ namespace roee_nes {
             uint16_t foo = addr;
 
             addr %= 0x1000;
-            addr %= 0x400;
 
             if (mapper->Get_mirroring() == 'H') {
                 if (0 <= foo && foo <= 0x800)
-                    vram[0][addr] = data;
+                    nt_vram[0][addr % 0x400] = data;
                 else
-                    vram[1][addr] = data;
+                    nt_vram[1][addr % 0x400] = data;
             } else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
-                    vram[0][addr] = data;
+                    nt_vram[0][addr % 0x400] = data;
                 else
-                    vram[1][addr] = data;
+                    nt_vram[1][addr % 0x400] = data;
             }
+        }
+        else if (0x3f00 <= addr && addr <= 0x3fff) {
+            addr %= 0x20;
+            if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1c)
+                addr -= 0x10;
+            
+            palette_vram[addr] = data;
         }
     }
 
     uint8_t Bus::ppu_read(uint16_t addr) {
         if (0 <= addr && addr <= 0x1fff)
             return mapper->ppu_read(addr); // pattern table
-
         else if (0x2000 <= addr && addr <= 0x3eff) {
             uint16_t foo = addr;
 
             addr %= 0x1000;
-            addr %= 0x400;
 
             if (mapper->Get_mirroring() == 'H') {
                 if (0 <= foo && foo <= 0x800)
-                    return vram[0][addr];
+                    return nt_vram[0][addr % 0x400];
                 else
-                    return vram[1][addr];
+                    return nt_vram[1][addr % 0x400];
             } else if (mapper->Get_mirroring() == 'V') {
                 if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
-                    return vram[0][addr];
+                    return nt_vram[0][addr % 0x400];
                 else
-                    return vram[1][addr];
+                    return nt_vram[1][addr % 0x400];
             }
+        }
+        else if (0x3f00 <= addr && addr <= 0x3fff) {
+            addr %= 0x20;
+            
+            if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1c)
+                addr -= 0x10;
+            
+            return palette_vram[addr];
         }
         else
             std::cout << "got here!" << std::endl;
@@ -99,24 +111,12 @@ namespace roee_nes {
         return 0;
     }
 
-    struct Color* Bus::ppu_get_color(uint16_t addr) {
-        if (0x3f00 <= addr && addr <= 0x3fff) {
-            addr %= 32;
-            // TODO: later change to avoid the black screen in super mario
-            if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1c)
-                addr -= 0x10;
-
-            return &(palette[addr]);
-        } else
-            return nullptr;
-    }
-
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
         uint16_t data16 = data;
 
         switch (addr % 8) {
             case PPUCTRL:
-                // if (total_frames <= 30000) return; // but not really important
+                // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
                 ppu->t &= 0b0111001111111111;
                 ppu->t |= ((0b00000011 & data) << 10);

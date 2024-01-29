@@ -26,14 +26,14 @@ namespace roee_nes {
         SDL_Quit();
     }
 
-    void NES_Screen::draw_pixel(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
-        if (x >= 256 || y >= 240)
+    void NES_Screen::draw_pixel(int32_t x, int32_t y, uint8_t r, uint8_t g, uint8_t b) {
+        if (x >= 257 || y >= 240)
             return;
 
         SDL_SetRenderDrawColor(renderer, r, g, b, 255);
         SDL_RenderDrawPoint(renderer, x, y);
 
-        if (x == 255 && y == 239)
+        if (x == 256 && y == 239)
             SDL_RenderPresent(renderer);
     }
 }
