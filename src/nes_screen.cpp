@@ -28,7 +28,7 @@ namespace roee_nes {
     }
 
     void NES_Screen::draw_pixel_line(std::array<struct Pixel, 256>* data_render_line, int32_t scanline) {
-        static std::ofstream pixel_file("testr/logs/PIXEL_COLOR_VALUE.log");
+        static std::ofstream pixel_file("logs/PIXEL_COLOR_VALUE.log");
 
         for (int i = 0; i < 256; i++) { 
             SDL_SetRenderDrawColor(renderer, (*data_render_line)[i].r, (*data_render_line)[i].g, (*data_render_line)[i].b, 255);

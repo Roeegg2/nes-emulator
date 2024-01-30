@@ -175,7 +175,7 @@ namespace roee_nes {
     }
 
     void Bus::log() const {
-        static std::ofstream roee_file("testr/logs/ROEE_NES_CPU.log");
+        static std::ofstream roee_file("logs/ROEE_NES_CPU.log");
 
         roee_file << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(cpu->log_PC) << " "
             << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->IR) << " "
@@ -202,8 +202,8 @@ namespace roee_nes {
 
 
     void Bus::find_difference() const {
-        std::ifstream roee_file("testr/logs/ROEE_NES.log");
-        std::ifstream nestest_file("testr/logs/dk_ppu_log.txt");
+        std::ifstream roee_file("logs/ROEE_NES.log");
+        std::ifstream nestest_file("logs/dk_ppu_log.txt");
 
         if (!roee_file.is_open() || !nestest_file.is_open()) {
             std::cerr << "Error opening files." << std::endl;

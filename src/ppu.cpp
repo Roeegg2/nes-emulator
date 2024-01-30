@@ -10,7 +10,7 @@ namespace roee_nes {
     }
 
     void PPU::run_ppu(uint8_t cycles) {
-        static std::ofstream vlogfile("testr/logs/V_LOG_SCANLINE40.log");
+        static std::ofstream vlogfile("logs/V_LOG_SCANLINE40.log");
        
         for (uint8_t i = 0; i < cycles; i++) {
             if (Get_rendering_status()) {
@@ -42,7 +42,7 @@ namespace roee_nes {
     }
 
     void PPU::log_nametable(uint64_t frame_number) const {
-        static std::ofstream nt_out_file("testr/logs/ROEE_NAMETABLE.log");
+        static std::ofstream nt_out_file("logs/ROEE_NAMETABLE.log");
         using nt_vram_it = std::array<uint8_t, 0x400>::iterator;
 
         nt_vram_it it;
@@ -58,7 +58,7 @@ namespace roee_nes {
     }
 
     void PPU::log_palette_ram() const {
-        static std::ofstream roee_file("testr/logs/ROEE_NES_PALETTES_RAM.log");
+        static std::ofstream roee_file("logs/ROEE_NES_PALETTES_RAM.log");
 
         roee_file << "-------- printing palette ram: --------" << std::endl;
         using pr_it = std::array<uint8_t, 32>::iterator;
@@ -68,7 +68,7 @@ namespace roee_nes {
     }
 
     void PPU::log() const {
-        static std::ofstream roee_file("testr/logs/ROEE_NES.log");
+        static std::ofstream roee_file("logs/ROEE_NES.log");
 
         roee_file << "\t t: " << std::hex << std::setw(4) << std::setfill('0') << std::uppercase << static_cast<int>(t)
             << ", v: " << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(v)
@@ -165,9 +165,9 @@ namespace roee_nes {
     }
 
     void PPU::add_render_pixel() {
-        static std::ofstream pattern_log("testr/logs/ROEE_NES_PALETTE_TABLE.log");
-        static std::ofstream attribute_log("testr/logs/ROEE_NES_PALETTE_TABLE.log");
-        static std::ofstream address_log("testr/logs/ADDRESS_LOG.log");
+        static std::ofstream pattern_log("logs/ROEE_NES_PALETTE_TABLE.log");
+        static std::ofstream attribute_log("logs/ROEE_NES_PALETTE_TABLE.log");
+        static std::ofstream address_log("logs/ADDRESS_LOG.log");
         
         auto get_color_bit = [](uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x) -> uint8_t {
             uint8_t data = 0;
@@ -251,7 +251,7 @@ namespace roee_nes {
     }
 
     void PPU::load_attr_shift_regs() {
-        static std::ofstream attr_file("testr/logs/ROEE_NES_ATTRIBUTE_BYTES.log");
+        static std::ofstream attr_file("logs/ROEE_NES_ATTRIBUTE_BYTES.log");
 
         uint8_t coarse_x = v & 0b0000000000011111;
         uint8_t coarse_y = (v >> 5) & 0b0000000000011111;

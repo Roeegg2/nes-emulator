@@ -1,5 +1,6 @@
 emulator
-testr
+roms
+logs
 .vscode
 bin
 todo
