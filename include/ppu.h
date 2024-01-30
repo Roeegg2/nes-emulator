@@ -69,10 +69,12 @@ namespace roee_nes {
         
     private:
         void prerender_scanline();
-        void render_scanline();
+        void visible_scanline();
         void vblank_scanline();
         void fetch_rendering_data(Fetch_Modes fetch_mode);
-        void render_pixel();
+
+        void add_render_pixel();
+        void send_pixels_to_render();
 
         void increment_cycle(uint8_t cycles);
         void increment_y();
@@ -100,6 +102,8 @@ namespace roee_nes {
 
         uint8_t nmi;
         uint8_t frame_oddness;
+
+        std::array<struct Pixel, 256> data_render_line;
 
     public:
         Bus* bus;

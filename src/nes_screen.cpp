@@ -15,6 +15,7 @@ namespace roee_nes {
 
         renderer = SDL_CreateRenderer(window, -1, 0);
 
+        SDL_RenderSetLogicalSize(renderer, 256, 240);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
@@ -26,14 +27,17 @@ namespace roee_nes {
         SDL_Quit();
     }
 
-    void NES_Screen::draw_pixel(int32_t x, int32_t y, uint8_t r, uint8_t g, uint8_t b) {
-        if (x >= 257 || y >= 240)
-            return;
+    void NES_Screen::draw_pixel_line(std::array<struct Pixel, 256>* data_render_line, int32_t scanline) {
+        static std::ofstream pixel_file("testr/logs/PIXEL_COLOR_VALUE.log");
 
-        SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-        SDL_RenderDrawPoint(renderer, x, y);
+        for (int i = 0; i < 256; i++) { 
+            SDL_SetRenderDrawColor(renderer, (*data_render_line)[i].r, (*data_render_line)[i].g, (*data_render_line)[i].b, 255);
+            SDL_RenderDrawPoint(renderer, i, (int)scanline);
+            pixel_file << std::hex << "scanline: " << scanline << " pixel pos: " << i+1 << " r: " << (int)(*data_render_line)[i].r << " g: " << (int)(*data_render_line)[i].g << " b: " << (int)(*data_render_line)[i].b << std::endl;
+        }
+    }
 
-        if (x == 256 && y == 239)
-            SDL_RenderPresent(renderer);
+    void NES_Screen::update_screen() const {
+        SDL_RenderPresent(renderer);
     }
 }

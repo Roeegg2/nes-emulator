@@ -70,8 +70,8 @@ namespace roee_nes {
         }
         else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20;
-            if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1c)
-                addr -= 0x10;
+            if ((addr & 0b11) == 0)
+                addr = 0;
             
             palette_vram[addr] = data;
         }
@@ -99,9 +99,8 @@ namespace roee_nes {
         }
         else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20;
-            
-            if (addr == 0x10 || addr == 0x14 || addr == 0x18 || addr == 0x1c)
-                addr -= 0x10;
+            if ((addr & 0b11) == 0)
+                addr = 0;
             
             return palette_vram[addr];
         }
@@ -118,39 +117,38 @@ namespace roee_nes {
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
-                ppu->t &= 0b0111001111111111;
-                ppu->t |= ((0b00000011 & data) << 10);
+                ppu->t = (ppu->t & 0111001111111111) | ((0b00000011 & data) << 10);
                 break;
             case PPUMASK:
                 ppu->ext_regs.ppumask = data;
                 break;
             case PPUSCROLL:
                 if (ppu->w == 0) {
-                    ppu->t = ((ppu->t >> 5) << 5) | (data16 >> 3); // setting coarse x
-                    ppu->x = data16 & 0b0000000000000111; // setting fine x
+                    ppu->t = ((ppu->t & 0x7fe0) | (data >> 3)); // setting coarse x
+                    ppu->x = data & 0b0000000000000111; // setting fine x
+                    ppu->w = 1;
                 } else { //setting coarse y and fine y
-                    ppu->t = (ppu->t & 0b0000110000011111); // note: i set another 0 at the start - because the register is 16 bits, and not 15 bits like it should be
-                    ppu->t |= (data16 << 12);
-                    ppu->t |= ((data16 >> 3) << 5);
+                    ppu->t = (ppu->t & 0x0C1F) | ((data & 0xF8) << 2) | ((data & 7) << 12);
+                    ppu->w = 0;
                 }
 
-                ppu->w = 1 - ppu->w;
                 break;
             case PPUADDR:
                 if (ppu->w == 0) {
-                    ppu->v &= 0b0011111111111111; // clearing bit 14 on first write.
-                    data16 = data16 & 0b00111111;
-                    ppu->t = (ppu->t & 0b0000000011111111) | (data16 << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
+                    // ppu->v &= 0b0011111111111111; // clearing bit 14 on first write.
+                    ppu->t = (ppu->t & 0x00ff) | ((data & 0x3F) << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
+                    ppu->w = 1;
                 } else {
-                    ppu->t = (ppu->t & 0b0011111100000000) | data;
+                    ppu->t = (ppu->t & 0x7f00) | data;
                     ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
+                    ppu->w = 0;
                 }
 
-                ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
+                // ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
                 break;
             case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
                 ppu_write(ppu->v, data);
-                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // not sure about this
+                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
                 break;
         }
     }
@@ -166,10 +164,10 @@ namespace roee_nes {
                 break;
             case PPUDATA:
                 ret = ppu_stupid_buffer;
-                ppu_stupid_buffer = ppu_read(ppu->v); // not sure about this
+                ppu_stupid_buffer = ppu_read(ppu->v);
                 if (addr >= 0x3f00)
                     ret = ppu_read(ppu->v);
-                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1; // MIGHT CAUSE PROBLEM
+                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
                 break;
         }
 
