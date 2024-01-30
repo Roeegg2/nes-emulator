@@ -10,16 +10,18 @@ namespace roee_nes {
     }
 
     void PPU::run_ppu(uint8_t cycles) {
+        static std::ofstream vlogfile("testr/logs/V_LOG_SCANLINE40.log");
+       
         for (uint8_t i = 0; i < cycles; i++) {
             if (Get_rendering_status()) {
-                if (frame_oddness == ODD_FRAME && curr_scanline == PRE_RENDER_SCANLINE && curr_cycle == 339) // on odd frames we skip the last cycle of the pre-render scanline
+                if ((frame_oddness == ODD_FRAME) && (curr_scanline == 0) && (curr_cycle == 0)) // on odd frames we skip the last cycle of the pre-render scanline
                     increment_cycle(1);
                 if (curr_cycle == 256) // increment y component of v
                     increment_y();
                 if (curr_cycle == 257) { // copy all horizontal bits from t onto v
-                    // v = (v >> 5) << 5; // resetting the coarse x bits
-                    v &= 0b0111101111100000; // resetting the horizontal position bits in v
-                    v |= t & 0b0000010000011111;
+                    v = (v & 0xFBE0) | (t & 0x41F); // resetting the horizontal position bits in v
+                    if (curr_scanline == 40)
+                        vlogfile << std::dec << "on scanline: "<< curr_scanline << std::hex << " ppuctrl binary: " << get_binary(ext_regs.ppuctrl, 16) << " ppuctrl hex: " << (int)ext_regs.ppuctrl << std::endl;
                 }
 
                 if (Get_rendering_status() && (328 <= curr_cycle || 0 <= curr_cycle <= 256) && (curr_cycle % 8 == 0)) // increment the coarse x component of v
@@ -28,13 +30,12 @@ namespace roee_nes {
 
             if (curr_scanline == PRE_RENDER_SCANLINE)
                 prerender_scanline();
-            else if (RENDER_START_SCANLINE <= curr_scanline && curr_scanline <= RENDER_END_SCANLINE)
-                render_scanline();
-            else if (VBLANK_START_SCANLINE <= curr_scanline && curr_scanline <= VBLANK_END_SCANLINE)
+            else if ((RENDER_START_SCANLINE <= curr_scanline) && (curr_scanline <= RENDER_END_SCANLINE))
+                visible_scanline();
+            else if ((VBLANK_START_SCANLINE <= curr_scanline) && (curr_scanline <= VBLANK_END_SCANLINE))
                 vblank_scanline();
-            // else if (curr_scanline == POST_RENDER_SCANLINE)
-            //     continue;
-
+            // otherwise its a post render scanline - ppu doesnt do anything
+            
             increment_cycle(1);
             log();
         }
@@ -86,32 +87,33 @@ namespace roee_nes {
         if (curr_cycle == 0) {
             log_nametable(frame_counter);
             log_palette_ram();
+            
+            screen->update_screen();
             frame_counter++;
         }
         if (curr_cycle == 1) {
             ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
         }
-        if (Get_rendering_status() && 280 <= curr_cycle && curr_cycle <= 304) {
+        if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
             v &= 0b0000010000011111; // reset coarse y and fine y in v
-            v |= (t & 0b0111101111100000); // setting v to t's y values
+            v = (v & 0x041F) | (t & 0x7BE0); // setting v to t's y values
         }
-        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336))
+        if (((2 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336)))
             fetch_rendering_data(REGULAR_FETCH);
-        /**
-         * if (curr_cycle is between 1-256 or between 321-336)
-         *   fetch_bytes()
-        */
     }
 
-    void PPU::render_scanline() {
-        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336)) {
-            if ((1 <= curr_cycle && curr_cycle <= 256))
-                render_pixel();
+    void PPU::visible_scanline() {
+        if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336))) {    
+            add_render_pixel();
+            if (curr_cycle == 256)
+                screen->draw_pixel_line(&data_render_line, curr_scanline);
+
             fetch_rendering_data(REGULAR_FETCH);
-        } else if (257 <= curr_cycle && curr_cycle <= 320)
+        } 
+        else if ((257 <= curr_cycle) && (curr_cycle <= 320))
             fetch_rendering_data(GARBAGE_NT_FETCH); // garbage nt0, nt1, pt low, pt high 
 
-        else if (337 <= curr_cycle && curr_cycle <= 340)
+        else if ((337 <= curr_cycle) && (curr_cycle <= 340))
             fetch_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
         if ((curr_cycle - 1) % 8 == 0) { // on cycles 9, 17, 25, etc load latches into shift registers
             bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
@@ -122,7 +124,7 @@ namespace roee_nes {
     }
 
     void PPU::vblank_scanline() {
-        if (curr_scanline == VBLANK_START_SCANLINE && curr_cycle == 1) {
+        if ((curr_scanline == VBLANK_START_SCANLINE) && (curr_cycle == 1)) {
             ext_regs.ppustatus |= 0b10000000; // set vblank flag
             if (ext_regs.ppuctrl & 0b10000000)
                 nmi = 1;
@@ -130,7 +132,7 @@ namespace roee_nes {
     }
 
     void PPU::fetch_rendering_data(Fetch_Modes fetch_mode) {
-        if (curr_cycle % 2 == 1 || curr_cycle == 0)
+        if ((curr_cycle % 2 == 1) || (curr_cycle == 0))
             return; // if cycles are not multiples of 2, we return, since memory fetching actually takes 2 ppu cycles. 
 
         uint8_t fetch_type = curr_cycle % 8; // getting 2, 4, 6, or 0 representing what do we need to fetch
@@ -162,17 +164,18 @@ namespace roee_nes {
         }
     }
 
-    void PPU::render_pixel() {
+    void PPU::add_render_pixel() {
         static std::ofstream pattern_log("testr/logs/ROEE_NES_PALETTE_TABLE.log");
         static std::ofstream attribute_log("testr/logs/ROEE_NES_PALETTE_TABLE.log");
-
+        static std::ofstream address_log("testr/logs/ADDRESS_LOG.log");
+        
         auto get_color_bit = [](uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x) -> uint8_t {
             uint8_t data = 0;
             data |= (0b00000001 & (shift_reg_lsb >> (15 - x)));
             data |= (0b00000010 & (shift_reg_msb >> (14 - x)));
 
             return data;
-            };
+        };
 
         uint8_t pt_data = get_color_bit(bg_regs.pt_shift_lsb, bg_regs.pt_shift_msb, x);
         pattern_log << std::hex << "pt value: " << (int)pt_data << std::endl;
@@ -182,11 +185,14 @@ namespace roee_nes {
 
         uint8_t palette_index = bus->ppu_read((0x3f00 + (attr_data * 4) + pt_data));
 
-        uint8_t r = bus->color_palette[(palette_index * 3) + 0];
-        uint8_t g = bus->color_palette[(palette_index * 3) + 1];
-        uint8_t b = bus->color_palette[(palette_index * 3) + 2];
+        address_log << std::dec << "scanline: " << curr_scanline << std::hex 
+            << " nt data: " << std::setw(4) << std::setfill('0') << (int)pt_data            
+            << " pt data: " << std::setw(4) << std::setfill('0') << (int)pt_data
+            << " attr data: " << std::setw(4) << std::setfill('0') << (int)attr_data << std::endl;
 
-        screen->draw_pixel(curr_cycle, curr_scanline, r, g, b);
+        data_render_line[curr_cycle-1].r = bus->color_palette[(palette_index * 3) + 0];
+        data_render_line[curr_cycle-1].g = bus->color_palette[(palette_index * 3) + 1];
+        data_render_line[curr_cycle-1].b = bus->color_palette[(palette_index * 3) + 2];
 
         bg_regs.pt_shift_lsb <<= 1;
         bg_regs.pt_shift_msb <<= 1;
@@ -216,7 +222,7 @@ namespace roee_nes {
     void PPU::increment_coarse_x() {
         if ((v & 0b0000000000011111) == 31) { // if coarse x = 31 (the limit)
             v &= ~0b0000000000011111; // coarse x = 0
-            v ^= 0b0000010000000000; // switching horizontal nametable NOTE: not sure about this!
+            v ^= 0b0000010000000000;
         } else
             v++; // otherwise, increment v normally
     }
@@ -258,16 +264,9 @@ namespace roee_nes {
             bg_regs.at_latch >>= 2;
         }
         
-        //  if sb_data = 0b1 we get 0b11111111, if sb_data = 0b0 we get 0b00000000  
-        auto fill_shift = [](uint8_t bit) -> uint8_t {
-            if ((bit & 0x1) == 0x1)
-                return 0xff;
-            else
-                return 0x00;
-        };
-        
-        bg_regs.attr_shift_lsb |= fill_shift((bg_regs.at_latch & 0x1));
-        bg_regs.attr_shift_msb |= fill_shift((bg_regs.at_latch & 0x2) >> 1);
+        //  if sb_data = 0b1 we get 0b11111111, if sb_data = 0b0 we get 0b00000000
+        bg_regs.attr_shift_lsb |= (bg_regs.at_latch & 0x1) * 0b11111111;
+        bg_regs.attr_shift_msb |= (bg_regs.at_latch & 0x2) * 0b11111111;
 
         attr_file << "lsb: " << get_binary(bg_regs.attr_shift_lsb, 8) << " msb: " << get_binary(bg_regs.attr_shift_msb, 8) << std::endl;
     }
