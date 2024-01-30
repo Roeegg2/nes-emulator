@@ -4,7 +4,7 @@
 namespace roee_nes {
 
     CPU::CPU(Bus* bus)
-        : S(0xfd), P(0b00110100), A(0x00), X(0x00), Y(0x00), IR(0x00), bytes(0x0000) {
+        : S(0xfd), P(0b00110100), PC(0x00), A(0x00), X(0x00), Y(0x00), IR(0x00), bytes(0x0000) {
         /* I know, its ugly, but I'm using it for now (possibly forever) because its very easy and conventient */
         /* Credit to OLC on the map that served as the foundation of this one */
         using a = CPU;
@@ -35,7 +35,7 @@ namespace roee_nes {
         fetch_decode_inst();
         (this->*inst->exec)();
         // sleep?
-        std::this_thread::sleep_for(std::chrono::nanoseconds(555));
+        // std::this_thread::sleep_for(std::chrono::nanoseconds(555));
 
         return inst->cycles;
     }

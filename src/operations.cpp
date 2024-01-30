@@ -196,7 +196,7 @@ namespace roee_nes {
 
     /* jump to new location */
     void CPU::JMP() {
-        // std::cout << "here is PC for ya: " << PC << std::endl;
+        // std::cout << "here is PC for ya: " << PC << "\n";
         PC = bytes;
     }
 

@@ -1,6 +1,6 @@
 # defining compiler and the flags to be used
 CXX := g++
-CXXFLAGS := -g
+CXXFLAGS := -g -Wall -pedantic
 
 # emulator source files
 EMU_SRCS := cpu.cpp \

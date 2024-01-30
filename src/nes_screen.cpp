@@ -4,7 +4,7 @@ namespace roee_nes {
 
     NES_Screen::NES_Screen() {
         if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-            std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
+            std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << "\n";
             exit(1);
         }
 
@@ -32,8 +32,8 @@ namespace roee_nes {
 
         for (int i = 0; i < 256; i++) { 
             SDL_SetRenderDrawColor(renderer, (*data_render_line)[i].r, (*data_render_line)[i].g, (*data_render_line)[i].b, 255);
-            SDL_RenderDrawPoint(renderer, i, (int)scanline);
-            pixel_file << std::hex << "scanline: " << scanline << " pixel pos: " << i+1 << " r: " << (int)(*data_render_line)[i].r << " g: " << (int)(*data_render_line)[i].g << " b: " << (int)(*data_render_line)[i].b << std::endl;
+            SDL_RenderDrawPoint(renderer, i, scanline);
+            pixel_file << std::hex << "scanline: " << scanline << " pixel pos: " << i+1 << " r: " << (int)(*data_render_line)[i].r << " g: " << (int)(*data_render_line)[i].g << " b: " << (int)(*data_render_line)[i].b << "\n";
         }
     }
 

@@ -49,10 +49,10 @@ namespace roee_nes {
 
     class CPU {
     public:
-        uint8_t A;
+        uint8_t S;
         uint8_t P;
         uint16_t PC;
-        uint8_t S;
+        uint8_t A;
         uint8_t X;
         uint8_t Y;
         uint8_t IR;

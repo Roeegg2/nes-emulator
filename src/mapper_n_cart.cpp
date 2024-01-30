@@ -12,7 +12,7 @@ namespace roee_nes {
             case 0: // mapper number 0 (NROM)
                 return new NROM_0(cart);
             default:
-                std::cerr << "Mapper not implemented yet!" << std::endl;
+                std::cerr << "Mapper not implemented yet!" << "\n";
                 return nullptr;
         }
     }
@@ -22,14 +22,14 @@ namespace roee_nes {
         std::ifstream rom_file(*rom_path, std::ios::binary);
 
         if (!rom_file.is_open()) {
-            std::cerr << "Error opening file" << std::endl;
+            std::cerr << "Error opening file" << "\n";
             exit(1);
         }
 
         char signature[5];
         rom_file.read(signature, 4);
         if (strcmp(signature, "NES\x1A") != 0) {
-            std::cerr << "Not a valid NES ROM" << std::endl;
+            std::cerr << "Not a valid NES ROM" << "\n";
             exit(1);
         }
 

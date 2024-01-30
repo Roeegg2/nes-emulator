@@ -10,7 +10,7 @@ namespace roee_nes {
         std::ifstream pal_file(*palette_path, std::ios::binary);
 
         if (!pal_file.is_open())
-            std::cerr << "Failed to open palette file" << std::endl;
+            std::cerr << "Failed to open palette file" << "\n";
 
         for (int i = 0; i < 64 * 3; i += 3) {
             for (int j = 0; j < 3; j++) {
@@ -49,8 +49,6 @@ namespace roee_nes {
     }
 
     void Bus::ppu_write(uint16_t addr, uint8_t data) {
-        uint8_t foo;
-
         if (0x2000 <= addr && addr <= 0x3eff) {
             uint16_t foo = addr;
 
@@ -62,7 +60,7 @@ namespace roee_nes {
                 else
                     nt_vram[1][addr % 0x400] = data;
             } else if (mapper->Get_mirroring() == 'V') {
-                if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
+                if ((0 <= addr && addr <= 0x400) || (0x800 <= addr && addr <= 0x2c00))
                     nt_vram[0][addr % 0x400] = data;
                 else
                     nt_vram[1][addr % 0x400] = data;
@@ -91,7 +89,7 @@ namespace roee_nes {
                 else
                     return nt_vram[1][addr % 0x400];
             } else if (mapper->Get_mirroring() == 'V') {
-                if (0 <= addr && addr <= 0x400 || 0x800 <= addr && addr <= 0x2c00)
+                if ((0 <= addr && addr <= 0x400) || (0x800 <= addr && addr <= 0x2c00))
                     return nt_vram[0][addr % 0x400];
                 else
                     return nt_vram[1][addr % 0x400];
@@ -105,19 +103,17 @@ namespace roee_nes {
             return palette_vram[addr];
         }
         else
-            std::cout << "got here!" << std::endl;
+            std::cout << "got here!" << "\n";
 
         return 0;
     }
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
-        uint16_t data16 = data;
-
         switch (addr % 8) {
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
-                ppu->t = (ppu->t & 0111001111111111) | ((0b00000011 & data) << 10);
+                ppu->t = (ppu->t & 0b0111001111111111) | ((0b00000011 & data) << 10);
                 break;
             case PPUMASK:
                 ppu->ext_regs.ppumask = data;
@@ -197,7 +193,7 @@ namespace roee_nes {
             << " ppumask:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppumask)
             << " ppustatus:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppustatus) << std::dec;
 
-        roee_file << " PPU: " << ppu->curr_scanline << ", " << ppu->curr_cycle << ", CYC:" << ppu->curr_cycle / 3 << std::endl;
+        roee_file << " PPU: " << ppu->curr_scanline << ", " << ppu->curr_cycle << ", CYC:" << ppu->curr_cycle / 3 << "\n";
     }
 
 
@@ -206,7 +202,7 @@ namespace roee_nes {
         std::ifstream nestest_file("logs/dk_ppu_log.txt");
 
         if (!roee_file.is_open() || !nestest_file.is_open()) {
-            std::cerr << "Error opening files." << std::endl;
+            std::cerr << "Error opening files." << "\n";
             return;
         }
 
@@ -321,11 +317,11 @@ namespace roee_nes {
             }  
 
             if (error_found == true) {
-                std::cerr << "Difference found in " << error << " Line: " << line_cnt << std::endl;
+                std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
                 return;
             }
         }
 
-        std::cout << "all goodie!" << std::endl;
+        std::cout << "all goodie!" << "\n";
     }
 }

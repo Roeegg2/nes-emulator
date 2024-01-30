@@ -18,7 +18,7 @@ namespace roee_nes {
         std::string str = "";
 
         for (uint8_t i = 0; i < size; i++){
-            if (val & 0b1 >= 1)
+            if ((val & 0b1) >= 1)
                 str += '1';
             else
                 str += '0';
