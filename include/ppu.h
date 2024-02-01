@@ -61,15 +61,16 @@ namespace roee_nes {
     };
 
     class PPU {
-    public:
+        public:
         PPU(Bus* bus, NES_Screen* screen);
 
         void run_ppu(uint8_t cycles);
         void reset();
-        
-    private:
+
+        private:
         void prerender_scanline();
         void visible_scanline();
+
         void vblank_scanline();
         void fetch_rendering_data(Fetch_Modes fetch_mode);
 
@@ -83,11 +84,8 @@ namespace roee_nes {
         uint8_t fetch_pt_byte(uint8_t byte_significance);
 
         void load_attr_shift_regs();
-        void log_palette_ram() const;
-        void log() const;
-        void log_nametable(uint64_t frame_number) const;
 
-    public:
+        public:
         uint16_t v;
         uint16_t t;
         uint8_t x;
@@ -105,11 +103,11 @@ namespace roee_nes {
 
         std::array<struct Pixel, 256> data_render_line;
 
-    public:
+        public:
         Bus* bus;
         NES_Screen* screen;
 
-    private:
+        private:
         inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
     };
 }

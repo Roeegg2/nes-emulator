@@ -329,14 +329,6 @@ namespace roee_nes {
 	    set_flag(OVERFLOW_BIT, (foo ^ (uint16_t)A) & (foo ^ val) & 0x0080);
 	    set_flag(NEGATIVE_BIT, foo & 0x0080);
 	    A = foo & 0x00FF;
-        // uint16_t foo = A - bytes - (1 - get_flag_status(CARRY_BIT));
-        // A = (uint8_t)foo;
-
-        // set_flag(ZERO_BIT, A == 0);
-        // set_flag(NEGATIVE_BIT, A & 0b10000000);
-        // // not entiry sure if the following is correct
-        // set_flag(CARRY_BIT, (uint16_t)A != foo);  // if the 16bit version is different than the 8bit version then there was a carry
-        // set_flag(OVERFLOW_BIT, A != (int8_t)foo); // if the signed version is different than the unsigned version then there was an overflow
     }
 
     /* set carry bit */

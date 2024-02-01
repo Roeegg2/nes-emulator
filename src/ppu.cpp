@@ -10,8 +10,6 @@ namespace roee_nes {
     }
 
     void PPU::run_ppu(uint8_t cycles) {
-        static std::ofstream vlogfile("logs/V_LOG_SCANLINE40.log");
-       
         for (uint8_t i = 0; i < cycles; i++) {
             if (Get_rendering_status()) {
                 if ((frame_oddness == ODD_FRAME) && (curr_scanline == 0) && (curr_cycle == 0)) // on odd frames we skip the last cycle of the pre-render scanline
@@ -32,58 +30,14 @@ namespace roee_nes {
             else if ((VBLANK_START_SCANLINE <= curr_scanline) && (curr_scanline <= VBLANK_END_SCANLINE))
                 vblank_scanline();
             // otherwise its a post render scanline - ppu doesnt do anything
-            
+
             increment_cycle(1);
-            log();
         }
-    }
-
-    void PPU::log_nametable(uint64_t frame_number) const {
-        static std::ofstream nt_out_file("logs/ROEE_NAMETABLE.log");
-        using nt_vram_it = std::array<uint8_t, 0x400>::iterator;
-
-        nt_vram_it it;
-        nt_out_file << "\n";
-        nt_out_file << "----------- THIS IS OF FRAME NUMBER: " << frame_number << "-----------" << "\n";
-        for (it = bus->nt_vram[1].begin(); it != bus->nt_vram[1].end(); it++) { // for every entry in the nametable (for every tile)
-            if (std::distance(bus->nt_vram[1].begin(), it) % 31 == 0) { // getting the position in the nametable, when visulized as a table
-                nt_out_file << "\n";
-            }
-            nt_out_file << " 0x" << std::hex << std::setw(2) << std::setfill('0') << (int)*it;
-        }
-    }
-
-    void PPU::log_palette_ram() const {
-        static std::ofstream roee_file("logs/ROEE_NES_PALETTES_RAM.log");
-
-        roee_file << "-------- printing palette ram: --------" << "\n";
-        using pr_it = std::array<uint8_t, 32>::iterator;
-        pr_it it;
-        for (it = bus->palette_vram.begin(); it != bus->palette_vram.end(); it++)
-            roee_file << std::hex << std::setw(4) << std::setfill('0') << std::uppercase << static_cast<int>(*it) << "\n";
-    }
-
-    void PPU::log() const {
-        static std::ofstream roee_file("logs/ROEE_NES.log");
-
-        roee_file << "\t t: " << std::hex << std::setw(4) << std::setfill('0') << std::uppercase << static_cast<int>(t)
-            << ", v: " << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(v)
-            << ", x: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(x)
-            << ", w: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(w)
-            << ", ctrl: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppuctrl)
-            << ", mask: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppumask)
-            << ", status: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppustatus)
-            << ", sl: " << std::dec << static_cast<int>(curr_scanline)
-            << ", dot: " << std::dec << static_cast<int>(curr_cycle) << "\n";
-
     }
 
     void PPU::prerender_scanline() {
         static uint64_t frame_counter = 0;
         if (curr_cycle == 0) {
-            log_nametable(frame_counter);
-            log_palette_ram();
-            
             screen->update_screen();
             frame_counter++;
         }
@@ -99,23 +53,15 @@ namespace roee_nes {
     }
 
     void PPU::visible_scanline() {
-        static std::ofstream attr_file("logs/ROEE_NES_CYCLE_0_LOG.log");
-
-        if (curr_cycle == 0) {
-            attr_file << std::dec << "scanline: " << curr_scanline << std::hex << " t: " << (int)t << " v: " << (int)v << "\n";
-            return;
-        }    
-
-        if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336))) {    
+        if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336))) {
             if ((1 <= curr_cycle) && (curr_cycle <= 256))
                 add_render_pixel();
 
             if (curr_cycle == 256)
                 screen->draw_pixel_line(&data_render_line, curr_scanline);
-            
+
             fetch_rendering_data(REGULAR_FETCH);
-        } 
-        else if ((257 <= curr_cycle) && (curr_cycle <= 320))
+        } else if ((257 <= curr_cycle) && (curr_cycle <= 320)) // For some reason this fetch causes a problem, and it doesnt really matter, sooo
             fetch_rendering_data(GARBAGE_NT_FETCH); // garbage nt0, nt1, pt low, pt high 
 
         else if ((337 <= curr_cycle) && (curr_cycle <= 340))
@@ -165,34 +111,24 @@ namespace roee_nes {
     }
 
     void PPU::add_render_pixel() {
-        static std::ofstream pattern_log("logs/ROEE_NES_PALETTE_TABLE.log");
-        static std::ofstream attribute_log("logs/ROEE_NES_PALETTE_TABLE.log");
-        static std::ofstream address_log("logs/ADDRESS_LOG.log");
-        
+        static std::ofstream sl_file("logs/SCANLINE.log");
+        sl_file << std::dec << curr_scanline << "\n";
         auto get_color_bit = [](uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x) -> uint8_t {
             uint8_t data = 0;
             data |= (0b00000001 & (shift_reg_lsb >> (15 - x)));
             data |= (0b00000010 & (shift_reg_msb >> (14 - x)));
 
             return data;
-        };
+            };
 
         uint8_t pt_data = get_color_bit(bg_regs.pt_shift_lsb, bg_regs.pt_shift_msb, x);
-        pattern_log << std::hex << "pt value: " << (int)pt_data << "\n";
-
         uint8_t attr_data = get_color_bit(bg_regs.attr_shift_lsb, bg_regs.attr_shift_msb, x);
-        attribute_log << std::hex << "at value: " << (int)attr_data << "\n";
 
         uint8_t palette_index = bus->ppu_read((0x3f00 + (attr_data * 4) + pt_data));
 
-        address_log << std::dec << "scanline: " << curr_scanline << std::hex 
-            << " nt data: " << std::setw(4) << std::setfill('0') << (int)pt_data            
-            << " pt data: " << std::setw(4) << std::setfill('0') << (int)pt_data
-            << " attr data: " << std::setw(4) << std::setfill('0') << (int)attr_data << "\n";
-
-        data_render_line[curr_cycle-1].r = bus->color_palette[(palette_index * 3) + 0];
-        data_render_line[curr_cycle-1].g = bus->color_palette[(palette_index * 3) + 1];
-        data_render_line[curr_cycle-1].b = bus->color_palette[(palette_index * 3) + 2];
+        data_render_line[curr_cycle - 1].r = bus->color_palette[(palette_index * 3) + 0];
+        data_render_line[curr_cycle - 1].g = bus->color_palette[(palette_index * 3) + 1];
+        data_render_line[curr_cycle - 1].b = bus->color_palette[(palette_index * 3) + 2];
 
         bg_regs.pt_shift_lsb <<= 1;
         bg_regs.pt_shift_msb <<= 1;
@@ -251,8 +187,6 @@ namespace roee_nes {
     }
 
     void PPU::load_attr_shift_regs() {
-        static std::ofstream attr_file("logs/ROEE_NES_ATTRIBUTE_BYTES.log");
-
         uint8_t coarse_x = v & 0b0000000000011111;
         uint8_t coarse_y = (v >> 5) & 0b0000000000011111;
 
@@ -262,12 +196,10 @@ namespace roee_nes {
         if ((coarse_x & 0x02) != 0) {
             bg_regs.at_latch >>= 2;
         }
-        
+
         //  if sb_data = 0b1 we get 0b11111111, if sb_data = 0b0 we get 0b00000000
         bg_regs.attr_shift_lsb |= (bg_regs.at_latch & 0x1) * 0b11111111;
         bg_regs.attr_shift_msb |= (bg_regs.at_latch & 0x2) * 0b11111111;
-
-        attr_file << "lsb: " << get_binary(bg_regs.attr_shift_lsb, 8) << " msb: " << get_binary(bg_regs.attr_shift_msb, 8) << "\n";
     }
 
     void PPU::reset() { // change later!

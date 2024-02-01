@@ -37,7 +37,7 @@ namespace roee_nes {
         std::array<std::array<uint8_t, 0x400>, 4> nt_vram; // ram used for the nametables
         std::array<uint8_t, 32> palette_vram; // ram used for the palettes
 
-        /*const*/ std::array<uint8_t, 64 * 3> color_palette;
+        std::array<uint8_t, 64 * 3> color_palette;
 
         Mapper* mapper;
         PPU* ppu;
@@ -59,8 +59,10 @@ namespace roee_nes {
         uint8_t cpu_read_ppu(uint16_t addr);
         void cpu_write_ppu(uint16_t addr, uint8_t data);
 
+#ifdef DEBUG
         void log() const;
         void find_difference() const;
+#endif
 
     private:
         void init_palette(const std::string* palette_path);

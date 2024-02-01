@@ -44,7 +44,9 @@ int main() {
 
     while (1) {
         emulator_tick();
+#ifdef DEBUG
         bus->log();
+#endif
     }
 
     return 0;

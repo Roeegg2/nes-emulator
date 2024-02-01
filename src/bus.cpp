@@ -102,8 +102,6 @@ namespace roee_nes {
             
             return palette_vram[addr];
         }
-        else
-            std::cout << "got here!" << "\n";
 
         return 0;
     }
@@ -170,8 +168,9 @@ namespace roee_nes {
         return ret;
     }
 
+#ifdef DEBUG
     void Bus::log() const {
-        static std::ofstream roee_file("logs/ROEE_NES_CPU.log");
+        static std::ofstream roee_file("logs/ROEE_NES_MAIN.log");
 
         roee_file << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(cpu->log_PC) << " "
             << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->IR) << " "
@@ -195,7 +194,6 @@ namespace roee_nes {
 
         roee_file << " PPU: " << ppu->curr_scanline << ", " << ppu->curr_cycle << ", CYC:" << ppu->curr_cycle / 3 << "\n";
     }
-
 
     void Bus::find_difference() const {
         std::ifstream roee_file("logs/ROEE_NES.log");
@@ -324,4 +322,5 @@ namespace roee_nes {
 
         std::cout << "all goodie!" << "\n";
     }
+#endif
 }

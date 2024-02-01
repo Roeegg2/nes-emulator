@@ -8,7 +8,7 @@ namespace roee_nes {
         /* I know, its ugly, but I'm using it for now (possibly forever) because its very easy and conventient */
         /* Credit to OLC on the map that served as the foundation of this one */
         using a = CPU;
-        lookup = 
+        lookup =
         {
             { "BRK", &a::BRK, IMM, 7 },{ "ORA", &a::ORA, X_IND, 6 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 3 },{ "ORA", &a::ORA, ZP, 3 },{ "ASL", &a::ASL, ZP, 5 },{ "ILL", &a::ILL, IMP, 5 },{ "PHP", &a::PHP, IMP, 3 },{ "ORA", &a::ORA, IMM, 2 },{ "ASL", &a::ASL, ACC, 2 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::NOP, IMP, 4 },{ "ORA", &a::ORA, ABS, 4 },{ "ASL", &a::ASL, ABS, 6 },{ "ILL", &a::ILL, IMP, 6 },
             { "BPL", &a::BPL, REL, 2 },{ "ORA", &a::ORA, IND_Y, 5 },{ "ILL", &a::ILL, IMP, 2 },{ "ILL", &a::ILL, IMP, 8 },{ "ILL", &a::NOP, IMP, 4 },{ "ORA", &a::ORA, ZP_X, 4 },{ "ASL", &a::ASL, ZP_X, 6 },{ "ILL", &a::ILL, IMP, 6 },{ "CLC", &a::CLC, IMP, 2 },{ "ORA", &a::ORA, ABS_Y, 4 },{ "ILL", &a::NOP, IMP, 2 },{ "ILL", &a::ILL, IMP, 7 },{ "ILL", &a::NOP, IMP, 4 },{ "ORA", &a::ORA, ABS_X, 4 },{ "ASL", &a::ASL, ABS_X, 7 },{ "ILL", &a::ILL, IMP, 7 },

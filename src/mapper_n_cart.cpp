@@ -26,11 +26,13 @@ namespace roee_nes {
             exit(1);
         }
 
-        char signature[5];
-        rom_file.read(signature, 4);
-        if (strcmp(signature, "NES\x1A") != 0) {
-            std::cerr << "Not a valid NES ROM" << "\n";
-            exit(1);
+        {
+            char signature[5];
+            rom_file.read(signature, 4);
+            if (strcmp(signature, "NES\x1A") != 0) {
+                std::cerr << "Not a valid NES ROM" << "\n";
+                exit(1);
+            }
         }
 
         rom_file.read((char*)&header.prg_bank_size, 1);

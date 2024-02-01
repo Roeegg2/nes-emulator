@@ -71,6 +71,7 @@ namespace roee_nes {
         uint8_t log_S;
         uint8_t log_X;
         uint8_t log_Y;
+        
     public:
         uint8_t run_cpu();
 
