@@ -111,18 +111,18 @@ namespace roee_nes {
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
-                ppu->t = (ppu->t & 0b0111001111111111) | ((0b00000011 & data) << 10);
+                ppu->t.raw = (ppu->t.raw & 0b0111001111111111) | ((0b00000011 & data) << 10);
                 break;
             case PPUMASK:
                 ppu->ext_regs.ppumask = data;
                 break;
             case PPUSCROLL:
                 if (ppu->w == 0) {
-                    ppu->t = ((ppu->t & 0x7fe0) | (data >> 3)); // setting coarse x
+                    ppu->t.raw = ((ppu->t.raw & 0x7fe0) | (data >> 3)); // setting coarse x
                     ppu->x = data & 0b0000000000000111; // setting fine x
                     ppu->w = 1;
                 } else { //setting coarse y and fine y
-                    ppu->t = (ppu->t & 0x0C1F) | ((data & 0xF8) << 2) | ((data & 7) << 12);
+                    ppu->t.raw = (ppu->t.raw & 0x0C1F) | ((data & 0xF8) << 2) | ((data & 7) << 12);
                     ppu->w = 0;
                 }
 
@@ -130,19 +130,19 @@ namespace roee_nes {
             case PPUADDR:
                 if (ppu->w == 0) {
                     // ppu->v &= 0b0011111111111111; // clearing bit 14 on first write.
-                    ppu->t = (ppu->t & 0x00ff) | ((data & 0x3F) << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
+                    ppu->t.raw = (ppu->t.raw & 0x00ff) | ((data & 0x3F) << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
                     ppu->w = 1;
                 } else {
-                    ppu->t = (ppu->t & 0x7f00) | data;
-                    ppu->v = ppu->t; // TODO: do this every 3 cycles to make more games compatible
+                    ppu->t.raw = (ppu->t.raw & 0x7f00) | data;
+                    ppu->v.raw = ppu->t.raw; // TODO: do this every 3 cycles to make more games compatible
                     ppu->w = 0;
                 }
 
                 // ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
                 break;
             case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
-                ppu_write(ppu->v, data);
-                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
+                ppu_write(ppu->v.raw, data);
+                ppu->v.raw += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
                 break;
         }
     }
@@ -158,10 +158,10 @@ namespace roee_nes {
                 break;
             case PPUDATA:
                 ret = ppu_stupid_buffer;
-                ppu_stupid_buffer = ppu_read(ppu->v);
+                ppu_stupid_buffer = ppu_read(ppu->v.raw);
                 if (addr >= 0x3f00)
-                    ret = ppu_read(ppu->v);
-                ppu->v += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
+                    ret = ppu_read(ppu->v.raw);
+                ppu->v.raw += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
                 break;
         }
 

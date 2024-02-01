@@ -34,10 +34,10 @@ namespace roee_nes {
     class Bus;
 
     enum Fetch_Type {
-        FETCH_1 = 2,
-        FETCH_2 = 4,
-        FETCH_3 = 0,
-        FETCH_4 = 6,
+        FETCH_1 = 1,
+        FETCH_2 = 3,
+        FETCH_3 = 5,
+        FETCH_4 = 7,
     };
 
     struct Background_Regs {
@@ -60,6 +60,17 @@ namespace roee_nes {
         uint8_t oamaddr;
     };
 
+    union Loopy_Reg {
+        struct Scroll_Reg {
+            uint16_t coarse_x : 5;
+            uint16_t coarse_y : 5;
+            uint16_t coarse_nt : 2;
+            uint16_t fine_y : 3;
+        };
+        
+        uint16_t raw;
+    };
+
     class PPU {
         public:
         PPU(Bus* bus, NES_Screen* screen);
@@ -70,9 +81,14 @@ namespace roee_nes {
         private:
         void prerender_scanline();
         void visible_scanline();
-
         void vblank_scanline();
+
         void fetch_rendering_data(Fetch_Modes fetch_mode);
+        uint8_t fetch_pt_byte(uint8_t byte_significance);
+        
+        void handle_shift_regs();
+        void load_attr_shift_regs();
+        void shift_shift_regs();
 
         void add_render_pixel();
         void send_pixels_to_render();
@@ -81,13 +97,11 @@ namespace roee_nes {
         void increment_y();
         void increment_coarse_x();
 
-        uint8_t fetch_pt_byte(uint8_t byte_significance);
-
-        void load_attr_shift_regs();
+        void rendering_enabled_actions();
 
         public:
-        uint16_t v;
-        uint16_t t;
+        Loopy_Reg v;
+        Loopy_Reg t;
         uint8_t x;
         uint8_t w;
 
