@@ -84,6 +84,8 @@ namespace roee_nes {
             ext_regs.ppustatus |= 0b1000'0000; // set vblank flag
             if (ext_regs.ppuctrl & 0b1000'0000)
                 nmi = 1;
+
+            frame_counter++;
         }
     }
 
