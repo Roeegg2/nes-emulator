@@ -14,7 +14,7 @@ namespace roee_nes {
 
         for (int i = 0; i < 64 * 3; i += 3) {
             for (int j = 0; j < 3; j++) {
-                pal_file.read((char*)&color_palette[i+j], 1);
+                pal_file.read((char*)&color_palette[i + j], 1);
             }
         }
     }
@@ -50,27 +50,23 @@ namespace roee_nes {
 
     void Bus::ppu_write(uint16_t addr, uint8_t data) {
         if (0x2000 <= addr && addr <= 0x3eff) {
-            uint16_t foo = addr;
-
-            addr %= 0x1000;
-
+            addr %= 0x1000; // removing nametable mirroring
             if (mapper->Get_mirroring() == 'H') {
-                if (0 <= foo && foo <= 0x800)
+                if (0 <= addr && addr <= 0x800)
                     nt_vram[0][addr % 0x400] = data;
                 else
                     nt_vram[1][addr % 0x400] = data;
             } else if (mapper->Get_mirroring() == 'V') {
-                if ((0 <= addr && addr <= 0x400) || (0x800 <= addr && addr <= 0x2c00))
+                if ((0 <= addr && addr < 0x400) || (0x800 <= addr && addr < 0x2c00))
                     nt_vram[0][addr % 0x400] = data;
                 else
                     nt_vram[1][addr % 0x400] = data;
             }
-        }
-        else if (0x3f00 <= addr && addr <= 0x3fff) {
+        } else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20;
             if ((addr & 0b11) == 0)
                 addr = 0;
-            
+
             palette_vram[addr] = data;
         }
     }
@@ -79,27 +75,24 @@ namespace roee_nes {
         if (0 <= addr && addr <= 0x1fff)
             return mapper->ppu_read(addr); // pattern table
         else if (0x2000 <= addr && addr <= 0x3eff) {
-            uint16_t foo = addr;
-
             addr %= 0x1000;
 
             if (mapper->Get_mirroring() == 'H') {
-                if (0 <= foo && foo <= 0x800)
+                if (0 <= addr && addr <= 0x800)
                     return nt_vram[0][addr % 0x400];
                 else
                     return nt_vram[1][addr % 0x400];
             } else if (mapper->Get_mirroring() == 'V') {
-                if ((0 <= addr && addr <= 0x400) || (0x800 <= addr && addr <= 0x2c00))
+                if ((0 <= addr && addr < 0x400) || (0x800 <= addr && addr < 0x2c00))
                     return nt_vram[0][addr % 0x400];
                 else
                     return nt_vram[1][addr % 0x400];
             }
-        }
-        else if (0x3f00 <= addr && addr <= 0x3fff) {
+        } else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20;
             if ((addr & 0b11) == 0)
                 addr = 0;
-            
+
             return palette_vram[addr];
         }
 
@@ -232,7 +225,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "v reg!";
                 error_found = true;
-            }   
+            }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
@@ -243,7 +236,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "x reg!";
                 error_found = true;
-            }  
+            }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
@@ -254,7 +247,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "w reg!";
                 error_found = true;
-            }  
+            }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
@@ -265,7 +258,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "ctrl reg!";
                 error_found = true;
-            }  
+            }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
@@ -276,7 +269,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "mask reg!";
                 error_found = true;
-            }  
+            }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
@@ -287,7 +280,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "status reg!";
                 error_found = true;
-            }  
+            }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
@@ -298,7 +291,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "scanline!";
                 error_found = true;
-            }  
+            }
 
             roee_ss >> roee_token;
             nestest_ss >> nestest_token;
@@ -309,7 +302,7 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "cycle!";
                 error_found = true;
-            }  
+            }
 
             if (error_found == true) {
                 std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";

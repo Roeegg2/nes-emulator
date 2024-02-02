@@ -26,10 +26,8 @@ namespace roee_nes {
 
     enum Fetch_Modes : uint8_t {
         REGULAR_FETCH,
-        GARBAGE_NT_FETCH,
         ONLY_NT_FETCH
     };
-
 
     class Bus;
 
@@ -100,9 +98,9 @@ namespace roee_nes {
 
         void rendering_enabled_actions();
 
-#ifdef DEBUG
+// #ifdef DEBUG
         void log() const;
-#endif
+// #endif
         public:
         Loopy_Reg v;
         Loopy_Reg t;
@@ -115,7 +113,8 @@ namespace roee_nes {
 
         int32_t curr_scanline; // why does static cause an error here?
         int32_t curr_cycle;
-
+        uint64_t frame_counter;
+        
         uint8_t nmi;
         uint8_t frame_oddness;
 
