@@ -111,34 +111,31 @@ namespace roee_nes {
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
-                ppu->t.raw = (ppu->t.raw & 0b0111001111111111) | ((0b00000011 & data) << 10);
+                ppu->t.scroll_view.nt = data;
                 break;
             case PPUMASK:
                 ppu->ext_regs.ppumask = data;
                 break;
             case PPUSCROLL:
                 if (ppu->w == 0) {
-                    ppu->t.raw = ((ppu->t.raw & 0x7fe0) | (data >> 3)); // setting coarse x
-                    ppu->x = data & 0b0000000000000111; // setting fine x
-                    ppu->w = 1;
+                    ppu->t.scroll_view.coarse_x = data >> 3; // setting coarse x
+                    ppu->x = data & 0b0000'0111; // setting fine x
                 } else { //setting coarse y and fine y
-                    ppu->t.raw = (ppu->t.raw & 0x0C1F) | ((data & 0xF8) << 2) | ((data & 7) << 12);
-                    ppu->w = 0;
+                    ppu->t.scroll_view.fine_y = data & 0b0000'0111;
+                    ppu->t.scroll_view.coarse_y = data >> 3;
                 }
 
+                ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
                 break;
             case PPUADDR:
-                if (ppu->w == 0) {
-                    // ppu->v &= 0b0011111111111111; // clearing bit 14 on first write.
+                if (ppu->w == 0) { // setting upper 6 bits data
                     ppu->t.raw = (ppu->t.raw & 0x00ff) | ((data & 0x3F) << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
-                    ppu->w = 1;
-                } else {
+                } else { // setting lower byte data
                     ppu->t.raw = (ppu->t.raw & 0x7f00) | data;
                     ppu->v.raw = ppu->t.raw; // TODO: do this every 3 cycles to make more games compatible
-                    ppu->w = 0;
                 }
 
-                // ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
+                ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
                 break;
             case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
                 ppu_write(ppu->v.raw, data);
@@ -169,7 +166,7 @@ namespace roee_nes {
     }
 
 #ifdef DEBUG
-    void Bus::log() const {
+    void Bus::full_log() const {
         static std::ofstream roee_file("logs/ROEE_NES_MAIN.log");
 
         roee_file << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(cpu->log_PC) << " "
@@ -184,8 +181,8 @@ namespace roee_nes {
             << " P:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_P)
             << " SP:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->log_S) << std::dec;
 
-        roee_file << "\t t:" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->t)
-            << " v:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->v)
+        roee_file << "\t t:" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->t.raw)
+            << " v:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->v.raw)
             << " x:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->x)
             << " w:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->w)
             << " ppuctrl:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppuctrl)

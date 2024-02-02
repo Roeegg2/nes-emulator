@@ -60,7 +60,7 @@ namespace roee_nes {
         void cpu_write_ppu(uint16_t addr, uint8_t data);
 
 #ifdef DEBUG
-        void log() const;
+        void full_log() const;
         void find_difference() const;
 #endif
 

@@ -61,13 +61,14 @@ namespace roee_nes {
     };
 
     union Loopy_Reg {
-        struct Scroll_Reg {
+        struct Scroll_View {
             uint16_t coarse_x : 5;
             uint16_t coarse_y : 5;
-            uint16_t coarse_nt : 2;
+            uint16_t nt : 2;
             uint16_t fine_y : 3;
-        };
-        
+            uint16_t unused : 1;
+        } scroll_view;
+
         uint16_t raw;
     };
 
@@ -99,6 +100,9 @@ namespace roee_nes {
 
         void rendering_enabled_actions();
 
+#ifdef DEBUG
+        void log() const;
+#endif
         public:
         Loopy_Reg v;
         Loopy_Reg t;
