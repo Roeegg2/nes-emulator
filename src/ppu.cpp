@@ -27,21 +27,20 @@ namespace roee_nes {
     }
 
     void PPU::shared_visible_prerender_scanline() {
-
         if ((curr_cycle - 1) % 8 == 0) // on cycles 9, 17, 25, etc load the data in the latches into shift registers
             load_shift_regs();
+
+        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336)) {
+            shift_shift_regs(); // every cycle we shift the shift registers
+            if (Get_rendering_status() && ((curr_cycle % 8) == 0))
+                increment_coarse_x();
+        }
 
         if ((curr_cycle % 2) == 1) { // if we are on an odd frame, that means we need to fetch something
             if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336)))
                 fetch_rendering_data(REGULAR_FETCH);
             else if ((337 == curr_cycle) || (curr_cycle == 339)) // between 337 and 340 we only fetch nt
                 fetch_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
-
-        } 
-        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336)) {
-            shift_shift_regs(); // every cycle we shift the shift registers
-            if (Get_rendering_status() && ((curr_cycle % 8) == 0))
-                increment_coarse_x();
         }
 
         if (Get_rendering_status() && (curr_cycle == 256))
@@ -68,27 +67,27 @@ namespace roee_nes {
         if (curr_cycle == 1)
             ext_regs.ppustatus &= 0b0111'1111; // clearing vblank flag
 
-        shared_visible_prerender_scanline();
 
         if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
             v.scroll_view.coarse_y = t.scroll_view.coarse_y;
             v.scroll_view.nt = (v.scroll_view.nt & 0b01) | (t.scroll_view.nt & 0b10);
             v.scroll_view.fine_y = t.scroll_view.fine_y;
-
         }
+
+        shared_visible_prerender_scanline();
     }
 
     void PPU::visible_scanline() {
         if (curr_cycle == 0)
             return;
 
-        shared_visible_prerender_scanline();
-
         if ((1 <= curr_cycle) && (curr_cycle <= 256))
             add_render_pixel();
 
         if (curr_cycle == 256)
             screen->draw_pixel_line(&data_render_line, curr_scanline);
+
+        shared_visible_prerender_scanline();
     }
 
     void PPU::vblank_scanline() {
