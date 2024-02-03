@@ -186,15 +186,15 @@ namespace roee_nes {
     }
 
     void Bus::find_difference() const {
-        std::ifstream roee_file("logs/ROEE_NES.log");
-        std::ifstream nestest_file("logs/dk_ppu_log.txt");
+        std::ifstream roee_file("logs/ROEE_NES_PPU.log");
+        std::ifstream nestest_file("logs/dk-binjnes.txt");
 
         if (!roee_file.is_open() || !nestest_file.is_open()) {
             std::cerr << "Error opening files." << "\n";
             return;
         }
 
-        int line_cnt = 0;
+        uint64_t line_cnt = 0;
         std::string roee_line, nestest_line;
         std::string roee_token, nestest_token;
         bool error_found = false;
@@ -212,6 +212,8 @@ namespace roee_nes {
             nestest_ss >> nestest_token;
 
             if (roee_token != nestest_token && !error_found) {
+                std::cout << "roee string:" << roee_token << "\n";
+                std::cout << "nestest string:" << nestest_token << "\n";
                 error = "t reg!";
                 error_found = true;
             }

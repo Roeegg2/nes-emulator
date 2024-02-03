@@ -44,10 +44,9 @@ int main() {
 
     while (1) {
         emulator_tick();
-#ifdef DEBUG
-        bus->full_log();
-#endif
     }
 
+    // bus->find_difference();
+    
     return 0;
 }

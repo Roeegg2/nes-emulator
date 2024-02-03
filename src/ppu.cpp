@@ -20,9 +20,7 @@ namespace roee_nes {
             // otherwise its a post render scanline - ppu doesnt do anything
 
             increment_cycle(1);
-            // #ifdef DEBUG
             // log();
-            // #endif
         }
     }
 
@@ -254,7 +252,7 @@ namespace roee_nes {
         v.raw = 0;
         t.raw = 0;
         curr_cycle = 0;
-        curr_scanline = 261;
+        curr_scanline = 0;
         frame_oddness = 0;
         nmi = 0;
         bg_regs.at_latch = 0;
@@ -272,11 +270,10 @@ namespace roee_nes {
         frame_counter = 0;
     }
 
-    // #ifdef DEBUG
-
+#ifdef DEBUG
     void PPU::log() const {
         // static uint16_t p_v, p_t, p_w, p_x, p_ppuctrl, p_ppumask, p_ppustatus;
-        // // static std::ofstream roee_file("logs/ROEE_NES_PPU.log");
+        static std::ofstream roee_file("logs/ROEE_NES_PPU.log");
 
         // auto is_diff = [](uint16_t old_val, uint16_t new_val) -> bool {
         //     if (old_val != new_val)
@@ -286,15 +283,15 @@ namespace roee_nes {
         //     };
 
         // if (is_diff(p_t, t.raw) || is_diff(p_v, v.raw) || is_diff(p_w, w) || is_diff(p_x, x) || is_diff(p_ppuctrl, ext_regs.ppuctrl) || is_diff(p_ppumask, ext_regs.ppumask) || is_diff(p_ppustatus, ext_regs.ppustatus)) {
-        //     roee_file << "t:" << std::hex << std::setw(4) << std::setfill('0') << std::uppercase << static_cast<int>(t.raw)
-        //         << " v:" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(v.raw)
-        //         << " x:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(x)
-        //         << " w:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(w)
-        //         << " ctrl:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppuctrl)
-        //         << " mask:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppumask)
-        //         << " status:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppustatus)
-        //         << " sl:" << std::dec << static_cast<int>(curr_scanline)
-        //         << " dot:" << std::dec << static_cast<int>(curr_cycle) << "\n";
+        roee_file << "\tt: " << std::hex << std::setw(4) << std::setfill('0') << std::uppercase << static_cast<int>(t.raw)
+            << ", v: " << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(v.raw)
+            << ", x: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(x)
+            << ", w: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(w)
+            << ", ctrl: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppuctrl)
+            << ", mask: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppumask)
+            << ", status: " << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ext_regs.ppustatus)
+            << ", sl: " << std::dec << static_cast<int>(curr_scanline)
+            << ", dot: " << std::dec << static_cast<int>(curr_cycle) << "\n";
         // }
 
         // p_v = v.raw;
@@ -305,5 +302,5 @@ namespace roee_nes {
         // p_ppumask = ext_regs.ppumask;
         // p_ppustatus = ext_regs.ppustatus;
     }
-    // #endif
+#endif
 }
