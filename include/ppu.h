@@ -16,7 +16,7 @@ namespace roee_nes {
     constexpr uint8_t EVEN_FRAME = 0;
 
     enum Scanline_Ranges : int16_t {
-        PRE_RENDER_SCANLINE = -1,
+        PRE_RENDER_SCANLINE = 261,
         RENDER_START_SCANLINE = 0,
         RENDER_END_SCANLINE = 239,
         POST_RENDER_SCANLINE = 240,
@@ -42,8 +42,8 @@ namespace roee_nes {
         uint16_t pt_shift_lsb;
         uint16_t pt_shift_msb;
 
-        uint16_t attr_shift_lsb;
-        uint16_t attr_shift_msb;
+        uint16_t at_shift_lsb;
+        uint16_t at_shift_msb;
 
         uint8_t nt_latch;
         uint8_t at_latch;
@@ -71,13 +71,13 @@ namespace roee_nes {
     };
 
     class PPU {
-        public:
+    public:
         PPU(Bus* bus, NES_Screen* screen);
 
         void run_ppu(uint8_t cycles);
         void reset();
 
-        private:
+    private:
         void prerender_scanline();
         void visible_scanline();
         void vblank_scanline();
@@ -85,8 +85,8 @@ namespace roee_nes {
         void fetch_rendering_data(Fetch_Modes fetch_mode);
         uint8_t fetch_pt_byte(uint8_t byte_significance);
         
-        void handle_shift_regs();
-        void load_attr_shift_regs();
+        void shared_visible_prerender_scanline();
+        void load_shift_regs();
         void shift_shift_regs();
 
         void add_render_pixel();
@@ -96,12 +96,10 @@ namespace roee_nes {
         void increment_y();
         void increment_coarse_x();
 
-        void rendering_enabled_actions();
-
 // #ifdef DEBUG
         void log() const;
 // #endif
-        public:
+    public:
         Loopy_Reg v;
         Loopy_Reg t;
         uint8_t x;
@@ -120,11 +118,11 @@ namespace roee_nes {
 
         std::array<struct Pixel, 256> data_render_line;
 
-        public:
+    public:
         Bus* bus;
         NES_Screen* screen;
 
-        private:
+    private:
         inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
     };
 }

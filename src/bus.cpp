@@ -64,7 +64,7 @@ namespace roee_nes {
             }
         } else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20;
-            if ((addr & 0b11) == 0)
+            if ((addr & 0b11) == 0) // dont understand this yet!
                 addr = 0;
 
             palette_vram[addr] = data;
@@ -89,8 +89,8 @@ namespace roee_nes {
                     return nt_vram[1][addr % 0x400];
             }
         } else if (0x3f00 <= addr && addr <= 0x3fff) {
-            addr %= 0x20;
-            if ((addr & 0b11) == 0)
+            addr %= 0x20; // the actual size of the palette is 0x20
+            if ((addr & 0b11) == 0) // dont understand this yet!
                 addr = 0;
 
             return palette_vram[addr];
@@ -104,7 +104,7 @@ namespace roee_nes {
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
-                ppu->t.scroll_view.nt = data;
+                ppu->t.scroll_view.nt = data & 0b0000'0011;
                 break;
             case PPUMASK:
                 ppu->ext_regs.ppumask = data;
@@ -311,6 +311,6 @@ namespace roee_nes {
         }
 
         std::cout << "all goodie!" << "\n";
-    }
+}
 #endif
 }

@@ -11,9 +11,6 @@ namespace roee_nes {
 
     void PPU::run_ppu(uint8_t cycles) {
         for (uint8_t i = 0; i < cycles; i++) {
-            if (Get_rendering_status())
-                rendering_enabled_actions();
-
             if (curr_scanline == PRE_RENDER_SCANLINE)
                 prerender_scanline();
             else if ((RENDER_START_SCANLINE <= curr_scanline) && (curr_scanline <= RENDER_END_SCANLINE))
@@ -29,54 +26,69 @@ namespace roee_nes {
         }
     }
 
-    void PPU::handle_shift_regs() {
-        shift_shift_regs(); // every cycle we shift the shift registers
+    void PPU::shared_visible_prerender_scanline() {
 
-        if ((curr_cycle - 1) % 8 == 0) { // on cycles 9, 17, 25, etc load the data in the latches into shift registers
-            bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
-            bg_regs.pt_shift_msb = (bg_regs.pt_shift_msb & 0xFF00) | bg_regs.pt_latch_msb;
-
-            load_attr_shift_regs();
-        }
+        if ((curr_cycle - 1) % 8 == 0) // on cycles 9, 17, 25, etc load the data in the latches into shift registers
+            load_shift_regs();
 
         if ((curr_cycle % 2) == 1) { // if we are on an odd frame, that means we need to fetch something
             if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336)))
                 fetch_rendering_data(REGULAR_FETCH);
-            // else if ((257 <= curr_cycle) && (curr_cycle <= 320)) // For some reason this fetch causes a problem, and it doesnt really matter, sooo
-            //     fetch_rendering_data(GARBAGE_NT_FETCH); // garbage nt0, nt1, pt low, pt high 
-            else if ((337 <= curr_cycle) && (curr_cycle <= 340))
+            else if ((337 == curr_cycle) || (curr_cycle == 339)) // between 337 and 340 we only fetch nt
                 fetch_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
+
+        } 
+        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336)) {
+            shift_shift_regs(); // every cycle we shift the shift registers
+            if (Get_rendering_status() && ((curr_cycle % 8) == 0))
+                increment_coarse_x();
         }
-        else if (Get_rendering_status() && ((curr_cycle >= 2 && curr_cycle < 258) || (curr_cycle >= 321 && curr_cycle < 338)) && ((curr_cycle % 8) == 0))
-            increment_coarse_x();
+
+        if (Get_rendering_status() && (curr_cycle == 256))
+            increment_y();
+
+        if (Get_rendering_status() && (curr_cycle == 257)) {// copy all horizontal bits from t onto v
+            v.scroll_view.coarse_x = t.scroll_view.coarse_x;
+            v.scroll_view.nt = (v.scroll_view.nt & 0b10) | (t.scroll_view.nt & 0b01);
+        }
     }
 
     void PPU::prerender_scanline() {
-        if (curr_cycle == 0) {
+        if (curr_cycle == 339) {
             screen->update_screen();
-        }
-        if (curr_cycle == 1)
-            ext_regs.ppustatus &= 0b0111'1111; // clearing vblank flag
-        if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
-            v.scroll_view.coarse_y = t.scroll_view.coarse_y;
-            v.scroll_view.nt = t.scroll_view.nt;
-            v.scroll_view.fine_y = t.scroll_view.fine_y;
+            frame_oddness = 1 - frame_oddness;
+            frame_counter++;
+
+            if (Get_rendering_status() && (frame_oddness == EVEN_FRAME)) { // each ODD scanline we skip a frame. I check for EVEN scanline because i switch the scanline value before the 'if'
+                increment_cycle(1);
+                return;
+            }
         }
 
-        handle_shift_regs();
+        if (curr_cycle == 1)
+            ext_regs.ppustatus &= 0b0111'1111; // clearing vblank flag
+
+        shared_visible_prerender_scanline();
+
+        if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
+            v.scroll_view.coarse_y = t.scroll_view.coarse_y;
+            v.scroll_view.nt = (v.scroll_view.nt & 0b01) | (t.scroll_view.nt & 0b10);
+            v.scroll_view.fine_y = t.scroll_view.fine_y;
+
+        }
     }
 
     void PPU::visible_scanline() {
         if (curr_cycle == 0)
             return;
 
+        shared_visible_prerender_scanline();
+
         if ((1 <= curr_cycle) && (curr_cycle <= 256))
             add_render_pixel();
 
         if (curr_cycle == 256)
             screen->draw_pixel_line(&data_render_line, curr_scanline);
-
-        handle_shift_regs();
     }
 
     void PPU::vblank_scanline() {
@@ -84,21 +96,6 @@ namespace roee_nes {
             ext_regs.ppustatus |= 0b1000'0000; // set vblank flag
             if (ext_regs.ppuctrl & 0b1000'0000)
                 nmi = 1;
-
-            frame_counter++;
-        }
-    }
-
-    void PPU::rendering_enabled_actions() {
-        if ((curr_scanline == 0) && (curr_cycle == 0) && (frame_oddness == ODD_FRAME)) { // on odd frames we skip the last cycle of the pre-render scanline
-            increment_cycle(1);
-            frame_oddness = 1 - frame_oddness;
-        }
-        if (curr_cycle == 256) // increment y component of v
-            increment_y();
-        if (curr_cycle == 257) {// copy all horizontal bits from t onto v
-            v.scroll_view.coarse_x = t.scroll_view.coarse_x;
-            v.scroll_view.nt = t.scroll_view.nt;
         }
     }
 
@@ -130,7 +127,7 @@ namespace roee_nes {
                 if (frame_counter < 20)
                     info_file << std::hex << " nt=" << (int)bg_regs.nt_latch << "\n";
                 break;
-            case FETCH_2: // its fetch attr
+            case FETCH_2: // its fetch at
                 bg_regs.at_latch = bus->ppu_read(0x23C0 | ((v.scroll_view.nt & 0b10) << 11) | ((v.scroll_view.nt & 0b01) << 10) | ((v.scroll_view.coarse_y >> 2) << 3) | (v.scroll_view.coarse_x >> 2));
                 if (frame_counter < 20)
                     info_file << std::hex << " at1=" << (int)stupid(bg_regs.at_latch, v) << "\n";
@@ -138,12 +135,12 @@ namespace roee_nes {
             case FETCH_3: // fetch pt msb
                 bg_regs.pt_latch_lsb = fetch_pt_byte(PT_LSB);
                 if (frame_counter < 20)
-                    info_file << std::hex << " ptlo=" << (int)bg_regs.pt_shift_lsb << "\n";
+                    info_file << std::hex << " ptlo=" << (int)bg_regs.pt_latch_lsb << "\n";
                 break;
             case FETCH_4: // fetch pt lsb
                 bg_regs.pt_latch_msb = fetch_pt_byte(PT_MSB);
                 if (frame_counter < 20)
-                    info_file << std::hex << " pthi=" << (int)bg_regs.pt_shift_msb << "\n";
+                    info_file << std::hex << " pthi=" << (int)bg_regs.pt_latch_msb << "\n";
                 break;
             default:
                 std::cerr << "error!!" << "\n";
@@ -152,8 +149,6 @@ namespace roee_nes {
     }
 
     void PPU::add_render_pixel() {
-        // #ifdef DEBUG
-        // #endif
         uint8_t palette_index = 0;
 
         auto get_color_bit = [](uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x) -> uint8_t {
@@ -165,9 +160,9 @@ namespace roee_nes {
             };
 
         uint8_t pt_data = get_color_bit(bg_regs.pt_shift_lsb, bg_regs.pt_shift_msb, x);
-        uint8_t attr_data = get_color_bit(bg_regs.attr_shift_lsb, bg_regs.attr_shift_msb, x);
+        uint8_t at_data = get_color_bit(bg_regs.at_shift_lsb, bg_regs.at_shift_msb, x);
 
-        palette_index = bus->ppu_read((0x3f00 + (attr_data * 4) + pt_data));
+        palette_index = bus->ppu_read((0x3f00 + (at_data * 4) + pt_data));
 
         data_render_line[curr_cycle - 1].r = bus->color_palette[(palette_index * 3) + 0];
         data_render_line[curr_cycle - 1].g = bus->color_palette[(palette_index * 3) + 1];
@@ -185,24 +180,34 @@ namespace roee_nes {
         // return bus->ppu_read(((ext_regs.ppuctrl & 0b0001'0000) << 8) + ((uint16_t)bg_regs.nt_latch << 4) + v.scroll_view.fine_y + byte_significance);
     }
 
-    void PPU::load_attr_shift_regs() {
+    void PPU::load_shift_regs() {
+        bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
+        bg_regs.pt_shift_msb = (bg_regs.pt_shift_msb & 0xFF00) | bg_regs.pt_latch_msb;
+
         if (v.scroll_view.coarse_y & 0x02)
             bg_regs.at_latch >>= 4;
         if (v.scroll_view.coarse_x & 0x02)
             bg_regs.at_latch >>= 2;
 
-        bg_regs.at_latch &= 0x03;
+        bg_regs.at_latch &= 0b11;
 
-        bg_regs.attr_shift_lsb = (bg_regs.attr_shift_lsb & 0xff00) | ((bg_regs.at_latch & 0b01) ? 0xFF : 0x00);
-        bg_regs.attr_shift_msb = (bg_regs.attr_shift_msb & 0xff00) | ((bg_regs.at_latch & 0b10) ? 0xFF : 0x00);
+        auto fill_shift_reg = [](uint8_t at_latch, uint16_t at_shift_reg, uint8_t significance) {
+            if ((at_latch & significance) == significance)
+                return (at_shift_reg & 0xff00) | 0x00ff;
+            else
+                return (at_shift_reg & 0xff00);
+            };
+
+        bg_regs.at_shift_lsb = fill_shift_reg(bg_regs.at_latch, bg_regs.at_shift_lsb, 0b01);
+        bg_regs.at_shift_msb = fill_shift_reg(bg_regs.at_latch, bg_regs.at_shift_msb, 0b10);
     }
 
     void PPU::shift_shift_regs() {
         if (Get_rendering_status()) {
             bg_regs.pt_shift_lsb <<= 1;
             bg_regs.pt_shift_msb <<= 1;
-            bg_regs.attr_shift_lsb <<= 1;
-            bg_regs.attr_shift_msb <<= 1;
+            bg_regs.at_shift_lsb <<= 1;
+            bg_regs.at_shift_msb <<= 1;
         }
     }
 
@@ -238,12 +243,10 @@ namespace roee_nes {
         curr_cycle += cycles;
 
         if (curr_cycle > 340) {
+            curr_cycle = 0;
             curr_scanline++;
-            if (curr_scanline == 261) // i mark pre render scanline as -1 instead of 261 for convinience.
-                curr_scanline = -1;
+            curr_scanline %= 262; // wrapping around 261 -> 0
         }
-
-        curr_cycle %= 341; // wrapping over if its bigger than 340
     }
 
     void PPU::reset() { // change later!
@@ -252,12 +255,12 @@ namespace roee_nes {
         v.raw = 0;
         t.raw = 0;
         curr_cycle = 0;
-        curr_scanline = 0;
+        curr_scanline = 261;
         frame_oddness = 0;
         nmi = 0;
         bg_regs.at_latch = 0;
-        bg_regs.attr_shift_lsb = 0;
-        bg_regs.attr_shift_msb = 0;
+        bg_regs.at_shift_lsb = 0;
+        bg_regs.at_shift_msb = 0;
         bg_regs.nt_latch = 0;
         bg_regs.pt_latch_lsb = 0;
         bg_regs.pt_latch_msb = 0;

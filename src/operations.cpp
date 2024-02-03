@@ -13,7 +13,6 @@ namespace roee_nes {
         // UNDERSTAND THIS!
         set_flag(OVERFLOW_BIT, (~((uint16_t)A ^ (uint16_t)bytes) & ((uint16_t)A ^ (uint16_t)foo)) & 0x0080);
         A = (uint8_t)foo;
-
         set_flag(ZERO_BIT, A == 0);
         set_flag(NEGATIVE_BIT, A & 0b10000000);
         set_flag(CARRY_BIT, foo != A);
