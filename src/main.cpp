@@ -30,7 +30,7 @@ uint16_t emulator_tick() {
 }
 
 int main() {
-    const std::string rom_path = "roms/SMB1.nes";
+    const std::string rom_path = "roms/dkjr.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     bus = new Bus(Mapper::create_mapper(&rom_path), &palette_path);

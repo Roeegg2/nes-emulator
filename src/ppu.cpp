@@ -28,17 +28,18 @@ namespace roee_nes {
         if ((curr_cycle - 1) % 8 == 0) // on cycles 9, 17, 25, etc load the data in the latches into shift registers
             load_shift_regs();
 
-        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336)) {
-            shift_shift_regs(); // every cycle we shift the shift registers
-            if (Get_rendering_status() && ((curr_cycle % 8) == 0))
-                increment_coarse_x();
-        }
-
         if ((curr_cycle % 2) == 1) { // if we are on an odd frame, that means we need to fetch something
             if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336)))
                 fetch_rendering_data(REGULAR_FETCH);
             else if ((337 == curr_cycle) || (curr_cycle == 339)) // between 337 and 340 we only fetch nt
                 fetch_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
+        }
+
+        if ((1 <= curr_cycle && curr_cycle <= 256) || (321 <= curr_cycle && curr_cycle <= 336)) {
+            if (Get_rendering_status())
+                shift_shift_regs(); // every cycle we shift the shift registers
+            if (Get_rendering_status() && ((curr_cycle % 8) == 0))
+                increment_coarse_x();
         }
 
         if (Get_rendering_status() && (curr_cycle == 256))
@@ -97,55 +98,39 @@ namespace roee_nes {
     }
 
     void PPU::fetch_rendering_data(Fetch_Modes fetch_mode) {
-        static std::ofstream info_file("logs/INFO_LOG.log");
-
-        if (frame_counter < 20)
-            info_file << std::dec << "[" << frame_counter << ":" << curr_scanline << ":" << curr_cycle << "]:";
-
         if (fetch_mode == ONLY_NT_FETCH) { // only fetching nametable byte
             bg_regs.nt_latch = bus->ppu_read(0x2000 | (v.raw & 0x0FFF));
-            if (frame_counter < 20)
-                info_file << std::hex << " nt=" << (int)bg_regs.nt_latch << "\n";
             return;
         }
-
-        auto stupid = [](uint8_t at_latch, Loopy_Reg v) -> uint8_t {
-            if (v.scroll_view.coarse_y & 0x02)
-                at_latch >>= 4;
-            if (v.scroll_view.coarse_x & 0x02)
-                at_latch >>= 2;
-
-            return (at_latch & 0b11);
-            };
 
         switch (curr_cycle % 8) { // getting 1, 3, 5, or 7 representing what do we need to fetch
             case FETCH_1: // fetch nt
                 bg_regs.nt_latch = bus->ppu_read(0x2000 | (v.raw & 0x0FFF));
-                if (frame_counter < 20)
-                    info_file << std::hex << " nt=" << (int)bg_regs.nt_latch << "\n";
                 break;
             case FETCH_2: // its fetch at
-                bg_regs.at_latch = bus->ppu_read(0x23C0 | ((v.scroll_view.nt & 0b10) << 11) | ((v.scroll_view.nt & 0b01) << 10) | ((v.scroll_view.coarse_y >> 2) << 3) | (v.scroll_view.coarse_x >> 2));
-                if (frame_counter < 20)
-                    info_file << std::hex << " at1=" << (int)stupid(bg_regs.at_latch, v) << "\n";
+                bg_regs.at_latch = bus->ppu_read(0x23C0 | (v.scroll_view.nt << 10) | ((v.scroll_view.coarse_y >> 2) << 3) | (v.scroll_view.coarse_x >> 2));
+                
+                if (v.scroll_view.coarse_y & 0x02)
+                    bg_regs.at_latch >>= 4;
+                if (v.scroll_view.coarse_x & 0x02)
+                    bg_regs.at_latch >>= 2;
+                
+                bg_regs.at_latch &= 0b11; // removing the rest of the bits, which are unnessecary to get only bit 0, 1
                 break;
             case FETCH_3: // fetch pt msb
                 bg_regs.pt_latch_lsb = fetch_pt_byte(PT_LSB);
-                if (frame_counter < 20)
-                    info_file << std::hex << " ptlo=" << (int)bg_regs.pt_latch_lsb << "\n";
                 break;
             case FETCH_4: // fetch pt lsb
                 bg_regs.pt_latch_msb = fetch_pt_byte(PT_MSB);
-                if (frame_counter < 20)
-                    info_file << std::hex << " pthi=" << (int)bg_regs.pt_latch_msb << "\n";
                 break;
             default:
                 std::cerr << "error!!" << "\n";
                 break; // return error
         }
     }
-
+    // pt: 3 at: 2 palette index: f color: 000000 frame: 34 scanline: 24 cycle: 92
     void PPU::add_render_pixel() {
+        // static std::ofstream log_file("logs/PT_AT_LOG.log");
         uint8_t palette_index = 0;
 
         auto get_color_bit = [](uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x) -> uint8_t {
@@ -178,16 +163,11 @@ namespace roee_nes {
     }
 
     void PPU::load_shift_regs() {
+        // fill pattern table shift regs
         bg_regs.pt_shift_lsb = (bg_regs.pt_shift_lsb & 0xFF00) | bg_regs.pt_latch_lsb;
         bg_regs.pt_shift_msb = (bg_regs.pt_shift_msb & 0xFF00) | bg_regs.pt_latch_msb;
 
-        if (v.scroll_view.coarse_y & 0x02)
-            bg_regs.at_latch >>= 4;
-        if (v.scroll_view.coarse_x & 0x02)
-            bg_regs.at_latch >>= 2;
-
-        bg_regs.at_latch &= 0b11;
-
+        // deciding which 2 bits i need, depending on which nametable we are currently at
         auto fill_shift_reg = [](uint8_t at_latch, uint16_t at_shift_reg, uint8_t significance) {
             if ((at_latch & significance) == significance)
                 return (at_shift_reg & 0xff00) | 0x00ff;
@@ -195,6 +175,7 @@ namespace roee_nes {
                 return (at_shift_reg & 0xff00);
             };
 
+        // filling the shift regs
         bg_regs.at_shift_lsb = fill_shift_reg(bg_regs.at_latch, bg_regs.at_shift_lsb, 0b01);
         bg_regs.at_shift_msb = fill_shift_reg(bg_regs.at_latch, bg_regs.at_shift_msb, 0b10);
     }
