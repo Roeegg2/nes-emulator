@@ -87,6 +87,61 @@ namespace roee_nes {
             screen->draw_pixel_line(&data_render_line, curr_scanline);
 
         shared_visible_prerender_scanline();
+
+        /** // NOTE::: sprite counter is strucutred by having 6 bits for n, and 2 bits for m (ie each byte (byte0, byte1, byte2, byte3)) 
+         * if ((65 <= curr_cycle) && (curr_cycle <= 256))
+         *   if (cycle is odd)
+         *      read from primary_OAM
+         *   else {// cycle is even
+         *      if (secondary_OAM ISNT full)
+         *          write to secondary_OAM
+         *      else
+         *          read from secondary_OAM
+         *   }
+         * 
+         *   y_byte_0 = bus->read_from_OAM(4* sprite index.n + 0); // get byte 0 (y pos byte) of the sprite
+         *   if (sprite_counter != 8) {
+         *     bus->write(y_byte, sprite index + 0)
+         *     
+         *     if (y coordinate is for this current scanline** (if its in range))
+         *       byte_1 = bus->read_from_OAM(4* sprite index + 1)
+         *       byte_2 = bus->read_from_OAM(4* sprite index + 2)
+         *       byte_3 = bus->read_from_OAM(4* sprite index + 3)
+         * 
+         *       bus->write_to_secondary_OAM(byte_1, 4* sprite index +1**) // not sure about the address to write though!
+         *       bus->write_to_secondary_OAM(byte_2, 4* sprite index +2**) // not sure about the address to write though!
+         *       bus->write_to_secondary_OAM(byte_3, 4* sprite index +3**) // not sure about the address to write though!
+         *   
+         *     sprite_counter++;
+         *   }
+         *   else
+         *     // we do nothing, keep the loop;
+         * 
+         *   sprite_index.n += 1;
+         *   if (n == 0)
+         *      step_4 == true;
+         *      step_4(cycles);
+         * 
+         *   // this is step 3!
+         *   sprite_index.m = 0;
+         *   while (n != 0) {
+         *      foo = bus->read_from_secondary_OAM(sprite_index.n * 4 + sprite_index.m) // get y coordinate
+         *      if (foo is in range (in the current scanline))
+         *          set_sprite overflow flag in PPUMASK ($2002) to 1.
+         *          entry1 = read entry from secondary OAM (n*4 + 1
+         *          entry2 = read entry from secondary OAM (n*4 + 2
+         *          entry3 = read entry from secondary OAM (n*4 + 3
+         *          
+         *          if (sprite_index.m == 3)
+         *              sprite_index.m = 0;
+         *              sprite_index.n += 1;
+         *          else
+         *              sprite_index.m += 1;
+         *      else
+         *          sprite_index.m += 1;
+         *  `       sprite_index.n += 1;
+         *   }
+        */
     }
 
     void PPU::vblank_scanline() {

@@ -141,6 +141,11 @@ namespace roee_nes {
         uint8_t ret = 0;
 
         switch (addr) {
+           /**
+            * case OAMDATA:
+            * if ((1 <= curr_cycle) && (curr_cycle <= 64))
+            *    return 0xff
+            */
             case PPUSTATUS:
                 ppu->w = 0;
                 ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_stupid_buffer & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register

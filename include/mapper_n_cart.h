@@ -37,7 +37,7 @@ namespace roee_nes {
         Cartridge(const std::string* rom_path);
 
     private:
-        Cartridge_Header header;
+        struct Cartridge_Header header;
 
         std::vector<uint8_t> prg_rom;
         std::vector<uint8_t> chr_rom;

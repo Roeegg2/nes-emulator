@@ -4,7 +4,7 @@
 
 namespace roee_nes {
 
-    constexpr _Float16 NTSC_CPU_CLOCKSPEED = 1.789773; // in nano seconds
+    constexpr float NTSC_CPU_CLOCKSPEED = 1.789773; // in nano seconds
 
     int get_sleep_time(uint8_t cycles) { // for now its in cpu cycles, but later it would be in ppu cycles since they are shorter.
         return (int)((cycles / NTSC_CPU_CLOCKSPEED) * 1000);

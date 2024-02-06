@@ -119,7 +119,7 @@ namespace roee_nes {
         std::array<struct Pixel, 256> data_render_line;
 
     public:
-        Bus* bus;
+        class Bus* bus;
         NES_Screen* screen;
 
     private:
