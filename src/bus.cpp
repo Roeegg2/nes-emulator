@@ -101,6 +101,13 @@ namespace roee_nes {
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
         switch (addr % 8) {
+            // case OAMDATA:
+            //  if (ppu->curr_scanline is between 0 and 239)
+            //      return; // TODO there is actually some internal bug here, but its best for emulation purposes to ignore writes here. Might implement that later on
+            //  else {
+            //      bus->primary_OAM[ppu->oamaddr] = data;
+            //      ppu->oamaddr++;
+            //  } 
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;

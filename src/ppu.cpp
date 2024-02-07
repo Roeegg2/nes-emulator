@@ -25,6 +25,8 @@ namespace roee_nes {
     }
 
     void PPU::shared_visible_prerender_scanline() {
+        // if ((257 <= curr_cycle) && (curr_cycle <= 320))
+            // oamaddr = 0;
         if ((curr_cycle - 1) % 8 == 0) // on cycles 9, 17, 25, etc load the data in the latches into shift registers
             load_shift_regs();
 
@@ -88,7 +90,7 @@ namespace roee_nes {
 
         shared_visible_prerender_scanline();
 
-        /** // NOTE::: sprite counter is strucutred by having 6 bits for n, and 2 bits for m (ie each byte (byte0, byte1, byte2, byte3)) 
+        /** // NOTE::: sprite counter is strucutred by having 6 bits for n, and 2 bits for m (ie each byte (byte0, byte1, byte2, byte3))
          * if ((65 <= curr_cycle) && (curr_cycle <= 256))
          *   if (cycle is odd)
          *      read from primary_OAM
@@ -98,30 +100,30 @@ namespace roee_nes {
          *      else
          *          read from secondary_OAM
          *   }
-         * 
+         *
          *   y_byte_0 = bus->read_from_OAM(4* sprite index.n + 0); // get byte 0 (y pos byte) of the sprite
-         *   if (sprite_counter != 8) {
+         *   if (sprite_addr != 8) {
          *     bus->write(y_byte, sprite index + 0)
-         *     
+         *
          *     if (y coordinate is for this current scanline** (if its in range))
          *       byte_1 = bus->read_from_OAM(4* sprite index + 1)
          *       byte_2 = bus->read_from_OAM(4* sprite index + 2)
          *       byte_3 = bus->read_from_OAM(4* sprite index + 3)
-         * 
+         *
          *       bus->write_to_secondary_OAM(byte_1, 4* sprite index +1**) // not sure about the address to write though!
          *       bus->write_to_secondary_OAM(byte_2, 4* sprite index +2**) // not sure about the address to write though!
          *       bus->write_to_secondary_OAM(byte_3, 4* sprite index +3**) // not sure about the address to write though!
-         *   
-         *     sprite_counter++;
+         *
+         *     sprite_addr++;
          *   }
          *   else
          *     // we do nothing, keep the loop;
-         * 
+         *
          *   sprite_index.n += 1;
          *   if (n == 0)
          *      step_4 == true;
          *      step_4(cycles);
-         * 
+         *
          *   // this is step 3!
          *   sprite_index.m = 0;
          *   while (n != 0) {
@@ -131,7 +133,7 @@ namespace roee_nes {
          *          entry1 = read entry from secondary OAM (n*4 + 1
          *          entry2 = read entry from secondary OAM (n*4 + 2
          *          entry3 = read entry from secondary OAM (n*4 + 3
-         *          
+         *
          *          if (sprite_index.m == 3)
          *              sprite_index.m = 0;
          *              sprite_index.n += 1;
@@ -143,6 +145,38 @@ namespace roee_nes {
          *   }
         */
     }
+
+    void PPU::sprites_part_2() {
+        uint8_t byte_0;
+        if ((curr_cycle % 2) == 1)
+            byte_0 = bus->prim_OAM[(4 * sprite_addr.n_sprite) + sprite_addr.m_byte];
+        else {
+            if (sec_oam_index == 32) { // if its full
+                // ppu_read_sec_oam(7); // WARN: not sure about this!
+            } else {
+                bus->sec_OAM[sec_oam_index] = byte_0;
+                sec_oam_index += 1;
+                if (curr_scanline + 1 == byte_0)
+                    for (int i = 0; i < 3; i++)
+                        bus->sec_OAM[sec_oam_index+i] = bus->prim_OAM[(4 * sprite_addr.n_sprite) + sprite_addr.m_byte];
+            }
+
+            sprite_addr.n_sprite += 1;
+            if (sprite_addr.n_sprite == 0) {
+                // do that constant failing write
+            }
+        }
+
+    }
+
+    // void PPU::increment_sprite_counter() {
+    //     if (sprite_addr.m_byte == 3) {
+    //         sprite_addr.m_byte = 0;
+    //         sprite_addr.n_sprite += 1;
+    //     }
+    //     else
+    //         sprite_addr.m_byte += 1;
+    // }
 
     void PPU::vblank_scanline() {
         if ((curr_scanline == VBLANK_START_SCANLINE) && (curr_cycle == 1)) {
@@ -164,12 +198,12 @@ namespace roee_nes {
                 break;
             case FETCH_2: // its fetch at
                 bg_regs.at_latch = bus->ppu_read(0x23C0 | (v.scroll_view.nt << 10) | ((v.scroll_view.coarse_y >> 2) << 3) | (v.scroll_view.coarse_x >> 2));
-                
+
                 if (v.scroll_view.coarse_y & 0x02)
                     bg_regs.at_latch >>= 4;
                 if (v.scroll_view.coarse_x & 0x02)
                     bg_regs.at_latch >>= 2;
-                
+
                 bg_regs.at_latch &= 0b11; // removing the rest of the bits, which are unnessecary to get only bit 0, 1
                 break;
             case FETCH_3: // fetch pt msb
@@ -337,6 +371,6 @@ namespace roee_nes {
         // p_ppuctrl = ext_regs.ppuctrl;
         // p_ppumask = ext_regs.ppumask;
         // p_ppustatus = ext_regs.ppustatus;
-    }
+}
 #endif
 }

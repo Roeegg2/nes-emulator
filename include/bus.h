@@ -36,8 +36,9 @@ namespace roee_nes {
         std::array<uint8_t, 0x800> ram; // 0x0000 - 0x07FF, 3 mirrors + real | 0x2000 size
         std::array<std::array<uint8_t, 0x400>, 2> nt_vram; // ram used for the nametables
         std::array<uint8_t, 32> palette_vram; // ram used for the palettes
-
         std::array<uint8_t, 64 * 3> color_palette;
+        std::array<uint8_t, 256> prim_OAM;
+        std::array<uint8_t, 32> sec_OAM;
 
         Mapper* mapper;
         PPU* ppu;

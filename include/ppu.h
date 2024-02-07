@@ -70,6 +70,11 @@ namespace roee_nes {
         uint16_t raw;
     };
 
+    struct Sprite_Counter {
+        uint8_t n_sprite : 6;
+        uint8_t m_byte : 2;
+    };
+
     class PPU {
     public:
         PPU(Bus* bus, NES_Screen* screen);
@@ -96,6 +101,7 @@ namespace roee_nes {
         void increment_y();
         void increment_coarse_x();
 
+        void sprites_part_2();
 // #ifdef DEBUG
         void log() const;
 // #endif
@@ -106,8 +112,10 @@ namespace roee_nes {
         uint8_t w;
 
         Background_Regs bg_regs;
-
         External_Registers ext_regs;
+        Sprite_Counter sprite_addr;
+
+        uint8_t sec_oam_index;
 
         int32_t curr_scanline; // why does static cause an error here?
         int32_t curr_cycle;
