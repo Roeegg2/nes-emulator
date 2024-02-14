@@ -9,7 +9,6 @@
 #include <cstring>
 
 namespace roee_nes {
-
     constexpr uint16_t KILOBYTE = 1024;
 
     struct Cartridge_Header {

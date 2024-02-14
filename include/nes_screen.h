@@ -8,6 +8,7 @@
 #include <thread>
 #include <array>
 
+#include "controller.h"
 namespace roee_nes {
     constexpr uint8_t SCALE = 3;
     constexpr uint16_t SCREEN_WIDTH = 256;
@@ -21,15 +22,21 @@ namespace roee_nes {
 
     class NES_Screen {
     public:
-        NES_Screen();
+        NES_Screen(struct Controller* controller1, struct Controller* controller2);
         ~NES_Screen();
 
         void draw_pixel_line(std::array<struct Pixel, 256>* data_render_line, int32_t scanline);
         void update_screen() const;
+        void handle_events();
 
     private:
         SDL_Window* window;
         SDL_Renderer* renderer;
+        SDL_Event event;
+    
+    private:
+        struct Controller* controller1;
+        struct Controller* controller2;
     };
 }
 

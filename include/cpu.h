@@ -12,15 +12,12 @@
 #include <thread>
 #include <chrono>
 
-constexpr double CPU_CLOCK_SPEED = 0.5586592178771;
-
-constexpr uint8_t IRQ_CYCLES = 7;
-constexpr uint8_t NMI_CYCLES = 8;
-constexpr uint8_t RST_CYCLES = 7;
-
-constexpr uint16_t STACK_BASE = 256;
-
 namespace roee_nes {
+    constexpr double CPU_CLOCK_SPEED = 0.5586592178771;
+    constexpr uint8_t IRQ_CYCLES = 7;
+    constexpr uint8_t NMI_CYCLES = 8;
+    constexpr uint8_t RST_CYCLES = 7;
+    constexpr uint16_t STACK_BASE = 256;
 
     enum StatusFlag : uint8_t {
         CARRY_BIT = 0b00000001,
@@ -48,7 +45,7 @@ namespace roee_nes {
     };
 
     class CPU {
-    public:
+        public:
         uint8_t S;
         uint8_t P;
         uint16_t PC;
@@ -71,8 +68,8 @@ namespace roee_nes {
         uint8_t log_S;
         uint8_t log_X;
         uint8_t log_Y;
-        
-    public:
+
+        public:
         uint8_t run_cpu();
 
         void fetch_decode_inst();
@@ -84,9 +81,9 @@ namespace roee_nes {
         void irq(); // maskable
         void reset(); // reset
 
-    private:
+        private:
         uint8_t Get_from_op(uint8_t offset) const;
-        
+
         void set_flag(StatusFlag flag, uint8_t res);
         uint8_t get_flag_status(StatusFlag flag) const;
 

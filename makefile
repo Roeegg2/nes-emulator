@@ -12,6 +12,7 @@ EMU_SRCS := cpu.cpp \
 	utils.cpp \
 	mapper_n_cart.cpp \
 	mappers/nrom_0.cpp \
+	# controller.cpp \
 
 EMU_OBJS := $(patsubst %.cpp,bin/%.o,$(EMU_SRCS))
 
@@ -27,7 +28,6 @@ emulator: setup $(EMU_OBJS) bin/debugger_main.o
 
 bin/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
-
 
 # ... debugger building ...
 bin/debugger_main.o: debugger/debugger_main.cpp

@@ -8,10 +8,8 @@
 #include "nes_screen.h"
 
 namespace roee_nes {
-
     constexpr uint8_t PT_MSB = 0b00001000;
     constexpr uint8_t PT_LSB = 0b00000000;
-
     constexpr uint8_t ODD_FRAME = 1;
     constexpr uint8_t EVEN_FRAME = 0;
 

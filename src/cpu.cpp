@@ -98,11 +98,11 @@ namespace roee_nes {
                 PC += 3;
                 break;
             case IND:
-                log_bytes = foo = convert_to_2byte(Get_from_op(1), Get_from_op(2));
-                bytes = 0x00ff & bus->cpu_read(foo);
-                foo = ((foo + 1) & 0x00ff) | (foo & 0xff00);
-                bytes |= ((0x00ff & bus->cpu_read(foo)) << 8);
-                PC += 3;
+                log_bytes = foo = convert_to_2byte(Get_from_op(1), Get_from_op(2)); // get the 2 next operands (JMP $op1op2)
+                bytes = 0x00ff & bus->cpu_read(foo); // get first part
+                foo = ((foo + 1) & 0x00ff) | (foo & 0xff00); // getting the second one (notice the wrap around)
+                bytes |= ((0x00ff & bus->cpu_read(foo)) << 8); // getting the final address
+                PC += 3; // incrementing PC by 3 (1 opcode, 2 operands)
                 break;
             case X_IND:
                 log_bytes = foo = convert_to_2byte(Get_from_op(1), 0);
