@@ -14,6 +14,14 @@ namespace roee_nes {
     constexpr uint8_t SCALE = 3;
     constexpr uint16_t SCREEN_WIDTH = 256;
     constexpr uint8_t SCREEN_HEIGHT = 240;
+    
+    enum class Controller_Mapping : uint8_t {
+
+    };
+
+    enum class Keyboard_Mapping : uint8_t {
+
+    };
 
     struct Pixel {
         uint8_t r;
@@ -38,6 +46,7 @@ namespace roee_nes {
     private:
         Controller* controller1;
         Controller* controller2;
+
     };
 }
 

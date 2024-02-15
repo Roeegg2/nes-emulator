@@ -22,7 +22,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu) {
 }
 
 int main() {
-        const std::string rom_path = "roms/Hudson's Adventure Island (U).nes";
+        const std::string rom_path = "roms/Contra (U).nes";
     const std::string palette_path = "ntscpalette.pal";
 
     // Controller controller1 = {.ret_buffer = 0, .live_status_reg = 0, .shift_reg = 0}; // might move these to heap

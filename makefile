@@ -14,6 +14,7 @@ EMU_SRCS := cpu.cpp \
 	mapper_n_cart.cpp \
 	mappers/nrom_0.cpp \
 	mappers/cnrom_3.cpp \
+	mappers/unrom_2.cpp \
 
 EMU_OBJS := $(patsubst %.cpp,bin/%.o,$(EMU_SRCS))
 

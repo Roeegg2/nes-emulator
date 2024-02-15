@@ -25,9 +25,6 @@ namespace roee_nes {
     }
 
     uint8_t NROM_0::ppu_read(uint16_t addr) {
-        if (0x0000 <= addr && addr <= 0x1fff)
-            return cart->chr_rom[addr]; // pattern table
-
-        return 0;
+        return cart->chr_rom[addr]; // pattern table
     }
 }

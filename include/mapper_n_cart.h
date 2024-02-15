@@ -15,6 +15,7 @@ namespace roee_nes {
         friend class Mapper;
         friend class NROM_0;
         friend class CNROM_3;
+        friend class UNROM_2;
         public:
         Cartridge(const std::string* rom_path);
 
@@ -38,6 +39,7 @@ namespace roee_nes {
         std::vector<uint8_t> prg_rom;
         std::vector<uint8_t> chr_rom;
         std::vector<uint8_t> prg_ram;
+        std::vector<uint8_t> chr_ram;
         // TODO: make all writes/reads to nt go through the cartridge
     };
 
