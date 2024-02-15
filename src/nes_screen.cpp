@@ -70,9 +70,6 @@ namespace roee_nes {
                 controller1->frame_controls |= 0b1000'0000;
         }
         if (event.type == SDL_KEYUP) {
-            controller1->frame_controls = 0;
-            controller1->frame_controls ^= controller1->frame_controls;
-
             if (event.key.keysym.sym == SDLK_e) // a
                 controller1->frame_controls &= ~0b0000'0001;
             if (event.key.keysym.sym == SDLK_q) // b

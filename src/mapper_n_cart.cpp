@@ -1,19 +1,21 @@
 #include "../include/mapper_n_cart.h"
 #include "../include/mappers/nrom_0.h"
+#include "../include/mappers/cnrom_3.h"
 
 namespace roee_nes {
-
     Mapper* Mapper::create_mapper(const std::string* rom_path) {
         Cartridge* cart = new Cartridge(rom_path);
 
-        uint8_t mapper_number = (cart->header.flags_6 & 0xf0) | (cart->header.flags_7 >> 4);
+        uint8_t mapper_number = ((cart->header.flags_7 >> 4) << 4) | (cart->header.flags_6 >> 4);
 
         switch (mapper_number) {
             case 0: // mapper number 0 (NROM)
                 return new NROM_0(cart);
+            case 3: // mapper number 3 (CNROM)
+                return new CNROM_3(cart);
             default:
-                std::cerr << "Mapper not implemented yet!" << "\n";
-                return nullptr;
+                std::cerr << "Mapper not implemented yet! Mapper number " << std::dec << (int)mapper_number << "\n";
+                exit(1);
         }
     }
 
@@ -35,18 +37,18 @@ namespace roee_nes {
             }
         }
 
-        rom_file.read((char*)&header.prg_bank_size, 1);
-        rom_file.read((char*)&header.chr_bank_size, 1);
+        rom_file.read((char*)&header.prg_rom_size, 1);
+        rom_file.read((char*)&header.chr_rom_size, 1);
         rom_file.read((char*)&header.flags_6, 1);
         rom_file.read((char*)&header.flags_7, 1);
         rom_file.read((char*)&header.flags_8, 1);
         rom_file.read((char*)&header.flags_9, 1);
         rom_file.read((char*)&header.flags_10, 1);
 
-        header.total_size = ((header.prg_bank_size * 16) + (header.chr_bank_size * 8)); // the prg and chr banks are in 16kb and 8kb respectively
+        header.total_size = ((header.prg_rom_size * 16) + (header.chr_rom_size * 8)); // the prg and chr banks are in 16kb and 8kb respectively
 
-        prg_rom.resize(header.prg_bank_size * 16 * KILOBYTE);
-        chr_rom.resize(header.chr_bank_size * 8 * KILOBYTE);
+        prg_rom.resize(header.prg_rom_size * 16 * KILOBYTE);
+        chr_rom.resize(header.chr_rom_size * 8 * KILOBYTE);
 
         rom_file.seekg(16);
         rom_file.read((char*)prg_rom.data(), prg_rom.size());
