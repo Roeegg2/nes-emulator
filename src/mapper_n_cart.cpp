@@ -55,7 +55,7 @@ namespace roee_nes {
         rom_file.read((char*)prg_rom.data(), prg_rom.size());
 
         if (header.chr_rom_size == 0) {
-            chr_ram.resize(1 * 8 * KILOBYTE); // NOTE: this is specific for NROM! change that later
+            chr_ram.resize(1 * 8 * KILOBYTE); // NOTE: this is specific for UNROM! change that later
             rom_file.read((char*)chr_ram.data(), chr_ram.size());
         } else {
             chr_rom.resize(header.chr_rom_size * 8 * KILOBYTE);

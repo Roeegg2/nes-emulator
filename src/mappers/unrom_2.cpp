@@ -6,14 +6,14 @@ namespace roee_nes {
         Mapper(cart), prg_bank_select(0) {}
 
     uint8_t UNROM_2::cpu_read(uint16_t addr) {
+        uint32_t addr_32;
+
         if ((0x8000 <= addr) && (addr <= 0xbfff))
-            return cart->prg_rom[(prg_bank_select * 0x4000) + addr];
+            addr_32 = (prg_bank_select * 0x4000) + (addr - 0x8000);
         else if ((0xc000 <= addr) && (addr <= 0xffff))
-            return cart->prg_rom[(0b0000'0111 * 0x4000) + addr];
-        else {
-            std::cerr << "WARNING! cpu reading not in range\n";
-            return 0;
-        }
+            addr_32 = (cart->prg_rom.size() - 0x4000) + (addr % 0xc000);
+
+        return cart->prg_rom[addr_32];
     }
 
     void UNROM_2::cpu_write(uint16_t addr, uint8_t data) {
@@ -28,6 +28,6 @@ namespace roee_nes {
     }
 
     void UNROM_2::ppu_write(uint16_t addr, uint8_t data) {
-        return; // do nothing
+        cart->chr_ram[addr] = data;
     }
 }

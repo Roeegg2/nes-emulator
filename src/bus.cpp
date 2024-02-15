@@ -176,7 +176,7 @@ namespace roee_nes {
 
 #ifdef DEBUG
     void Bus::full_log() const {
-        static std::ofstream roee_file("logs/ROEE_NES_MAIN.log");
+        static std::ofstream roee_file("ROEE_NES_MAIN.log");
 
         roee_file << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(cpu->log_PC) << " "
             << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->IR) << " "
