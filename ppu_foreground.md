@@ -6,6 +6,7 @@ the 4 bytes are used in the following way:
 
 ## OAM
 
+
 ### byte 0
 this contains the y position of the **top** part of the sprite. this value is given by: _scanline - 1_, (where _scanline_ is the scanline to have the top of the sprite be placed), because sprites cant be placed on the first scanline.
 
@@ -21,7 +22,6 @@ _bit 0 of this byte_ is used to select the pattern table, and _the rest of the b
 here is a great diagram taken from the NESdev wiki:
 
 ```
-
 76543210
 ||||||||
 |||||||+- Bank ($0000 or $1000) of tiles

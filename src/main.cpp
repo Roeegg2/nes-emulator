@@ -25,8 +25,6 @@ int main() {
     const std::string rom_path = "roms/DD.nes";
     const std::string palette_path = "ntscpalette.pal";
 
-    // Controller controller1 = {.ret_buffer = 0, .live_status_reg = 0, .shift_reg = 0}; // might move these to heap
-    // Controller controller2 = {.ret_buffer = 0, .live_status_reg = 0, .shift_reg = 0};
     Controller* controller1 = new Controller();
     Controller* controller2 = new Controller();
     NES_Screen* screen = new NES_Screen(controller1, controller2);

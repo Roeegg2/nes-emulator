@@ -42,11 +42,21 @@ namespace roee_nes {
         SDL_Window* window;
         SDL_Renderer* renderer;
         SDL_Event event;
-    
-    private:
+        SDL_Joystick* sdl_controller1;
+        SDL_Joystick* sdl_controller2;
+
         Controller* controller1;
         Controller* controller2;
 
+    private:
+        void process_joypad_pressed_buttons(Controller* controller);
+        void process_joypad_released_buttons(Controller* controller);
+        void process_joypad_dpad_axis_motion(Controller* controller);
+        void process_joypad_dpad_hat_motion(Controller* controller);
+        void process_keyboard_released();
+        void process_keyboard_pressed();
+        void process_joypad_added();
+        void process_joypad_removed();
     };
 }
 
