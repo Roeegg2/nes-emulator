@@ -2,7 +2,7 @@
 
 namespace roee_nes {
 
-    NES_Screen::NES_Screen(struct Controller* controller1, struct Controller* controller2) {
+    NES_Screen::NES_Screen(Controller* controller1, Controller* controller2) {
         this->controller1 = controller1;
         this->controller2 = controller2;
 
@@ -49,38 +49,25 @@ namespace roee_nes {
         if (event.type == SDL_QUIT) {
             exit(0);
         } else if (event.type == SDL_KEYDOWN) {
-            switch (event.key.keysym.sym) {
-                case SDLK_UP:
-                    controller1->live_status_reg.buttons.up = 1;
-                    break;
-                case SDLK_DOWN:
-                    controller1->live_status_reg.buttons.down = 1;
-                    break;
-                case SDLK_LEFT:
-                    controller1->live_status_reg.buttons.left = 1;
-                    break;
-                case SDLK_RIGHT:
-                    controller1->live_status_reg.buttons.right = 1;
-                    break;
-                case SDLK_SPACE:
-                    controller1->live_status_reg.buttons.select = 1;
-                    break;
-                case SDLK_RETURN:
-                    // std::cout << "got here!" << std::endl;
-                    controller1->live_status_reg.buttons.start = 1;
-                    break;
-                case SDLK_q:
-                    controller1->live_status_reg.buttons.b = 1;
-                    break;
-                case SDLK_e:
-                    controller1->live_status_reg.buttons.a = 1;
-                    break;
-                default:
-                    break;
-            }
+            controller1->frame_controls = 0;
+            controller1->frame_controls ^= controller1->frame_controls;
+
+            if (event.key.keysym.sym == SDLK_e) // a
+                controller1->frame_controls |= 0b0000'0001;
+            if (event.key.keysym.sym == SDLK_q) // b
+                controller1->frame_controls |= 0b0000'0010;
+            if (event.key.keysym.sym == SDLK_SPACE) // select
+                controller1->frame_controls |= 0b0000'0100;
+            if (event.key.keysym.sym == SDLK_RETURN) // start
+                controller1->frame_controls |= 0b0000'1000;
+            if (event.key.keysym.sym == SDLK_w) // up
+                controller1->frame_controls |= 0b0001'0000;
+            if (event.key.keysym.sym == SDLK_s) // down
+                controller1->frame_controls |= 0b0010'0000;
+            if (event.key.keysym.sym == SDLK_a) // left
+                controller1->frame_controls |= 0b0100'0000;
+            if (event.key.keysym.sym == SDLK_d) // right
+                controller1->frame_controls |= 0b1000'0000;
         }
-        // else if (event.type == SDL_KEYDOWN) {
-        //     switch(event.button.button)
-        // }
     }
 }

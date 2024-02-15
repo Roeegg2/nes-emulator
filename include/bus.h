@@ -38,17 +38,17 @@ namespace roee_nes {
         std::array<std::array<uint8_t, 0x400>, 2> nt_vram; // ram used for the nametables
         std::array<uint8_t, 32> palette_vram; // ram used for the palettes
         std::array<uint8_t, 64 * 3> color_palette;
+
         Mapper* mapper;
         PPU* ppu;
         CPU* cpu;
-        struct Controller* controller1;
-        struct Controller* controller2;
+        Controller* controller1;
+        Controller* controller2;
+        
         uint8_t ppu_stupid_buffer;
-        uint8_t controller_strobe;
-        uint8_t controller_read_counter;
 
     public:
-        Bus(Mapper* mapper, struct Controller* controller1, struct Controller* controller2, const std::string* palette_path);
+        Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path);
         uint8_t cpu_read(uint16_t addr);
         void cpu_write(uint16_t addr, uint16_t data);
         uint8_t ppu_read(uint16_t addr);
@@ -56,7 +56,7 @@ namespace roee_nes {
         struct Color* ppu_get_color(uint16_t addr);
         uint8_t cpu_read_ppu(uint16_t addr);
         void cpu_write_ppu(uint16_t addr, uint8_t data);
-        uint8_t cpu_read_controller(struct Controller* controller);
+        uint8_t cpu_read_controller(Controller* controller);
         
 #ifdef DEBUG
         void full_log() const;

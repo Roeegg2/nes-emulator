@@ -22,14 +22,15 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu) {
 }
 
 int main() {
-    const std::string rom_path = "roms/Donkey Kong 3 (World).nes";
+        const std::string rom_path = "roms/DD.nes";
     const std::string palette_path = "ntscpalette.pal";
 
-    struct Controller controller1; // might move these to heap
-    struct Controller controller2;
-
-    NES_Screen* screen = new NES_Screen(&controller1, &controller2);
-    Bus* bus = new Bus(Mapper::create_mapper(&rom_path), &controller1, &controller2, &palette_path);
+    // Controller controller1 = {.ret_buffer = 0, .live_status_reg = 0, .shift_reg = 0}; // might move these to heap
+    // Controller controller2 = {.ret_buffer = 0, .live_status_reg = 0, .shift_reg = 0};
+    Controller* controller1 = new Controller();
+    Controller* controller2 = new Controller();
+    NES_Screen* screen = new NES_Screen(controller1, controller2);
+    Bus* bus = new Bus(Mapper::create_mapper(&rom_path), controller1, controller2, &palette_path);
     CPU* cpu = new CPU(bus);
     PPU* ppu = new PPU(bus, screen);
     bus->cpu = cpu;
@@ -40,7 +41,6 @@ int main() {
 
     while (1) {
         emulator_tick(cpu, ppu);
-        screen->handle_events();
     }
 
     // bus->find_difference();

@@ -2,7 +2,7 @@
 #include <bitset>
 
 namespace roee_nes {
-    Bus::Bus(Mapper* mapper, struct Controller* controller1, struct Controller* controller2, const std::string* palette_path) {
+    Bus::Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path) {
         this->mapper = mapper;
         this->controller1 = controller1;
         this->controller2 = controller2;
@@ -144,17 +144,11 @@ namespace roee_nes {
             cpu_write_ppu(addr % 8, data);
         else if (0x4000 <= addr && addr <= 0x4015)
             return; // didnt implement yet
-        else if (addr == 0x4016) {
-            controller_strobe = 0b0000'0001 & data;
-            if (controller_strobe == 1) { // reload shift reg
-                controller1->shift_reg.raw = controller1->live_status_reg.raw;
-                controller2->shift_reg.raw = controller2->live_status_reg.raw;
-            } else // controller_strobe is 0
-                controller_read_counter = 1;
-
-        } else if (addr == 0x4017) {
-            // do nothing!
-        } else if (0x4018 <= addr && addr <= 0x401f)
+        else if (addr == 0x4016)
+            controller1->write(0b0000'0001 & data);
+        else if (addr == 0x4017)
+            controller2->write(0b0000'0001 & data);
+        else if (0x4018 <= addr && addr <= 0x401f)
             return; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
             mapper->cpu_write(addr, data);
@@ -167,38 +161,17 @@ namespace roee_nes {
             return cpu_read_ppu(addr % 8);
         else if (0x4000 <= addr && addr <= 0x4015)
             return 0; // didnt implement yet
-        else if ((addr == 0x4016) || (addr == 0x4017)) {
-            // std::cout << "here!!" << std::endl;
-            if (addr == 0x4016)
-                return cpu_read_controller(controller1);
-            else
-                return cpu_read_controller(controller2);
-            // return addr == 0x4016 ? cpu_read_controller(controller1) : cpu_read_controller(controller2);
-        } else if (0x4018 <= addr && addr <= 0x401f)
+        else if (addr == 0x4016)
+            return controller1->read();
+        else if (addr == 0x4017)
+            return controller2->read();
+        else if (0x4018 <= addr && addr <= 0x401f)
             return 0; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
             return mapper->cpu_read(addr);
 
 
         return 0;
-    }
-
-    uint8_t Bus::cpu_read_controller(struct Controller* controller) {
-        static std::ofstream a("controls_logs.txt");
-        controller->ret_buffer &= 0b1111'1000; // TODO: in reality should controller.ret_buffer & microphone_bit & expansion_controller_bit
-
-        if (controller_strobe == 1)
-            controller->ret_buffer |= controller->live_status_reg.buttons.a;
-        else if (controller_read_counter == 0)
-            controller->ret_buffer |= 0b0000'0001; // after all 8 bits have already been read, the standard NES controllers return 1 
-        else {
-            controller->ret_buffer |= controller->shift_reg.raw & 0b0000'0001;
-            controller->shift_reg.raw >>= 1;
-        }
-
-        std::bitset<8> x(controller->ret_buffer);
-        a << "controller value: " << std::dec << x << "\n";  
-        return controller->ret_buffer;
     }
 
 #ifdef DEBUG

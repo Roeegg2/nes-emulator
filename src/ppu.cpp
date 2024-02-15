@@ -56,7 +56,7 @@ namespace roee_nes {
             screen->update_screen();
             frame_oddness = 1 - frame_oddness;
             frame_counter++;
-
+            screen->handle_events();
             if (Get_rendering_status() && (frame_oddness == EVEN_FRAME)) { // each ODD scanline we skip a frame. I check for EVEN scanline because i switch the scanline value before the 'if'
                 increment_cycle(1);
                 return;
