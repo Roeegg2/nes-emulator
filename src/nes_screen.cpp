@@ -48,7 +48,7 @@ namespace roee_nes {
 
         if (event.type == SDL_QUIT) {
             exit(0);
-        } else if (event.type == SDL_KEYDOWN) {
+        } if (event.type == SDL_KEYDOWN) {
             controller1->frame_controls = 0;
             controller1->frame_controls ^= controller1->frame_controls;
 
@@ -68,6 +68,27 @@ namespace roee_nes {
                 controller1->frame_controls |= 0b0100'0000;
             if (event.key.keysym.sym == SDLK_d) // right
                 controller1->frame_controls |= 0b1000'0000;
+        }
+        if (event.type == SDL_KEYUP) {
+            controller1->frame_controls = 0;
+            controller1->frame_controls ^= controller1->frame_controls;
+
+            if (event.key.keysym.sym == SDLK_e) // a
+                controller1->frame_controls &= ~0b0000'0001;
+            if (event.key.keysym.sym == SDLK_q) // b
+                controller1->frame_controls &= ~0b0000'0010;
+            if (event.key.keysym.sym == SDLK_SPACE) // select
+                controller1->frame_controls &= ~0b0000'0100;
+            if (event.key.keysym.sym == SDLK_RETURN) // start
+                controller1->frame_controls &= ~0b0000'1000;
+            if (event.key.keysym.sym == SDLK_w) // up
+                controller1->frame_controls &= ~0b0001'0000;
+            if (event.key.keysym.sym == SDLK_s) // down
+                controller1->frame_controls &= ~0b0010'0000;
+            if (event.key.keysym.sym == SDLK_a) // left
+                controller1->frame_controls &= ~0b0100'0000;
+            if (event.key.keysym.sym == SDLK_d) // right
+                controller1->frame_controls &= ~0b1000'0000;
         }
     }
 }
