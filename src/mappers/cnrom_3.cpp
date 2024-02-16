@@ -13,7 +13,7 @@ namespace roee_nes {
 
             return cart->prg_rom[addr];
         } else {
-            std::cerr << "WARNING! cpu reading not in range\n";
+            std::cerr << "WARNING: cpu reading not in range\n";
             return 0;
         }
     }
@@ -22,10 +22,11 @@ namespace roee_nes {
         if ((0x8000 <= addr) && (addr <= 0xffff))
             chr_bank_select = 0b0000'0011 & data;
         else
-            std::cerr << "WARNING! cpu writing not in range\n";
+            std::cerr << "WARNING: cpu writing not in range\n";
     }
 
     uint8_t CNROM_3::ppu_read(uint16_t addr) {
+        
         return cart->chr_rom[(chr_bank_select * 0x2000) + addr];
     }
 

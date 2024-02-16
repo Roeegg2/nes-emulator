@@ -13,7 +13,7 @@ namespace roee_nes {
         std::ifstream pal_file(*palette_path, std::ios::binary);
 
         if (!pal_file.is_open())
-            std::cerr << "Failed to open palette file" << "\n";
+            std::cerr << "ERROR: Failed to open palette file" << "\n";
 
         for (int i = 0; i < 64 * 3; i += 3) {
             for (int j = 0; j < 3; j++) {

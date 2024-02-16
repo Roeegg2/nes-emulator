@@ -9,7 +9,7 @@ namespace roee_nes {
         sdl_controller2 = NULL;
 
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK) < 0) {
-            std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << "\n";
+            std::cerr << "ERROR: SDL could not initialize; SDL_Error: " << SDL_GetError() << "\n";
             exit(1);
         }
 

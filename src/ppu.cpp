@@ -179,9 +179,6 @@ namespace roee_nes {
             case FETCH_4: // fetch pt lsb
                 bg_regs.pt_latch_msb = fetch_pt_byte(PT_MSB);
                 break;
-            default:
-                std::cerr << "error!!" << "\n";
-                break; // return error
         }
     }
     // pt: 3 at: 2 palette index: f color: 000000 frame: 34 scanline: 24 cycle: 92

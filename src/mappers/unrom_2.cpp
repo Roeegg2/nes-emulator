@@ -20,10 +20,15 @@ namespace roee_nes {
         if ((0x8000 <= addr) && (addr <= 0xffff))
             prg_bank_select = 0b0000'0111 & data;
         else
-            std::cerr << "WARNING! cpu writing not in range\n";
+            std::cerr << "WARNING: cpu writing not in range\n";
     }
 
     uint8_t UNROM_2::ppu_read(uint16_t addr) {
+        // std::cout << "printing chr_ram:\n";
+        // for (auto it = cart->chr_ram.cbegin(); it != cart->chr_ram.cend(); it++)
+        //     std::cout << (int)*it << ",";
+        // std::cout << "\n";
+        // exit(1);
         return cart->chr_ram[addr]; // pattern table
     }
 

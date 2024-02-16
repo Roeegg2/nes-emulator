@@ -10,4 +10,12 @@ namespace roee_nes {
     uint16_t convert_to_2byte(uint8_t low, uint8_t high) {
         return (high << 8) | low;
     }
+
+    // void err_n_die(int count, ...) {
+    //     va_list args;
+    //     va_start(args, count);
+
+    //     std::cerr << "ERROR:"
+    //     for ()
+    // }
 }

@@ -49,6 +49,10 @@ namespace roee_nes {
         uint8_t pt_latch_msb;
     };
 
+    struct Internal_Regs {
+        uint8_t oamdma;
+    };
+
     struct External_Registers {
         uint8_t ppuctrl;
         uint8_t ppumask;
@@ -104,8 +108,8 @@ namespace roee_nes {
         uint8_t w;
 
         Background_Regs bg_regs;
-
         External_Registers ext_regs;
+        Internal_Regs inter_regs;
 
         int32_t curr_scanline; // why does static cause an error here?
         int32_t curr_cycle;
