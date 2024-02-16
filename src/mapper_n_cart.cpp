@@ -7,8 +7,8 @@ namespace roee_nes {
     Mapper* Mapper::create_mapper(const std::string* rom_path) {
         Cartridge* cart = new Cartridge(rom_path);
 
-        uint8_t mapper_number = ((cart->header.flags_7 >> 4) << 4) | (cart->header.flags_6 >> 4);
-
+        // uint8_t mapper_number = ((cart->header.flags_7 >> 4) << 4) | (cart->header.flags_6 >> 4);
+        uint8_t mapper_number = (((uint8_t)cart->header.flag_7.parsed.mapper_num_high) << 4) | cart->header.flag_6.parsed.mapper_num_low;
         switch (mapper_number) {
             case 0: // mapper number 0 (NROM)
                 return new NROM_0(cart);
@@ -17,7 +17,7 @@ namespace roee_nes {
             case 3: // mapper number 3 (CNROM)
                 return new CNROM_3(cart);
             default:
-                std::cerr << "ERROR: Mapper number " << std::dec << (int)mapper_number << "not implemented yet/does not exist\n";
+                std::cerr << "ERROR: Mapper number " << std::dec << (int)mapper_number << "not implemented yet\n";
                 exit(1);
         }
     }
@@ -42,30 +42,37 @@ namespace roee_nes {
 
         rom_file.read((char*)&header.prg_rom_size, 1);
         rom_file.read((char*)&header.chr_rom_size, 1);
-        rom_file.read((char*)&header.flags_6, 1);
-        rom_file.read((char*)&header.flags_7, 1);
-        rom_file.read((char*)&header.flags_8, 1);
-        rom_file.read((char*)&header.flags_9, 1);
-        rom_file.read((char*)&header.flags_10, 1);
+        rom_file.read((char*)&header.flag_6.raw, 1);
+        rom_file.read((char*)&header.flag_7.raw, 1);
+        rom_file.read((char*)&header.flag_8.prg_ram_size, 1);
+        rom_file.read((char*)&header.flag_9.tv_system, 1);
+        rom_file.read((char*)&header.flag_10.raw, 1);
+
+        if (header.flag_6.parsed.trainer == 1) { // if trainer is present
+            trainer.resize(512);
+            rom_file.read((char*)trainer.data(), trainer.size());
+        }
+
+        if (header.flag_6.parsed.prg_ram == 1) { // if there is prg ram
+            if (header.flag_8.prg_ram_size == 0)
+                prg_ram.resize(1 * 8 * KILOBYTE);
+            else
+                prg_ram.resize(header.flag_8.prg_ram_size * 8 * KILOBYTE);
+        }
+
+        if ((header.flag_9.tv_system == 1) || (header.flag_10.parsed.tv_system == 2)) // game is designed for PAL and not NTSC
+            std::cerr << "WARNING: This game was designed for the PAL console, this emulator is for the NTSC console\n";
+        if (header.flag_7.parsed.uu_vsunisystem == 1)
+            std::cerr << "WARNING: This game is recommended to play with a different palette than the standard one.\n";
+        if (header.flag_7.parsed.uu_playchoice == 1)
+            std::cerr << "WARNING: This game handles color emphasis differently than the standard NES, and this has not been implemented yet\n";
 
         header.total_size = ((header.prg_rom_size * 16) + (header.chr_rom_size * 8)); // the prg and chr banks are in 16kb and 8kb respectively
 
         rom_file.seekg(16);
         prg_rom.resize(header.prg_rom_size * 16 * KILOBYTE);
         rom_file.read((char*)prg_rom.data(), prg_rom.size());
-
-        if (header.chr_rom_size == 0) {
-            chr_ram.resize(1 * 8 * KILOBYTE); // NOTE: this is specific for UNROM! change that later
-            rom_file.read((char*)chr_ram.data(), chr_ram.size());
-        } else {
-            chr_rom.resize(header.chr_rom_size * 8 * KILOBYTE);
-            rom_file.read((char*)chr_rom.data(), chr_rom.size());
-        }
-
-
-        if (header.flags_10 & 0b00000010) // if this bit in flag 10 is set then there is prg ram
-            prg_ram.resize(header.flags_8 * 8 * KILOBYTE); // flag 8 is the size of the prg ram in 8kb units
-        else
-            prg_ram.resize(0);
+        chr_rom.resize(header.chr_rom_size * 8 * KILOBYTE);
+        rom_file.read((char*)chr_rom.data(), chr_rom.size());
     }
 }

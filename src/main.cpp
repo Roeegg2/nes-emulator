@@ -22,7 +22,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu) {
 }
 
 int main() {
-    const std::string rom_path = "roms/CONTRA.nes";
+    const std::string rom_path = "roms/BBT.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller1 = new Controller();
