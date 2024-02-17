@@ -57,16 +57,16 @@ namespace roee_nes {
             frame_oddness = 1 - frame_oddness;
             frame_counter++;
             screen->handle_events();
-            
+
             if (Get_rendering_status() && (frame_oddness == EVEN_FRAME)) { // each ODD scanline we skip a frame. I check for EVEN scanline because i switch the scanline value before the 'if'
                 increment_cycle(1);
                 return;
             }
         }
 
-        if (curr_cycle == 1)
-            ext_regs.ppustatus &= 0b0111'1111; // clearing vblank flag
-
+        if (curr_cycle == 1) {
+            ext_regs.ppustatus &= 0b0001'1111; // clearing sprite overflow, sprite 0 hit, vblank start
+        }
 
         if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
             v.scroll_view.coarse_y = t.scroll_view.coarse_y;
@@ -79,70 +79,122 @@ namespace roee_nes {
 
     void PPU::visible_scanline() {
         if (curr_cycle == 0)
-            return;
+            return; // ppu idles during this cycle
 
-        if ((1 <= curr_cycle) && (curr_cycle <= 256))
+        if ((1 <= curr_cycle) && (curr_cycle <= 256)) {
+            if (65 <= curr_cycle) {
+                if (curr_cycle == 65) {
+                    sprite_count.raw = 0;
+                    ext_regs.ppustatus |= 0b0010'0000; // setting on the sprite evaluation flag
+                }
+                switch (current_eval_part) {
+                    case PART_1_2:
+                        fg_part_1_2();
+                        if (sprite_count.counter.n == 0)
+                            current_eval_part = PART_4;
+                        else if (open_secondary_oam_slot > 8) // if more than 8 sprites have been found
+                            current_eval_part = PART_3;
+                        break;
+                    case PART_3:
+                        fg_part_3();
+                        break;
+                    case PART_4:
+                        fg_part_4();
+                        break;
+                    // default:
+                    //     std::cerr << "UNKNOWN FG 1-256 PART!\n";
+                    //     break;
+                }
+            }
+
             add_render_pixel();
+            if (curr_cycle == 256) {
+                add_sprites_to_render_line(); // FG decide if you should display sprites or background
+                screen->draw_pixel_line(&data_render_line, curr_scanline);
+            }
+        }
 
-        if (curr_cycle == 256)
-            screen->draw_pixel_line(&data_render_line, curr_scanline);
+        else if ((257 <= curr_cycle) && (curr_cycle <= 320)) {
+            static uint8_t y_byte_0, tile_byte_1, at_byte_2, x_byte_3;
+            // set sprite_count to 0
+            if (curr_cycle == 257)
+                sprite_count.raw = 0;
+            switch (curr_cycle % 8) {
+                case 1:
+                    y_byte_0 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
+                    sprite_count.raw += 1;
+                    break;
+                case 2:
+                    tile_byte_1 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
+                    sprite_count.raw += 1;
+                    break;
+                case 3:
+                    at_byte_2 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
+                    sprite_count.raw += 1;
+                    break;
+                case 4:
+                    x_byte_3 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
+                    break;
+                default: // for cases 5,6,7,0
+                    x_byte_3 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
+                    if ((curr_cycle % 8) == 0) {
+                        sprite_count.raw += 1;
+                        // FG add_to_sprite_buffer();
+                    }
+                    // read x coordinate
+                    break;
+            }
+
+            // NOTE have no idea what to do with this value
+        }
+        else if ((321 <= curr_cycle) && (curr_cycle <= 340)) {
+            // read the first byte in secondary oam
+            // FG set the sprite rendering for next line
+        }
 
         shared_visible_prerender_scanline();
+    }
 
-        /** // NOTE::: sprite counter is strucutred by having 6 bits for n, and 2 bits for m (ie each byte (byte0, byte1, byte2, byte3)) 
-         * if ((65 <= curr_cycle) && (curr_cycle <= 256))
-         *   if (cycle is odd)
-         *      read from primary_OAM
-         *   else {// cycle is even
-         *      if (secondary_OAM ISNT full)
-         *          write to secondary_OAM
-         *      else
-         *          read from secondary_OAM
-         *   }
-         * 
-         *   y_byte_0 = bus->read_from_OAM(4* sprite index.n + 0); // get byte 0 (y pos byte) of the sprite
-         *   if (sprite_counter != 8) {
-         *     bus->write(y_byte, sprite index + 0)
-         *     
-         *     if (y coordinate is for this current scanline** (if its in range))
-         *       byte_1 = bus->read_from_OAM(4* sprite index + 1)
-         *       byte_2 = bus->read_from_OAM(4* sprite index + 2)
-         *       byte_3 = bus->read_from_OAM(4* sprite index + 3)
-         * 
-         *       bus->write_to_secondary_OAM(byte_1, 4* sprite index +1**) // not sure about the address to write though!
-         *       bus->write_to_secondary_OAM(byte_2, 4* sprite index +2**) // not sure about the address to write though!
-         *       bus->write_to_secondary_OAM(byte_3, 4* sprite index +3**) // not sure about the address to write though!
-         *   
-         *     sprite_counter++;
-         *   }
-         *   else
-         *     // we do nothing, keep the loop;
-         * 
-         *   sprite_index.n += 1;
-         *   if (n == 0)
-         *      step_4 == true;
-         *      step_4(cycles);
-         * 
-         *   // this is step 3!
-         *   sprite_index.m = 0;
-         *   while (n != 0) {
-         *      foo = bus->read_from_secondary_OAM(sprite_index.n * 4 + sprite_index.m) // get y coordinate
-         *      if (foo is in range (in the current scanline))
-         *          set_sprite overflow flag in PPUMASK ($2002) to 1.
-         *          entry1 = read entry from secondary OAM (n*4 + 1
-         *          entry2 = read entry from secondary OAM (n*4 + 2
-         *          entry3 = read entry from secondary OAM (n*4 + 3
-         *          
-         *          if (sprite_index.m == 3)
-         *              sprite_index.m = 0;
-         *              sprite_index.n += 1;
-         *          else
-         *              sprite_index.m += 1;
-         *      else
-         *          sprite_index.m += 1;
-         *  `       sprite_index.n += 1;
-         *   }
-        */
+    void PPU::fg_part_1_2() {
+        static uint8_t y_byte_0;
+        if ((curr_cycle % 2) == 1) // if cycle is odd
+            y_byte_0 = read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m); // read from primary oam
+        else if (open_secondary_oam_slot < 8) { // if cycle is even and there is still an open slot in secondary oam
+            write_secondary_oam(open_secondary_oam_slot, y_byte_0); // write to secondary oam
+            open_secondary_oam_slot += 1;
+
+            if (y_byte_0 == (curr_scanline + 1)) // if the next scanline is in range
+                for (sprite_count.counter.m = 1; sprite_count.counter.m != 0; open_secondary_oam_slot++, sprite_count.raw++) // go over the rest of the 3 bytes
+                    write_secondary_oam(open_secondary_oam_slot, read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m)); // write all of them to secondary oam
+            // NOTE: m should be 0 and n should be incremented by one by the end of this
+        } else { // if cycle is even but there is no open slot in secondary oam
+            y_byte_0 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m); // i dont know what to do with this read lol
+        }
+    }
+
+    void PPU::fg_part_3() {
+        // NOTE start from m = 0
+        uint8_t dumb_read;
+        uint8_t y_byte_0 = read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
+        if (y_byte_0 == (curr_scanline + 1)) { // if y is in range
+            ext_regs.ppustatus |= 0b0010'0000; // setting sprite overflow flag
+            for (sprite_count.counter.m = 1; sprite_count.counter.m != 0; open_secondary_oam_slot++, sprite_count.raw++) // go over the rest of the 3 bytes
+                dumb_read = read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m); // dummy read them NOTE: not sure about this, maybe this should a read incrementing oamaddr?
+        } else {
+            sprite_counter foo;
+            foo.raw = sprite_count.raw;
+            sprite_count.counter.n += 1;
+            sprite_count.counter.m += 1;
+            if (sprite_count.raw < foo.raw) // that means an overflow occured
+                current_eval_part = PART_4; // NOTE move that to the switch-case statement instead of this function
+        }
+
+    }
+
+    void PPU::fg_part_4() {
+        // Attempt (and fail) to copy OAM[n][0] into the next free slot in secondary OAM
+        sprite_count.counter.n += 1;
+
     }
 
     void PPU::vblank_scanline() {
@@ -165,12 +217,12 @@ namespace roee_nes {
                 break;
             case FETCH_2: // its fetch at
                 bg_regs.at_latch = bus->ppu_read(0x23C0 | (v.scroll_view.nt << 10) | ((v.scroll_view.coarse_y >> 2) << 3) | (v.scroll_view.coarse_x >> 2));
-                
+
                 if (v.scroll_view.coarse_y & 0x02)
                     bg_regs.at_latch >>= 4;
                 if (v.scroll_view.coarse_x & 0x02)
                     bg_regs.at_latch >>= 2;
-                
+
                 bg_regs.at_latch &= 0b11; // removing the rest of the bits, which are unnessecary to get only bit 0, 1
                 break;
             case FETCH_3: // fetch pt msb
@@ -183,7 +235,6 @@ namespace roee_nes {
     }
     // pt: 3 at: 2 palette index: f color: 000000 frame: 34 scanline: 24 cycle: 92
     void PPU::add_render_pixel() {
-        // static std::ofstream log_file("logs/PT_AT_LOG.log");
         uint8_t palette_index = 0;
 
         auto get_color_bit = [](uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x) -> uint8_t {
@@ -279,6 +330,26 @@ namespace roee_nes {
             curr_scanline %= 262; // wrapping around 261 -> 0
         }
     }
+    
+    uint8_t PPU::read_primary_oam(uint8_t entry) {
+        return primary_oam[entry];
+    }
+
+    uint8_t PPU::read_secondary_oam(uint8_t entry) {
+        return secondary_oam[entry];
+    }
+
+    void PPU::write_primary_oam(uint8_t entry, uint8_t data) {
+        primary_oam[entry] = data;
+    }
+
+    void PPU::write_secondary_oam(uint8_t entry, uint8_t data) {
+        secondary_oam[entry] = data;
+    }
+
+    // void PPU::add_sprites_to_render_line() {
+    //     std::array<struct >
+    // }
 
     void PPU::reset() { // change later!
         x = 0;

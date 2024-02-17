@@ -21,7 +21,7 @@ namespace roee_nes {
     class PPU;
     class CPU;
 
-    enum PPU_Regs : uint8_t {
+    enum PPU_Regs : uint16_t {
         PPUCTRL = 0,
         PPUMASK = 1,
         PPUSTATUS = 2,
@@ -29,7 +29,8 @@ namespace roee_nes {
         OAMDATA = 4,
         PPUSCROLL = 5,
         PPUADDR = 6,
-        PPUDATA = 7
+        PPUDATA = 7,
+        OAMDMA = 0x4014,
     };
 
     class Bus {

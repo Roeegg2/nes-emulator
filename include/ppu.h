@@ -29,14 +29,25 @@ namespace roee_nes {
 
     class Bus;
 
-    enum Fetch_Type {
+    enum BG_Fetch_Type : uint8_t {
         FETCH_1 = 1,
         FETCH_2 = 3,
         FETCH_3 = 5,
         FETCH_4 = 7,
     };
 
-    struct Background_Regs {
+    enum FG_Sprite_Eval_Part : uint8_t {
+        PART_1_2 = 0,
+        PART_3 = 1,
+        PART_4 = 2
+    };
+    // enum FG_Fetch_Type : uint8_t {
+    //     FETCH_1 = 1,
+    //     FETCH_2 = 3,
+    //     FETCH_3 = 5,
+    //     FETCH_4 = 7,
+    // };
+    typedef struct {
         uint16_t pt_shift_lsb;
         uint16_t pt_shift_msb;
 
@@ -47,21 +58,18 @@ namespace roee_nes {
         uint8_t at_latch;
         uint8_t pt_latch_lsb;
         uint8_t pt_latch_msb;
-    };
+    } background_regs;
 
-    struct Internal_Regs {
-        uint8_t oamdma;
-    };
-
-    struct External_Registers {
+    typedef struct {
         uint8_t ppuctrl;
         uint8_t ppumask;
         uint8_t ppustatus;
         uint8_t oamaddr;
-    };
+        uint8_t oamdata;
+    } external_registers;
 
-    union Loopy_Reg {
-        struct Scroll_View {
+    typedef union {
+        struct {
             uint16_t coarse_x : 5;
             uint16_t coarse_y : 5;
             uint16_t nt : 2;
@@ -70,7 +78,16 @@ namespace roee_nes {
         } scroll_view;
 
         uint16_t raw;
-    };
+    } loopy_reg;
+
+    typedef union {
+        struct {
+            uint8_t m : 2; // curr byte
+            uint8_t n : 6; // curr sprite
+        } counter;
+
+        uint8_t raw;
+    } sprite_counter;
 
     class PPU {
     public:
@@ -98,20 +115,30 @@ namespace roee_nes {
         void increment_y();
         void increment_coarse_x();
 
+        uint8_t read_primary_oam(uint8_t entry);
+        uint8_t read_secondary_oam(uint8_t entry);
+        void write_primary_oam(uint8_t entry, uint8_t data);
+        void write_secondary_oam(uint8_t entry, uint8_t data);
+
+        void fg_part_1_2();
+        void fg_part_3();
+        void fg_part_4();
+
+        void add_sprites_to_render_line();
 // #ifdef DEBUG
         void log() const;
 // #endif
     public:
-        Loopy_Reg v;
-        Loopy_Reg t;
+        loopy_reg v;
+        loopy_reg t;
         uint8_t x;
         uint8_t w;
 
-        Background_Regs bg_regs;
-        External_Registers ext_regs;
-        Internal_Regs inter_regs;
+        background_regs bg_regs;
+        external_registers ext_regs;
+        uint8_t oamdma;
 
-        int32_t curr_scanline; // why does static cause an error here?
+        int32_t curr_scanline;
         int32_t curr_cycle;
         uint64_t frame_counter;
         
@@ -119,7 +146,14 @@ namespace roee_nes {
         uint8_t frame_oddness;
 
         std::array<struct Pixel, 256> data_render_line;
+        std::array<struct Pixel, 32> fg_data_render_line;
+        std::array<uint8_t, 256> primary_oam;
+        std::array<uint8_t, 32> secondary_oam;
+        // ppu sprites section
+        sprite_counter sprite_count;
+        uint8_t open_secondary_oam_slot;
 
+        FG_Sprite_Eval_Part current_eval_part;
     public:
         class Bus* bus;
         NES_Screen* screen;

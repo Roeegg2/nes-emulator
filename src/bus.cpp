@@ -74,7 +74,15 @@ namespace roee_nes {
     }
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
+        if (addr == OAMDMA)
+            return; // implement
         switch (addr % 8) {
+            case OAMDATA:
+                // we actually write the data only if we are not in visible or prerender scanlines
+                if ((ppu->curr_scanline != PRE_RENDER_SCANLINE) && ((RENDER_START_SCANLINE > ppu->curr_scanline) || (ppu->curr_scanline > RENDER_END_SCANLINE)))
+                    ppu->ext_regs.oamdata = data;
+                ppu->ext_regs.oamaddr += 1;
+                break;
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
@@ -115,11 +123,10 @@ namespace roee_nes {
         uint8_t ret = 0;
 
         switch (addr) {
-            /**
-             * case OAMDATA:
-             * if ((1 <= curr_cycle) && (curr_cycle <= 64))
-             *    return 0xff
-             */
+            case OAMDATA:
+                if ((1 <= ppu->curr_cycle) && (ppu->curr_cycle <= 64))
+                    return 0xff;
+                break;
             case PPUSTATUS:
                 ppu->w = 0;
                 ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_stupid_buffer & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
