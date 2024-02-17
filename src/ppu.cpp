@@ -46,8 +46,8 @@ namespace roee_nes {
             increment_y();
 
         if (Get_rendering_status() && (curr_cycle == 257)) {// copy all horizontal bits from t onto v
-            v.scroll_view.coarse_x = t.scroll_view.coarse_x;
-            v.scroll_view.nt = (v.scroll_view.nt & 0b10) | (t.scroll_view.nt & 0b01);
+            v.scroll.coarse_x = t.scroll.coarse_x;
+            v.scroll.nt = (v.scroll.nt & 0b10) | (t.scroll.nt & 0b01);
         }
     }
 
@@ -69,12 +69,45 @@ namespace roee_nes {
         }
 
         if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
-            v.scroll_view.coarse_y = t.scroll_view.coarse_y;
-            v.scroll_view.nt = (v.scroll_view.nt & 0b01) | (t.scroll_view.nt & 0b10);
-            v.scroll_view.fine_y = t.scroll_view.fine_y;
+            v.scroll.coarse_y = t.scroll.coarse_y;
+            v.scroll.nt = (v.scroll.nt & 0b01) | (t.scroll.nt & 0b10);
+            v.scroll.fine_y = t.scroll.fine_y;
         }
 
         shared_visible_prerender_scanline();
+    }
+
+    void PPU::evaluate_sprite() {
+        uint8_t y_byte = primary_oam[(4 * curr_sprite.counter.n) + 0];
+        if (y_byte == curr_scanline + 1) {
+            for (curr_sprite.counter.m = 1; curr_sprite.counter.m != 0; curr_sprite.raw++)
+                secondary_oam[secondary_oam_counter] = primary_oam[(4 * curr_sprite.counter.n) + curr_sprite.counter.m];
+            secondary_oam_counter += 1;
+        } else
+            curr_sprite.counter.n += 1; // on the other if, n gets incremented in the for loop
+
+        if (curr_sprite.counter.n == 0) // if n overflowed to 0
+            sprite_rendering_stage = STAGE_4;
+        else if (secondary_oam_counter > 8) {
+            sprite_rendering_stage = CHECK_OVERFLOW;
+            curr_sprite.counter.m = 0; // starting from m = 0 for next stage
+        }
+        // else if (secondary_oam_counter == 8)
+        //     disable rendering
+    }
+
+    void PPU::check_for_overflow() {
+        uint8_t y_byte = primary_oam[(4 * curr_sprite.counter.n) + curr_sprite.counter.m];
+        curr_sprite.counter.n += 1;
+        if (y_byte == curr_scanline + 1) // if sprite is not in range
+            ext_regs.ppustatus |= 0b0010'0000;
+        else { // these 2 ifs are similar to check if the sprite counter overflowed
+            if (curr_sprite.raw == 0)
+                sprite_rendering_stage = STAGE_4;
+            curr_sprite.counter.m += 1;
+            if (curr_sprite.raw == 0)
+                sprite_rendering_stage = STAGE_4;
+        }
     }
 
     void PPU::visible_scanline() {
@@ -82,118 +115,49 @@ namespace roee_nes {
             return; // ppu idles during this cycle
 
         if ((1 <= curr_cycle) && (curr_cycle <= 256)) {
-            if (65 <= curr_cycle) {
-                if (curr_cycle == 65) {
-                    sprite_count.raw = 0;
-                    ext_regs.ppustatus |= 0b0010'0000; // setting on the sprite evaluation flag
-                }
-                switch (current_eval_part) {
-                    case PART_1_2:
-                        fg_part_1_2();
-                        if (sprite_count.counter.n == 0)
-                            current_eval_part = PART_4;
-                        else if (open_secondary_oam_slot > 8) // if more than 8 sprites have been found
-                            current_eval_part = PART_3;
-                        break;
-                    case PART_3:
-                        fg_part_3();
-                        break;
-                    case PART_4:
-                        fg_part_4();
-                        break;
-                    // default:
-                    //     std::cerr << "UNKNOWN FG 1-256 PART!\n";
-                    //     break;
-                }
+            switch (sprite_rendering_stage) {
+                case SPRITE_EVAL:
+                    evaluate_sprite();
+                    break;
+                case CHECK_OVERFLOW:
+                    check_for_overflow();
+                    break;
+                case STAGE_4:
+                    break;
             }
 
             add_render_pixel();
             if (curr_cycle == 256) {
-                add_sprites_to_render_line(); // FG decide if you should display sprites or background
                 screen->draw_pixel_line(&data_render_line, curr_scanline);
             }
-        }
-
-        else if ((257 <= curr_cycle) && (curr_cycle <= 320)) {
-            static uint8_t y_byte_0, tile_byte_1, at_byte_2, x_byte_3;
-            // set sprite_count to 0
-            if (curr_cycle == 257)
-                sprite_count.raw = 0;
-            switch (curr_cycle % 8) {
-                case 1:
-                    y_byte_0 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
-                    sprite_count.raw += 1;
-                    break;
-                case 2:
-                    tile_byte_1 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
-                    sprite_count.raw += 1;
-                    break;
-                case 3:
-                    at_byte_2 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
-                    sprite_count.raw += 1;
-                    break;
-                case 4:
-                    x_byte_3 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
-                    break;
-                default: // for cases 5,6,7,0
-                    x_byte_3 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
-                    if ((curr_cycle % 8) == 0) {
-                        sprite_count.raw += 1;
-                        // FG add_to_sprite_buffer();
-                    }
-                    // read x coordinate
-                    break;
-            }
-
-            // NOTE have no idea what to do with this value
-        }
-        else if ((321 <= curr_cycle) && (curr_cycle <= 340)) {
-            // read the first byte in secondary oam
-            // FG set the sprite rendering for next line
+        } else if ((257 <= curr_cycle) && (curr_cycle <= 320)) {
+            fetch_sprite_rendering_data();
         }
 
         shared_visible_prerender_scanline();
     }
 
-    void PPU::fg_part_1_2() {
-        static uint8_t y_byte_0;
-        if ((curr_cycle % 2) == 1) // if cycle is odd
-            y_byte_0 = read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m); // read from primary oam
-        else if (open_secondary_oam_slot < 8) { // if cycle is even and there is still an open slot in secondary oam
-            write_secondary_oam(open_secondary_oam_slot, y_byte_0); // write to secondary oam
-            open_secondary_oam_slot += 1;
-
-            if (y_byte_0 == (curr_scanline + 1)) // if the next scanline is in range
-                for (sprite_count.counter.m = 1; sprite_count.counter.m != 0; open_secondary_oam_slot++, sprite_count.raw++) // go over the rest of the 3 bytes
-                    write_secondary_oam(open_secondary_oam_slot, read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m)); // write all of them to secondary oam
-            // NOTE: m should be 0 and n should be incremented by one by the end of this
-        } else { // if cycle is even but there is no open slot in secondary oam
-            y_byte_0 = read_secondary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m); // i dont know what to do with this read lol
+    void PPU::fetch_sprite_rendering_data() {
+        switch (sprite_rendering_stage) {
+            case BYTE_0_FETCH:
+                scanline_sprites[(4 * curr_sprite.counter.n) + curr_sprite.counter.m].y_byte_0
+                    = secondary_oam[(4 * secondary_oam_counter.counter.n) + secondary_oam_counter.counter.m];
+                break;
+            case BYTE_1_FETCH:
+                scanline_sprites[(4 * curr_sprite.counter.n) + curr_sprite.counter.m].pt_byte_1
+                    = secondary_oam[(4 * secondary_oam_counter.counter.n) + secondary_oam_counter.counter.m];
+                break;
+            case BYTE_2_FETCH:
+                scanline_sprites[(4 * curr_sprite.counter.n) + curr_sprite.counter.m].at_byte_2
+                    = secondary_oam[(4 * secondary_oam_counter.counter.n) + secondary_oam_counter.counter.m];
+                break;
+            case BYTE_3_FETCH:
+                scanline_sprites[(4 * curr_sprite.counter.n) + curr_sprite.counter.m].x_byte_4
+                    = secondary_oam[(4 * secondary_oam_counter.counter.n) + secondary_oam_counter.counter.m];
+                break;
+            default:
+                std::cerr << "NO FETCHING RIGHT!\n";
         }
-    }
-
-    void PPU::fg_part_3() {
-        // NOTE start from m = 0
-        uint8_t dumb_read;
-        uint8_t y_byte_0 = read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m);
-        if (y_byte_0 == (curr_scanline + 1)) { // if y is in range
-            ext_regs.ppustatus |= 0b0010'0000; // setting sprite overflow flag
-            for (sprite_count.counter.m = 1; sprite_count.counter.m != 0; open_secondary_oam_slot++, sprite_count.raw++) // go over the rest of the 3 bytes
-                dumb_read = read_primary_oam((4 * sprite_count.counter.n) + sprite_count.counter.m); // dummy read them NOTE: not sure about this, maybe this should a read incrementing oamaddr?
-        } else {
-            sprite_counter foo;
-            foo.raw = sprite_count.raw;
-            sprite_count.counter.n += 1;
-            sprite_count.counter.m += 1;
-            if (sprite_count.raw < foo.raw) // that means an overflow occured
-                current_eval_part = PART_4; // NOTE move that to the switch-case statement instead of this function
-        }
-
-    }
-
-    void PPU::fg_part_4() {
-        // Attempt (and fail) to copy OAM[n][0] into the next free slot in secondary OAM
-        sprite_count.counter.n += 1;
 
     }
 
@@ -216,11 +180,11 @@ namespace roee_nes {
                 bg_regs.nt_latch = bus->ppu_read(0x2000 | (v.raw & 0x0FFF));
                 break;
             case FETCH_2: // its fetch at
-                bg_regs.at_latch = bus->ppu_read(0x23C0 | (v.scroll_view.nt << 10) | ((v.scroll_view.coarse_y >> 2) << 3) | (v.scroll_view.coarse_x >> 2));
+                bg_regs.at_latch = bus->ppu_read(0x23C0 | (v.scroll.nt << 10) | ((v.scroll.coarse_y >> 2) << 3) | (v.scroll.coarse_x >> 2));
 
-                if (v.scroll_view.coarse_y & 0x02)
+                if (v.scroll.coarse_y & 0x02)
                     bg_regs.at_latch >>= 4;
-                if (v.scroll_view.coarse_x & 0x02)
+                if (v.scroll.coarse_x & 0x02)
                     bg_regs.at_latch >>= 2;
 
                 bg_regs.at_latch &= 0b11; // removing the rest of the bits, which are unnessecary to get only bit 0, 1
@@ -256,14 +220,14 @@ namespace roee_nes {
     }
 
     uint8_t PPU::fetch_pt_byte(uint8_t byte_significance) {
-        uint16_t fetch_addr = v.scroll_view.fine_y; // setting bits 0,1,2
+        uint16_t fetch_addr = v.scroll.fine_y; // setting bits 0,1,2
         fetch_addr |= byte_significance; // setting bit 3
         fetch_addr |= bg_regs.nt_latch << 4; // setting bits 4,5,6,7,8,9,10,11,12
         fetch_addr |= (ext_regs.ppuctrl & 0b0001'0000) << 8; // setting bit 13
         fetch_addr &= 0b0011'1111'1111'1111; // bit 14 should always be set to 0
 
         return bus->ppu_read(fetch_addr);
-        // return bus->ppu_read(((ext_regs.ppuctrl & 0b0001'0000) << 8) + ((uint16_t)bg_regs.nt_latch << 4) + v.scroll_view.fine_y + byte_significance);
+        // return bus->ppu_read(((ext_regs.ppuctrl & 0b0001'0000) << 8) + ((uint16_t)bg_regs.nt_latch << 4) + v.scroll.fine_y + byte_significance);
     }
 
     void PPU::load_shift_regs() {
@@ -295,29 +259,29 @@ namespace roee_nes {
 
     /* function to increment the fine y and coarse y component of v */
     void PPU::increment_y() {
-        if (v.scroll_view.fine_y < 7) // if fine y < 7 (normal incrementing)
-            v.scroll_view.fine_y += 1;
+        if (v.scroll.fine_y < 7) // if fine y < 7 (normal incrementing)
+            v.scroll.fine_y += 1;
         else {
-            v.scroll_view.fine_y = 0;
-            uint8_t coarse_y = v.scroll_view.coarse_y;
+            v.scroll.fine_y = 0;
+            uint8_t coarse_y = v.scroll.coarse_y;
             if (coarse_y == 29) {
                 coarse_y = 0;
-                v.scroll_view.nt ^= 0b10; // switching vertical nametable
+                v.scroll.nt ^= 0b10; // switching vertical nametable
             } else if (coarse_y == 31)
                 coarse_y = 0;
             else
                 coarse_y += 1;
 
-            v.scroll_view.coarse_y = coarse_y; // placing coarse y back onto v
+            v.scroll.coarse_y = coarse_y; // placing coarse y back onto v
         }
     }
 
     void PPU::increment_coarse_x() {
-        if (v.scroll_view.coarse_x == 31) { // if coarse x = 31 (the limit)
-            v.scroll_view.coarse_x = 0; // coarse x = 0
-            v.scroll_view.nt ^= 0b01; // switching horizontal nametable
+        if (v.scroll.coarse_x == 31) { // if coarse x = 31 (the limit)
+            v.scroll.coarse_x = 0; // coarse x = 0
+            v.scroll.nt ^= 0b01; // switching horizontal nametable
         } else
-            v.scroll_view.coarse_x += 1; // otherwise, increment v normally
+            v.scroll.coarse_x += 1; // otherwise, increment v normally
     }
 
     /* function to increment the curr_cycle internal counter (and curr_scanline accordingly) */
@@ -330,26 +294,6 @@ namespace roee_nes {
             curr_scanline %= 262; // wrapping around 261 -> 0
         }
     }
-    
-    uint8_t PPU::read_primary_oam(uint8_t entry) {
-        return primary_oam[entry];
-    }
-
-    uint8_t PPU::read_secondary_oam(uint8_t entry) {
-        return secondary_oam[entry];
-    }
-
-    void PPU::write_primary_oam(uint8_t entry, uint8_t data) {
-        primary_oam[entry] = data;
-    }
-
-    void PPU::write_secondary_oam(uint8_t entry, uint8_t data) {
-        secondary_oam[entry] = data;
-    }
-
-    // void PPU::add_sprites_to_render_line() {
-    //     std::array<struct >
-    // }
 
     void PPU::reset() { // change later!
         x = 0;

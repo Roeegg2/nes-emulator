@@ -86,18 +86,18 @@ namespace roee_nes {
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
-                ppu->t.scroll_view.nt = data & 0b0000'0011;
+                ppu->t.scroll.nt = data & 0b0000'0011;
                 break;
             case PPUMASK:
                 ppu->ext_regs.ppumask = data;
                 break;
             case PPUSCROLL:
                 if (ppu->w == 0) {
-                    ppu->t.scroll_view.coarse_x = data >> 3; // setting coarse x
+                    ppu->t.scroll.coarse_x = data >> 3; // setting coarse x
                     ppu->x = data & 0b0000'0111; // setting fine x
                 } else { //setting coarse y and fine y
-                    ppu->t.scroll_view.fine_y = data & 0b0000'0111;
-                    ppu->t.scroll_view.coarse_y = data >> 3;
+                    ppu->t.scroll.fine_y = data & 0b0000'0111;
+                    ppu->t.scroll.coarse_y = data >> 3;
                 }
 
                 ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa

@@ -1,0 +1,63 @@
+if (cycle is between 65 and 256)
+
+switch(stage)
+case EVAL_SPRITE:
+    for each sprite in primary_oam:
+        read y byte
+        if y byte is in the range:
+            read the rest of the byte (1,2,3)
+            copy then into secondary oam
+    
+    if (n overflowed to 0)
+        set the next part to be STAGE_4;
+    else if (8 sprites or more have been found)
+        set the next part to be CHECK_OVERFLOW;
+        set sprite_counter.m to 0
+        set sprite_counter.n += 1;
+    break;
+case CHECK_OVERFLOW:
+    ! starting evaluation from sprite_counter.m = 0, sprite_counter.n as it is 
+    get the y byte
+    if (y byte is in range)
+        set sprite overflow to true
+        increment n;
+    else
+        increment sprite_counter.n;
+        increment sprite_counter.m;
+        if (sprite_counter overflowed)
+            set the next part to be STAGE_4
+    break;
+case STAGE_4:
+    // break forever 
+    // idk do shit
+
+if (cycle is between 257 and 320)
+    switch (curr_byte) {
+        case FETCH_0:
+            read byte 0 from secondary oam
+            break;
+        case FETCH_1:
+            read byte 1 from secondary oam
+            break;
+        case FETCH_2:
+            read byte 2 from secondary oam
+            break;
+        case FETCH_3:
+            read byte 3 from secondary oam
+            break;
+        case 4: // we finished reading all the bytes
+            pixel = get_the_final_pixel_color()
+            place the bytes in the struct Sprite Pixel buffer
+    }
+
+
+
+get_final_render_buffer:
+
+for each sprite entry in the sprite_render_buffer (start from top):
+    if (the sprite is opaque && back pixel at that position is opaque && sprite 0 is in range)
+        set sprite hit 0 to true in bit 6 of ppustatus
+    
+if (sprite priority is 1 (pixel is over background))
+    change the render_buffer at that position to the sprites color
+

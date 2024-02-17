@@ -28,7 +28,6 @@ namespace roee_nes {
         uint8_t g;
         uint8_t b;
     };
-
     class NES_Screen {
     public:
         NES_Screen(Controller* controller1, Controller* controller2);
