@@ -21,7 +21,7 @@ namespace roee_nes {
         renderer = SDL_CreateRenderer(window, -1, 0);
 
         SDL_RenderSetLogicalSize(renderer, 256, 240);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
     }

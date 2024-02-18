@@ -151,7 +151,8 @@ namespace roee_nes {
     }
 
     void PPU::fill_fg_rendering_buffer() {
-        for (sec_oam_count.counter.n = 0; sec_oam_count.counter.n < 8; sec_oam_count.counter.n++) {
+        int j = 0;
+        for (sec_oam_count.counter.n = 0; j < 8; sec_oam_count.counter.n++, j++) {
             uint8_t byte_0 = secondary_oam[GET_OAM_INDEX_AT(sec_oam_count, 0)];
             if (byte_0 == (curr_scanline + 1)) {
                 uint8_t byte_1 = secondary_oam[GET_OAM_INDEX_AT(sec_oam_count, 1)];
@@ -173,14 +174,14 @@ namespace roee_nes {
                 for (int i = 0; i < 8; i++) {
                     if (fg_data_render_line[byte_3 + i].taken == 0) { // if it haven't been marked as taken already
                         uint8_t pt_data = get_color_bit(pt_lsb, pt_msb, i);
-                        uint8_t palette_index = bus->ppu_read((0x3f10 + (at_data * 4) + pt_data));
-
+                        uint8_t palette_index = bus->ppu_read((0x3f00 + (at_data * 4) + pt_data)); // this is the wrong palette!
+                        // std::cout << "palette index is: " << (int)palette_index << "\n";
                         fg_data_render_line[byte_3 + i].r = bus->color_palette[(palette_index * 3) + 0];
                         fg_data_render_line[byte_3 + i].g = bus->color_palette[(palette_index * 3) + 1];
                         fg_data_render_line[byte_3 + i].b = bus->color_palette[(palette_index * 3) + 2];
                         fg_data_render_line[byte_3 + i].pt_data = pt_data;
                         fg_data_render_line[byte_3 + i].byte_2 = byte_2;
-                        if (sec_oam_count.counter.n = 0)
+                        if (sec_oam_count.counter.n == 0)
                             fg_data_render_line[byte_3 + i].im_sprite_0 = 1;
                         // fg_data_render_line[byte_3 + i].at_byte |= 0b0000'1100; // my own marking - to signal this pixel is already taken
                     }
@@ -338,18 +339,20 @@ namespace roee_nes {
         fetch_addr |= tile_index << 4; // setting bits 4,5,6,7,8,9,10,11,12
         if ((ext_regs.ppuctrl & 0b0010'0000) == 0) { // if this is a 8x8 byte
             if (ext_regs.ppuctrl & 0b0000'1000) // setting bit 12. the pattern table to use (left or right)
-                fetch_addr | 0b0001'0000'0000'0000;
+                fetch_addr |= 0b0001'0000'0000'0000;
             else
-                fetch_addr & ~0b0001'0000'0000'0000;
+                fetch_addr &= ~0b0001'0000'0000'0000;
         } else { // if this is a 8x8 byte
-            if (tile_index & 0b0000'0001)
-                fetch_addr | 0b0001'0000'0000'0000;
+            if (tile_index &= 0b0000'0001)
+                fetch_addr |= 0b0001'0000'0000'0000;
             else
-                fetch_addr & ~0b0001'0000'0000'0000;
+                fetch_addr &= ~0b0001'0000'0000'0000;
 
             fetch_addr >>= 1; // resetting that last bit;
         }
         fetch_addr &= 0b0011'1111'1111'1111; // bit 14 should always be set to 0
+
+        return bus->ppu_read(fetch_addr);
     }
 
     void PPU::load_shift_regs() {

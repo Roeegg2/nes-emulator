@@ -7,10 +7,15 @@ using namespace roee_nes;
 
 // extern "C" void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* nt_vram);
 
-uint16_t emulator_tick(CPU* cpu, PPU* ppu) {
+uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus) {
     uint8_t cycles;
 
-    cycles = cpu->run_cpu();
+    if (bus->cpu_sleep_oamdma == 0)
+        cycles = cpu->run_cpu();
+    else {
+        cycles = 1;
+        bus->cpu_sleep_oamdma--;
+    }
     ppu->run_ppu(cycles * 3);
 
     if (ppu->nmi == 1) {
@@ -22,7 +27,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu) {
 }
 
 int main() {
-    const std::string rom_path = "roms/AI.nes";
+    const std::string rom_path = "roms/SMB1.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller1 = new Controller();
@@ -38,7 +43,7 @@ int main() {
     cpu->reset();
 
     while (1) {
-        emulator_tick(cpu, ppu);
+        emulator_tick(cpu, ppu, bus);
 #ifdef DEBUG
         bus->full_log();
 #endif

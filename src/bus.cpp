@@ -3,6 +3,7 @@
 
 namespace roee_nes {
     Bus::Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path) {
+        cpu_sleep_oamdma = 0;
         this->mapper = mapper;
         this->controller1 = controller1;
         this->controller2 = controller2;
@@ -74,8 +75,12 @@ namespace roee_nes {
     }
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
-        if (addr == OAMDMA)
-            return; // implement
+        if (addr == OAMDMA) {
+            for (int i = 0; i < 256; i++) {
+                ppu->primary_oam[(uint8_t)(ppu->ext_regs.oamaddr + i)] = ram[(addr & 0b1111'0000) | i];
+            }
+            cpu_sleep_oamdma = 513;
+        }
         switch (addr % 8) {
             case OAMDATA:
                 // we actually write the data only if we are not in visible or prerender scanlines

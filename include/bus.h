@@ -47,7 +47,7 @@ namespace roee_nes {
         Controller* controller2;
         
         uint8_t ppu_stupid_buffer;
-
+        uint16_t cpu_sleep_oamdma;
     public:
         Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path);
         uint8_t cpu_read(uint16_t addr);
