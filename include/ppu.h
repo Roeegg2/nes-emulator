@@ -7,6 +7,8 @@
 #include "bus.h"
 #include "nes_screen.h"
 
+#define GET_OAM_INDEX(count) ((4*count.counter.n) + count.counter.m)
+#define GET_OAM_INDEX_AT(count, m) ((4*count.counter.n) + m)
 namespace roee_nes {
     constexpr uint8_t PT_MSB = 0b00001000;
     constexpr uint8_t PT_LSB = 0b00000000;
@@ -37,9 +39,9 @@ namespace roee_nes {
     };
 
     enum FG_Sprite_Eval_Part : uint8_t {
-        PART_1_2 = 0,
-        PART_3 = 1,
-        PART_4 = 2
+        SPRITE_EVAL = 0,
+        SPRITE_OVERFLOW = 1,
+        BROKEN_READ = 2
     };
     // enum FG_Fetch_Type : uint8_t {
     //     FETCH_1 = 1,
@@ -102,32 +104,30 @@ namespace roee_nes {
         void vblank_scanline();
 
         void fetch_rendering_data(Fetch_Modes fetch_mode);
-        uint8_t fetch_pt_byte(uint8_t byte_significance);
+        uint8_t fetch_bg_pt_byte(uint8_t byte_significance);
         
         void shared_visible_prerender_scanline();
         void load_shift_regs();
         void shift_shift_regs();
 
-        void add_render_pixel();
-        void send_pixels_to_render();
+        void add_bg_render_pixel();
+        void fill_fg_rendering_buffer();
+        void combine_bg_fg_pixels();
+        // void send_pixels_to_render();
 
         void increment_cycle(uint8_t cycles);
         void increment_y();
         void increment_coarse_x();
 
-        uint8_t read_primary_oam(uint8_t entry);
-        uint8_t read_secondary_oam(uint8_t entry);
-        void write_primary_oam(uint8_t entry, uint8_t data);
-        void write_secondary_oam(uint8_t entry, uint8_t data);
-
-        void fg_part_1_2();
-        void fg_part_3();
-        void fg_part_4();
+        void sprite_evaluation();
+        void sprite_overflow_check();
+        void sprite_useless_write();
 
         void add_sprites_to_render_line();
 // #ifdef DEBUG
         void log() const;
 // #endif
+        uint8_t fetch_fg_pt_byte(uint8_t byte_significance, uint8_t tile_index);
     public:
         loopy_reg v;
         loopy_reg t;
@@ -146,14 +146,17 @@ namespace roee_nes {
         uint8_t frame_oddness;
 
         std::array<struct Pixel, 256> data_render_line;
-        std::array<struct Pixel, 32> fg_data_render_line;
+        std::array<struct Sprite_Pixel, 256> fg_data_render_line;
         std::array<uint8_t, 256> primary_oam;
         std::array<uint8_t, 32> secondary_oam;
         // ppu sprites section
         sprite_counter sprite_count;
-        uint8_t open_secondary_oam_slot;
+        sprite_counter sec_oam_count;
 
-        FG_Sprite_Eval_Part current_eval_part;
+        uint8_t sprite_rendering_stage;
+        uint8_t oam_write_status;
+        uint8_t sprite_0_hit_next_line;
+        
     public:
         class Bus* bus;
         NES_Screen* screen;

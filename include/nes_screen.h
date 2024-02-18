@@ -14,19 +14,18 @@ namespace roee_nes {
     constexpr uint8_t SCALE = 3;
     constexpr uint16_t SCREEN_WIDTH = 256;
     constexpr uint8_t SCREEN_HEIGHT = 240;
-    
-    enum class Controller_Mapping : uint8_t {
-
-    };
-
-    enum class Keyboard_Mapping : uint8_t {
-
-    };
 
     struct Pixel {
         uint8_t r;
         uint8_t g;
         uint8_t b;
+        uint8_t pt_data;
+    };
+
+    struct Sprite_Pixel : public Pixel {
+        uint8_t taken;
+        uint8_t im_sprite_0;
+        uint8_t byte_2;
     };
 
     class NES_Screen {
