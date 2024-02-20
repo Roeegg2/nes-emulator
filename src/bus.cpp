@@ -77,9 +77,9 @@ namespace roee_nes {
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
         if (addr == OAMDMA) {
             for (int i = 0; i < 256; i++) {
-                ppu->primary_oam[(uint8_t)(ppu->ext_regs.oamaddr + i)] = ram[(addr & 0b1111'0000) | i];
+                ppu->primary_oam[(uint8_t)(ppu->ext_regs.oamaddr + i)] = ram[(addr & 0b1111'0000) | (i & ~0b0001'0000) ];
             }
-            cpu_sleep_oamdma = 513;
+            cpu_sleep_oamdma = 513; // maybe 514 if alignment is required
         }
         switch (addr % 8) {
             case OAMDATA:
@@ -88,6 +88,11 @@ namespace roee_nes {
                     ppu->ext_regs.oamdata = data;
                 ppu->ext_regs.oamaddr += 1;
                 break;
+            case OAMADDR:
+            if ((257 <= ppu->curr_cycle) && (ppu->curr_cycle <= 320))
+                ppu->ext_regs.oamaddr = 0;
+            else
+                ppu->ext_regs.oamaddr = data;
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
@@ -131,6 +136,7 @@ namespace roee_nes {
             case OAMDATA:
                 if ((1 <= ppu->curr_cycle) && (ppu->curr_cycle <= 64))
                     return 0xff;
+                return ppu->primary_oam[ppu->ext_regs.oamaddr];
                 break;
             case PPUSTATUS:
                 ppu->w = 0;

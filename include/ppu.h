@@ -118,16 +118,10 @@ namespace roee_nes {
         void increment_cycle(uint8_t cycles);
         void increment_y();
         void increment_coarse_x();
-
-        void sprite_evaluation();
-        void sprite_overflow_check();
-        void sprite_useless_write();
-
-        void add_sprites_to_render_line();
 // #ifdef DEBUG
         void log() const;
 // #endif
-        uint8_t fetch_fg_pt_byte(uint8_t byte_significance, uint8_t tile_index);
+        uint8_t fetch_fg_pt_byte(uint8_t byte_significance, uint8_t tile_index, uint8_t y_diff);
     public:
         loopy_reg v;
         loopy_reg t;
