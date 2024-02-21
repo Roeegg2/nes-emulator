@@ -51,7 +51,7 @@ namespace roee_nes {
     public:
         Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path);
         uint8_t cpu_read(uint16_t addr);
-        void cpu_write(uint16_t addr, uint16_t data);
+        void cpu_write(uint16_t addr, uint8_t data);
         uint8_t ppu_read(uint16_t addr);
         void ppu_write(uint16_t addr, uint8_t data);
         struct Color* ppu_get_color(uint16_t addr);

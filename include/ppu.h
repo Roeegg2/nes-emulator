@@ -109,7 +109,7 @@ namespace roee_nes {
         uint8_t fetch_fg_pt_byte(uint16_t priority, uint8_t y_diff, uint16_t tile, uint8_t at_byte_2);
         void merge_bg_fg_render_line();
         void fill_fg_render_line();
-
+        void print_oam();
     public:
         loopy_reg v;
         loopy_reg t;
@@ -127,9 +127,7 @@ namespace roee_nes {
         
         uint8_t nmi;
         uint8_t frame_oddness;
-        struct { 
-            uint8_t next : 1; 
-        } sprite_0;
+        uint8_t sprite_0_next;
 
         std::array<struct Pixel, 256> data_render_line;
         std::array<struct Entity_Pixel, 256> fg_data_render_line;

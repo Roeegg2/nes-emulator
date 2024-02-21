@@ -69,7 +69,7 @@ namespace roee_nes {
 
         if (curr_cycle == 1) {
             ext_regs.ppustatus &= 0b0001'1111; // clearing vblank, sprite 0 hit, and sprite overflow flag
-            ext_regs.ppustatus |= sprite_0.next;
+            ext_regs.ppustatus |= sprite_0_next;
         }
 
         if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
@@ -79,6 +79,18 @@ namespace roee_nes {
         }
 
         shared_visible_prerender_scanline();
+    }
+
+    void PPU::print_oam() {
+        static std::ofstream a("logs/POAM.log");
+        a << "printing oam\n";
+        int i = 0;
+        for (auto it = pri_OAM.cbegin(); it != pri_OAM.cend(); it++) {
+            a << std::hex << (int)*it << " ";
+            if ((i % 15) == 0)
+                a << "\n";
+            i++;
+        }
     }
 
     void PPU::visible_scanline() {
@@ -96,6 +108,7 @@ namespace roee_nes {
         }
 
         if (curr_cycle == 256) {
+            print_oam();
             fill_fg_render_line();
             merge_bg_fg_render_line();
             screen->draw_pixel_line(&data_render_line, curr_scanline);
@@ -190,7 +203,7 @@ namespace roee_nes {
                 ((ext_regs.ppumask & 0b0001'1000) == 0b0001'1000) &&
                 (i != 255)) {
                 // check left side clipping as well!!
-                sprite_0.next = 0b0100'0000;
+                sprite_0_next = 0b0100'0000;
             }
             if ((ext_regs.ppumask & 0b0001'0000) && ((fg_data_render_line[i].priority == 0) || (data_render_line[i].pt_data == 0))) {
                 data_render_line[i].r = fg_data_render_line[i].r;

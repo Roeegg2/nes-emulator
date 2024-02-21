@@ -74,23 +74,11 @@ namespace roee_nes {
     }
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
-        if (addr == OAMDMA) {
-            std::cout << "got oamdma write\n";
-            cpu_sleep_dma_counter = 513; // TODO takes more sometimes
-            uint16_t start_addr = ((data << 8) & 0xff00) & ppu->ext_regs.oamaddr;
-            for (int i = 0; i < 256; i++) {
-                ppu->pri_OAM[i] = ppu_read(start_addr);
-                start_addr += 1;
-            }
-            return;
-        }
         switch (addr % 8) {
             case OAMADDR:
-                std::cout << "got oamaddr write\n";
                 ppu->ext_regs.oamaddr = data;
                 break;
             case OAMDATA:
-                std::cout << "got oamdata write\n";
                 if (((RENDER_START_SCANLINE <= ppu->curr_scanline) && (ppu->curr_scanline <= RENDER_END_SCANLINE)) || (ppu->curr_scanline == PRE_RENDER_SCANLINE))
                     return; // if we are not in vblank, we do nothing. TODO implement the weird increment of oamaddr here
                 ppu->pri_OAM[ppu->ext_regs.oamaddr] = data;
@@ -137,7 +125,6 @@ namespace roee_nes {
         switch (addr) {
             case OAMDATA:
                 // TODO take care of reading OAMDATA during rendering
-                std::cout << "got oamdata read\n";
                 ret = ppu->pri_OAM[ppu->ext_regs.oamaddr];
                 break;
             case PPUSTATUS:
@@ -157,13 +144,23 @@ namespace roee_nes {
         return ret;
     }
 
-    void Bus::cpu_write(uint16_t addr, uint16_t data) {
+    void Bus::cpu_write(uint16_t addr, uint8_t data) {
         if (0 <= addr && addr <= 0x1fff)
             ram[addr % 0x800] = data;
         else if (0x2000 <= addr && addr <= 0x3fff)
             cpu_write_ppu(addr % 8, data);
-        else if (0x4000 <= addr && addr <= 0x4015)
-            return; // didnt implement yet
+        else if (0x4000 <= addr && addr <= 0x4015) {
+            if (addr == OAMDMA) {
+                cpu_sleep_dma_counter = 513; // TODO takes more sometimes
+                uint16_t start_addr = data;
+                start_addr <<= 8;
+                // start_addr |= (0x00ff & ppu->ext_regs.oamaddr);
+                std::cout << "start addr is: " << start_addr << "\n";
+                for (int i = 0; i < 256; i++) {
+                    ppu->pri_OAM[i] = ram[start_addr + i];
+                }
+            }
+        }
         else if (addr == 0x4016)
             controller1->write(0b0000'0001 & data);
         else if (addr == 0x4017)
@@ -340,13 +337,13 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "cycle!";
                 error_found = true;
-            }
+    }
 
             if (error_found == true) {
                 std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
                 return;
             }
-        }
+}
 
         std::cout << "all goodie!" << "\n";
     }
