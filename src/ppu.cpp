@@ -49,6 +49,9 @@ namespace roee_nes {
             v.scroll_view.coarse_x = t.scroll_view.coarse_x;
             v.scroll_view.nt = (v.scroll_view.nt & 0b10) | (t.scroll_view.nt & 0b01);
         }
+
+        if ((257 <= curr_cycle) && (curr_cycle <= 320)) // setting oamaddr to 0 during each of these ticks
+            ext_regs.oamaddr = 0;
     }
 
     void PPU::prerender_scanline() {
@@ -57,16 +60,17 @@ namespace roee_nes {
             frame_oddness = 1 - frame_oddness;
             frame_counter++;
             screen->handle_events();
-            
+
             if (Get_rendering_status() && (frame_oddness == EVEN_FRAME)) { // each ODD scanline we skip a frame. I check for EVEN scanline because i switch the scanline value before the 'if'
                 increment_cycle(1);
                 return;
             }
         }
 
-        if (curr_cycle == 1)
-            ext_regs.ppustatus &= 0b0111'1111; // clearing vblank flag
-
+        if (curr_cycle == 1) {
+            ext_regs.ppustatus &= 0b0001'1111; // clearing vblank, sprite 0 hit, and sprite overflow flag
+            ext_regs.ppustatus |= sprite_0.next;
+        }
 
         if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
             v.scroll_view.coarse_y = t.scroll_view.coarse_y;
@@ -81,68 +85,23 @@ namespace roee_nes {
         if (curr_cycle == 0)
             return;
 
-        if ((1 <= curr_cycle) && (curr_cycle <= 256))
+        if ((1 <= curr_cycle) && (curr_cycle <= 256)) {
+            if (65 == curr_cycle) {
+                ext_regs.ppustatus |= 0b0100'0000; 
+                // struct Entity_Pixel a = {0, 0, 0, 0, 0, 0};
+                // std::fill(fg_data_render_line.begin(), fg_data_render_line.end(), a);
+                // sprite evaluation, we do not implement yet
+            }
             add_render_pixel();
+        }
 
-        if (curr_cycle == 256)
+        if (curr_cycle == 256) {
+            fill_fg_render_line();
+            merge_bg_fg_render_line();
             screen->draw_pixel_line(&data_render_line, curr_scanline);
+        }
 
         shared_visible_prerender_scanline();
-
-        /** // NOTE::: sprite counter is strucutred by having 6 bits for n, and 2 bits for m (ie each byte (byte0, byte1, byte2, byte3)) 
-         * if ((65 <= curr_cycle) && (curr_cycle <= 256))
-         *   if (cycle is odd)
-         *      read from primary_OAM
-         *   else {// cycle is even
-         *      if (secondary_OAM ISNT full)
-         *          write to secondary_OAM
-         *      else
-         *          read from secondary_OAM
-         *   }
-         * 
-         *   y_byte_0 = bus->read_from_OAM(4* sprite index.n + 0); // get byte 0 (y pos byte) of the sprite
-         *   if (sprite_counter != 8) {
-         *     bus->write(y_byte, sprite index + 0)
-         *     
-         *     if (y coordinate is for this current scanline** (if its in range))
-         *       byte_1 = bus->read_from_OAM(4* sprite index + 1)
-         *       byte_2 = bus->read_from_OAM(4* sprite index + 2)
-         *       byte_3 = bus->read_from_OAM(4* sprite index + 3)
-         * 
-         *       bus->write_to_secondary_OAM(byte_1, 4* sprite index +1**) // not sure about the address to write though!
-         *       bus->write_to_secondary_OAM(byte_2, 4* sprite index +2**) // not sure about the address to write though!
-         *       bus->write_to_secondary_OAM(byte_3, 4* sprite index +3**) // not sure about the address to write though!
-         *   
-         *     sprite_counter++;
-         *   }
-         *   else
-         *     // we do nothing, keep the loop;
-         * 
-         *   sprite_index.n += 1;
-         *   if (n == 0)
-         *      step_4 == true;
-         *      step_4(cycles);
-         * 
-         *   // this is step 3!
-         *   sprite_index.m = 0;
-         *   while (n != 0) {
-         *      foo = bus->read_from_secondary_OAM(sprite_index.n * 4 + sprite_index.m) // get y coordinate
-         *      if (foo is in range (in the current scanline))
-         *          set_sprite overflow flag in PPUMASK ($2002) to 1.
-         *          entry1 = read entry from secondary OAM (n*4 + 1
-         *          entry2 = read entry from secondary OAM (n*4 + 2
-         *          entry3 = read entry from secondary OAM (n*4 + 3
-         *          
-         *          if (sprite_index.m == 3)
-         *              sprite_index.m = 0;
-         *              sprite_index.n += 1;
-         *          else
-         *              sprite_index.m += 1;
-         *      else
-         *          sprite_index.m += 1;
-         *  `       sprite_index.n += 1;
-         *   }
-        */
     }
 
     void PPU::vblank_scanline() {
@@ -150,6 +109,94 @@ namespace roee_nes {
             ext_regs.ppustatus |= 0b1000'0000; // set vblank flag
             if (ext_regs.ppuctrl & 0b1000'0000)
                 nmi = 1;
+        }
+    }
+
+    uint8_t PPU::fetch_fg_pt_byte(uint16_t priority, uint8_t y_diff, uint16_t tile, uint8_t at_byte_2) {
+        uint16_t addr = y_diff & 0b0000'0000'0000'0111; // masking just in case
+        addr |= priority;  // setting msb/lsb
+
+        // auto get_pt_side = [](uint8_t ppuctrl) -> uint8_t {
+        //     uint16_t ret = 0;
+        //     if (ppuctrl & 0b0010'0000) { // if this is a 8x16 sprite
+        //         ret = tile & 0b0000'0001 ? 0b0001'0000'0000'0000 : 0b0000'0000'0000'0000;
+        //         tile >>= 1; // NOTE not sure about this shift, should i cancel bit 0?
+        //     } else {
+        //         ret = ppuctrl & 0b0000'1000 ? 0b0001'0000'0000'0000 : 0b0000'0000'0000'0000;
+        //     }
+
+        //     return ret;
+        //     };
+
+        if (ext_regs.ppuctrl & 0b0010'0000) { // if this is a 8x16 sprite
+            addr |= tile & 0b0000'0001 ? 0b0001'0000'0000'0000 : 0b0000'0000'0000'0000;
+            tile >>= 1; // NOTE not sure about this shift, should i cancel bit 0?
+        } else {
+            addr |= ext_regs.ppuctrl & 0b0000'1000 ? 0b0001'0000'0000'0000 : 0b0000'0000'0000'0000;
+        }
+
+        // addr |= get_pt_side(ext_regs.ppuctrl); // setting the pattern table side
+        addr |= (tile << 4); // setting the tile to select from
+        addr &= ~0b1100'0000'0000'0000; // setting the rest of the bits to 0
+
+        return bus->ppu_read(addr);
+    }
+
+    void PPU::fill_fg_render_line() {
+        sprite_counter.counter.n = 63;
+        while (sprite_counter.counter.n != 0) { // going over the sprites in reversed order, to have lower indexed sprites override the higher indexed ones
+            uint8_t y_byte_0 = pri_OAM[INDEX_OAM_AT(sprite_counter, 0)];
+            uint8_t y_diff = curr_scanline - y_byte_0 - 1;
+
+            auto get_color_bit = [](uint8_t shift_reg_lsb, uint8_t shift_reg_msb, uint8_t x) -> uint8_t {
+                uint8_t data = 0;
+                data |= (0b0000'0001 & (shift_reg_lsb >> (7 - x)));
+                data |= (0b0000'0010 & (shift_reg_msb >> (6 - x)));
+
+                return data;
+                };
+
+            if ((0 <= y_diff) && (y_diff <= 7)) { // if the sprite is in current scanline range
+                uint8_t tile_byte_1 = pri_OAM[INDEX_OAM_AT(sprite_counter, 1)];
+                uint8_t at_byte_2 = pri_OAM[INDEX_OAM_AT(sprite_counter, 2)];
+                uint8_t x_byte_3 = pri_OAM[INDEX_OAM_AT(sprite_counter, 3)];
+
+                uint8_t pt_low = fetch_fg_pt_byte(PT_LSB, y_diff, tile_byte_1, at_byte_2);
+                uint8_t pt_high = fetch_fg_pt_byte(PT_MSB, y_diff, tile_byte_1, at_byte_2);
+
+                for (int i = 0; i < 8; i++) {
+                    uint8_t pt_data = get_color_bit(pt_low, pt_high, i);
+                    uint8_t palette_index = bus->ppu_read(0x3f00 + (4 * (at_byte_2 & 0b0000'0011)) + pt_data);
+                    fg_data_render_line[x_byte_3 + i].r = bus->color_palette[(palette_index * 3) + 0];
+                    fg_data_render_line[x_byte_3 + i].g = bus->color_palette[(palette_index * 3) + 1];
+                    fg_data_render_line[x_byte_3 + i].b = bus->color_palette[(palette_index * 3) + 2];
+
+                    fg_data_render_line[x_byte_3 + i].pt_data = pt_data;
+                    fg_data_render_line[x_byte_3 + i].priority = ((at_byte_2 & 0b0001'0000) >> 4);
+
+                    if (sprite_counter.counter.n == 0)
+                        fg_data_render_line[x_byte_3 + i].im_sprite_0 = 1;
+                }
+            }
+            sprite_counter.counter.n--;
+        }
+    }
+
+    void PPU::merge_bg_fg_render_line() {
+        for (int i = 0; i < 256; i++) {
+            if ((fg_data_render_line[i].im_sprite_0 == 1) &&
+                (fg_data_render_line[i].pt_data != 0) &&
+                (data_render_line[i].pt_data != 0) &&
+                ((ext_regs.ppumask & 0b0001'1000) == 0b0001'1000) &&
+                (i != 255)) {
+                // check left side clipping as well!!
+                sprite_0.next = 0b0100'0000;
+            }
+            if ((ext_regs.ppumask & 0b0001'0000) && ((fg_data_render_line[i].priority == 0) || (data_render_line[i].pt_data == 0))) {
+                data_render_line[i].r = fg_data_render_line[i].r;
+                data_render_line[i].g = fg_data_render_line[i].g;
+                data_render_line[i].b = fg_data_render_line[i].b;
+            }
         }
     }
 
@@ -165,12 +212,12 @@ namespace roee_nes {
                 break;
             case FETCH_2: // its fetch at
                 bg_regs.at_latch = bus->ppu_read(0x23C0 | (v.scroll_view.nt << 10) | ((v.scroll_view.coarse_y >> 2) << 3) | (v.scroll_view.coarse_x >> 2));
-                
+
                 if (v.scroll_view.coarse_y & 0x02)
                     bg_regs.at_latch >>= 4;
                 if (v.scroll_view.coarse_x & 0x02)
                     bg_regs.at_latch >>= 2;
-                
+
                 bg_regs.at_latch &= 0b11; // removing the rest of the bits, which are unnessecary to get only bit 0, 1
                 break;
             case FETCH_3: // fetch pt msb

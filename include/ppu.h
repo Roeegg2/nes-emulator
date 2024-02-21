@@ -7,6 +7,8 @@
 #include "bus.h"
 #include "nes_screen.h"
 
+#define INDEX_OAM(index) ((4*index.counter.n) + index.counter.m)
+#define INDEX_OAM_AT(index, m) ((4*index.counter.n) + m)
 namespace roee_nes {
     constexpr uint8_t PT_MSB = 0b00001000;
     constexpr uint8_t PT_LSB = 0b00000000;
@@ -49,10 +51,6 @@ namespace roee_nes {
         uint8_t pt_latch_msb;
     };
 
-    struct Internal_Regs {
-        uint8_t oamdma;
-    };
-
     struct External_Registers {
         uint8_t ppuctrl;
         uint8_t ppumask;
@@ -60,7 +58,7 @@ namespace roee_nes {
         uint8_t oamaddr;
     };
 
-    union Loopy_Reg {
+    typedef union {
         struct Scroll_View {
             uint16_t coarse_x : 5;
             uint16_t coarse_y : 5;
@@ -70,8 +68,15 @@ namespace roee_nes {
         } scroll_view;
 
         uint16_t raw;
-    };
+    } loopy_reg;
 
+    typedef union {
+        struct {
+            uint8_t m : 2;
+            uint8_t n : 6;
+        } counter;
+        uint8_t raw;
+    } oam_counter;
     class PPU {
     public:
         PPU(Bus* bus, NES_Screen* screen);
@@ -97,19 +102,24 @@ namespace roee_nes {
         void increment_cycle(uint8_t cycles);
         void increment_y();
         void increment_coarse_x();
-
 // #ifdef DEBUG
         void log() const;
 // #endif
+
+        uint8_t fetch_fg_pt_byte(uint16_t priority, uint8_t y_diff, uint16_t tile, uint8_t at_byte_2);
+        void merge_bg_fg_render_line();
+        void fill_fg_render_line();
+
     public:
-        Loopy_Reg v;
-        Loopy_Reg t;
+        loopy_reg v;
+        loopy_reg t;
         uint8_t x;
         uint8_t w;
 
-        Background_Regs bg_regs;
-        External_Registers ext_regs;
-        Internal_Regs inter_regs;
+        struct Background_Regs bg_regs;
+        struct External_Registers ext_regs;
+        oam_counter sprite_counter;
+        uint8_t oamdma;
 
         int32_t curr_scanline; // why does static cause an error here?
         int32_t curr_cycle;
@@ -117,8 +127,14 @@ namespace roee_nes {
         
         uint8_t nmi;
         uint8_t frame_oddness;
+        struct { 
+            uint8_t next : 1; 
+        } sprite_0;
 
         std::array<struct Pixel, 256> data_render_line;
+        std::array<struct Entity_Pixel, 256> fg_data_render_line;
+        std::array<uint8_t, 256> pri_OAM;
+        std::array<uint8_t, 32> sec_OAM;
 
     public:
         class Bus* bus;

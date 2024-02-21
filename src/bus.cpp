@@ -74,7 +74,28 @@ namespace roee_nes {
     }
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
+        if (addr == OAMDMA) {
+            std::cout << "got oamdma write\n";
+            cpu_sleep_dma_counter = 513; // TODO takes more sometimes
+            uint16_t start_addr = ((data << 8) & 0xff00) & ppu->ext_regs.oamaddr;
+            for (int i = 0; i < 256; i++) {
+                ppu->pri_OAM[i] = ppu_read(start_addr);
+                start_addr += 1;
+            }
+            return;
+        }
         switch (addr % 8) {
+            case OAMADDR:
+                std::cout << "got oamaddr write\n";
+                ppu->ext_regs.oamaddr = data;
+                break;
+            case OAMDATA:
+                std::cout << "got oamdata write\n";
+                if (((RENDER_START_SCANLINE <= ppu->curr_scanline) && (ppu->curr_scanline <= RENDER_END_SCANLINE)) || (ppu->curr_scanline == PRE_RENDER_SCANLINE))
+                    return; // if we are not in vblank, we do nothing. TODO implement the weird increment of oamaddr here
+                ppu->pri_OAM[ppu->ext_regs.oamaddr] = data;
+                ppu->ext_regs.oamaddr += 1;
+                break;
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
@@ -113,13 +134,12 @@ namespace roee_nes {
 
     uint8_t Bus::cpu_read_ppu(uint16_t addr) {
         uint8_t ret = 0;
-
         switch (addr) {
-            /**
-             * case OAMDATA:
-             * if ((1 <= curr_cycle) && (curr_cycle <= 64))
-             *    return 0xff
-             */
+            case OAMDATA:
+                // TODO take care of reading OAMDATA during rendering
+                std::cout << "got oamdata read\n";
+                ret = ppu->pri_OAM[ppu->ext_regs.oamaddr];
+                break;
             case PPUSTATUS:
                 ppu->w = 0;
                 ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_stupid_buffer & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
