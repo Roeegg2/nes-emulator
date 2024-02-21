@@ -14,7 +14,6 @@ namespace roee_nes {
     constexpr uint8_t SCALE = 3;
     constexpr uint16_t SCREEN_WIDTH = 256;
     constexpr uint8_t SCREEN_HEIGHT = 240;
-    
 
     struct Pixel {
         uint8_t r;
@@ -28,10 +27,19 @@ namespace roee_nes {
         uint8_t im_sprite_0 : 1;
         uint8_t priority : 1;
         uint8_t : 6;
+
+        struct Entity_Pixel operator=(const int val) {
+            struct Entity_Pixel ret;
+            ret.r = val;
+            ret.g = val;
+            ret.b = val;
+            ret.pt_data = val;
+            return ret;
+        }
     };
 
     class NES_Screen {
-    public:
+        public:
         NES_Screen(Controller* controller1, Controller* controller2);
         ~NES_Screen();
 
@@ -39,7 +47,7 @@ namespace roee_nes {
         void update_screen() const;
         void handle_events();
 
-    private:
+        private:
         SDL_Window* window;
         SDL_Renderer* renderer;
         SDL_Event event;
@@ -49,7 +57,7 @@ namespace roee_nes {
         Controller* controller1;
         Controller* controller2;
 
-    private:
+        private:
         void process_joypad_pressed_buttons(Controller* controller);
         void process_joypad_released_buttons(Controller* controller);
         void process_joypad_dpad_axis_motion(Controller* controller);

@@ -29,6 +29,12 @@ namespace roee_nes {
         ONLY_NT_FETCH
     };
 
+    enum Sprite_Rendering_Modes {
+        SPRITE_EVAL,
+        SPRITE_OVERFLOW,
+        BROKEN_READ
+    };
+
     class Bus;
 
     enum Fetch_Type {
@@ -102,14 +108,16 @@ namespace roee_nes {
         void increment_cycle(uint8_t cycles);
         void increment_y();
         void increment_coarse_x();
-// #ifdef DEBUG
+#ifdef DEBUG
         void log() const;
-// #endif
+        void print_oam();
+#endif
 
         uint8_t fetch_fg_pt_byte(uint16_t priority, uint8_t y_diff, uint16_t tile, uint8_t at_byte_2);
         void merge_bg_fg_render_line();
         void fill_fg_render_line();
-        void print_oam();
+        void sprite_evaluation();
+        void sprite_overflow_check();
     public:
         loopy_reg v;
         loopy_reg t;
@@ -118,12 +126,15 @@ namespace roee_nes {
 
         struct Background_Regs bg_regs;
         struct External_Registers ext_regs;
-        oam_counter sprite_counter;
         uint8_t oamdma;
+
+        oam_counter poam_count;
+        oam_counter soam_count;
 
         int32_t curr_scanline; // why does static cause an error here?
         int32_t curr_cycle;
         uint64_t frame_counter;
+        uint8_t sprite_rendering_stage;
         
         uint8_t nmi;
         uint8_t frame_oddness;
@@ -131,8 +142,8 @@ namespace roee_nes {
 
         std::array<struct Pixel, 256> data_render_line;
         std::array<struct Entity_Pixel, 256> fg_data_render_line;
-        std::array<uint8_t, 256> pri_OAM;
-        std::array<uint8_t, 32> sec_OAM;
+        std::array<uint8_t, 256> primary_oam;
+        std::array<uint8_t, 32> secondary_oam;
 
     public:
         class Bus* bus;

@@ -45,9 +45,9 @@ int main() {
 
     while (1) {
         emulator_tick(cpu, ppu, bus);
-#ifdef DEBUG
-        bus->full_log();
-#endif
+// #ifdef DEBUG
+//         bus->full_log();
+// #endif
     }
 
     return 0;

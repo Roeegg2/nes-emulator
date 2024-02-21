@@ -81,7 +81,7 @@ namespace roee_nes {
             case OAMDATA:
                 if (((RENDER_START_SCANLINE <= ppu->curr_scanline) && (ppu->curr_scanline <= RENDER_END_SCANLINE)) || (ppu->curr_scanline == PRE_RENDER_SCANLINE))
                     return; // if we are not in vblank, we do nothing. TODO implement the weird increment of oamaddr here
-                ppu->pri_OAM[ppu->ext_regs.oamaddr] = data;
+                ppu->primary_oam[ppu->ext_regs.oamaddr] = data;
                 ppu->ext_regs.oamaddr += 1;
                 break;
             case PPUCTRL:
@@ -125,7 +125,7 @@ namespace roee_nes {
         switch (addr) {
             case OAMDATA:
                 // TODO take care of reading OAMDATA during rendering
-                ret = ppu->pri_OAM[ppu->ext_regs.oamaddr];
+                ret = ppu->primary_oam[ppu->ext_regs.oamaddr];
                 break;
             case PPUSTATUS:
                 ppu->w = 0;
@@ -155,9 +155,8 @@ namespace roee_nes {
                 uint16_t start_addr = data;
                 start_addr <<= 8;
                 // start_addr |= (0x00ff & ppu->ext_regs.oamaddr);
-                std::cout << "start addr is: " << start_addr << "\n";
                 for (int i = 0; i < 256; i++) {
-                    ppu->pri_OAM[i] = ram[start_addr + i];
+                    ppu->primary_oam[i] = ram[start_addr + i];
                 }
             }
         }
