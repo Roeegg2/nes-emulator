@@ -10,12 +10,14 @@ using namespace roee_nes;
 uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus) {
     uint8_t cycles;
 
-    if (bus->cpu_sleep_oamdma == 0)
+    if (bus->cpu_sleep_dma_counter == 0)
         cycles = cpu->run_cpu();
     else {
-        cycles = 1;
-        bus->cpu_sleep_oamdma--;
+        bus->cpu_sleep_dma_counter--;
+        cycles = 2; // takes 2 cycles to transfer one byte
     }
+
+    // if ((ppu->ext_regs.ppumask & 0b0001'1000))
     ppu->run_ppu(cycles * 3);
 
     if (ppu->nmi == 1) {
@@ -44,9 +46,9 @@ int main() {
 
     while (1) {
         emulator_tick(cpu, ppu, bus);
-#ifdef DEBUG
-        bus->full_log();
-#endif
+// #ifdef DEBUG
+//         bus->full_log();
+// #endif
     }
 
     return 0;

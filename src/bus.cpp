@@ -3,7 +3,6 @@
 
 namespace roee_nes {
     Bus::Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path) {
-        cpu_sleep_oamdma = 0;
         this->mapper = mapper;
         this->controller1 = controller1;
         this->controller2 = controller2;
@@ -75,24 +74,16 @@ namespace roee_nes {
     }
 
     void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
-        if (addr == OAMDMA) {
-            for (int i = 0; i < 256; i++) {
-                ppu->primary_oam[(uint8_t)(ppu->ext_regs.oamaddr + i)] = ram[(addr & 0b1111'0000) | (i & ~0b0001'0000) ];
-            }
-            cpu_sleep_oamdma = 513; // maybe 514 if alignment is required
-        }
         switch (addr % 8) {
+            case OAMADDR:
+                ppu->ext_regs.oamaddr = data;
+                break;
             case OAMDATA:
-                // we actually write the data only if we are not in visible or prerender scanlines
-                if ((ppu->curr_scanline != PRE_RENDER_SCANLINE) && ((RENDER_START_SCANLINE > ppu->curr_scanline) || (ppu->curr_scanline > RENDER_END_SCANLINE)))
-                    ppu->ext_regs.oamdata = data;
+                if (((RENDER_START_SCANLINE <= ppu->curr_scanline) && (ppu->curr_scanline <= RENDER_END_SCANLINE)) || (ppu->curr_scanline == PRE_RENDER_SCANLINE))
+                    return; // if we are not in vblank, we do nothing. TODO implement the weird increment of oamaddr here
+                ppu->primary_oam[ppu->ext_regs.oamaddr] = data;
                 ppu->ext_regs.oamaddr += 1;
                 break;
-            case OAMADDR:
-            if ((257 <= ppu->curr_cycle) && (ppu->curr_cycle <= 320))
-                ppu->ext_regs.oamaddr = 0;
-            else
-                ppu->ext_regs.oamaddr = data;
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
                 ppu->ext_regs.ppuctrl = data;
@@ -131,12 +122,10 @@ namespace roee_nes {
 
     uint8_t Bus::cpu_read_ppu(uint16_t addr) {
         uint8_t ret = 0;
-
         switch (addr) {
             case OAMDATA:
-                if ((1 <= ppu->curr_cycle) && (ppu->curr_cycle <= 64))
-                    return 0xff;
-                return ppu->primary_oam[ppu->ext_regs.oamaddr];
+                // TODO take care of reading OAMDATA during rendering
+                ret = ppu->primary_oam[ppu->ext_regs.oamaddr];
                 break;
             case PPUSTATUS:
                 ppu->w = 0;
@@ -155,13 +144,22 @@ namespace roee_nes {
         return ret;
     }
 
-    void Bus::cpu_write(uint16_t addr, uint16_t data) {
+    void Bus::cpu_write(uint16_t addr, uint8_t data) {
         if (0 <= addr && addr <= 0x1fff)
             ram[addr % 0x800] = data;
         else if (0x2000 <= addr && addr <= 0x3fff)
             cpu_write_ppu(addr % 8, data);
-        else if (0x4000 <= addr && addr <= 0x4015)
-            return; // didnt implement yet
+        else if (0x4000 <= addr && addr <= 0x4015) {
+            if (addr == OAMDMA) {
+                cpu_sleep_dma_counter = 513; // TODO takes more sometimes
+                uint16_t start_addr = data;
+                start_addr <<= 8;
+                // start_addr |= (0x00ff & ppu->ext_regs.oamaddr);
+                for (int i = 0; i < 256; i++) {
+                    ppu->primary_oam[i] = ram[start_addr + i];
+                }
+            }
+        }
         else if (addr == 0x4016)
             controller1->write(0b0000'0001 & data);
         else if (addr == 0x4017)
@@ -338,13 +336,13 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "cycle!";
                 error_found = true;
-            }
+    }
 
             if (error_found == true) {
                 std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
                 return;
             }
-        }
+}
 
         std::cout << "all goodie!" << "\n";
     }
