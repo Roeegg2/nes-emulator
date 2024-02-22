@@ -99,7 +99,7 @@ namespace roee_nes {
         uint8_t x;
         uint8_t palette_indices[8];
         
-        uint8_t pt_data;
+        uint16_t pt_data;
     };
 
     class PPU {
