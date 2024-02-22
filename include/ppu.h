@@ -10,8 +10,8 @@
 #define INDEX_OAM(index) ((4*index.counter.n) + index.counter.m)
 #define INDEX_OAM_AT(index, m) ((4*index.counter.n) + m)
 namespace roee_nes {
-    constexpr uint8_t PT_MSB = 0b00001000;
-    constexpr uint8_t PT_LSB = 0b00000000;
+    constexpr uint8_t PT_MSB = 0b0000'1000;
+    constexpr uint8_t PT_LSB = 0b0000'0000;
     constexpr uint8_t ODD_FRAME = 1;
     constexpr uint8_t EVEN_FRAME = 0;
 
@@ -37,11 +37,19 @@ namespace roee_nes {
 
     class Bus;
 
-    enum Fetch_Type {
+    enum BG_Fetch_Type {
         FETCH_1 = 1,
         FETCH_2 = 3,
         FETCH_3 = 5,
         FETCH_4 = 7,
+    };
+
+    enum FG_Fetch_Type {
+        Y_BYTE_0 = 0,
+        TILE_BYTE_1 = 1,
+        AT_BYTE_2 = 2,
+        X_BYTE_3 = 3,
+        FILL_BUFFER = 4,
     };
 
     struct Background_Regs {
@@ -83,6 +91,17 @@ namespace roee_nes {
         } counter;
         uint8_t raw;
     } oam_counter;
+
+    struct Sprite {
+        uint8_t y;
+        uint8_t tile;
+        uint8_t at;
+        uint8_t x;
+        uint8_t palette_indices[8];
+        
+        uint8_t pt_data;
+    };
+
     class PPU {
     public:
         PPU(Bus* bus, NES_Screen* screen);
@@ -96,14 +115,14 @@ namespace roee_nes {
         void vblank_scanline();
 
         void fetch_rendering_data(Fetch_Modes fetch_mode);
-        uint8_t fetch_pt_byte(uint8_t byte_significance);
+        uint8_t fetch_bg_pt_byte(uint8_t byte_significance);
         
         void shared_visible_prerender_scanline();
         void load_shift_regs();
-        void shift_shift_regs();
+        void shift_regs();
 
         void add_render_pixel();
-        void send_pixels_to_render();
+        uint8_t get_bg_palette_index();
 
         void increment_cycle(uint8_t cycles);
         void increment_y();
@@ -113,11 +132,13 @@ namespace roee_nes {
         void print_oam();
 #endif
 
-        uint8_t fetch_fg_pt_byte(uint16_t priority, uint8_t y_diff, uint16_t tile, uint8_t at_byte_2);
-        void merge_bg_fg_render_line();
-        void fill_fg_render_line();
-        void sprite_evaluation();
-        void sprite_overflow_check();
+        uint8_t fetch_fg_pt_byte(uint16_t priority, uint8_t y_diff, uint16_t tile);
+        void get_fg_pixel();
+        // void sprite_evaluation();
+        // void sprite_overflow_check();
+        void fill_sprites_render_data();
+        void fill_sprite_pixels(uint8_t n, uint8_t y_diff);
+
     public:
         loopy_reg v;
         loopy_reg t;
@@ -128,23 +149,21 @@ namespace roee_nes {
         struct External_Registers ext_regs;
         uint8_t oamdma;
 
-        oam_counter poam_count;
-        oam_counter soam_count;
-
-        int32_t curr_scanline; // why does static cause an error here?
+        int32_t curr_scanline;
         int32_t curr_cycle;
-        uint64_t frame_counter;
-        uint8_t sprite_rendering_stage;
-        
         uint8_t nmi;
         uint8_t frame_oddness;
-        uint8_t sprite_0_next;
+        uint64_t frame_counter;
 
-        std::array<struct Pixel, 256> data_render_line;
-        std::array<struct Entity_Pixel, 256> fg_data_render_line;
+        uint8_t sprite_fetch_type;
+        uint8_t sprite_rendering_stage;
+
+        std::array<struct Pixel, 256> data_render_buffer;
+        std::array<struct Sprite, 8> sprites;
         std::array<uint8_t, 256> primary_oam;
         std::array<uint8_t, 32> secondary_oam;
 
+        struct Sprite* sprite_0;
     public:
         class Bus* bus;
         NES_Screen* screen;
@@ -152,5 +171,8 @@ namespace roee_nes {
     private:
         inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
     };
+
+    uint8_t get_color_bit(uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x, uint8_t size_of_shift_reg);
 }
+
 #endif

@@ -1,0 +1,15 @@
+sprite/background rendering enableded/disabeled
+sprite overflow detection
+sprite 0 hit detection
+sprite flipping
+fix bugs
+
+
+plan:
+
+sprite eval:
+
+
+during cycles 257-320 fill sprite objects array from secondary oam
+321 compare and draw the sprites accordingly
+send the line to drawing

@@ -19,23 +19,6 @@ namespace roee_nes {
         uint8_t r;
         uint8_t g;
         uint8_t b;
-        uint8_t pt_data : 2;
-        uint8_t : 6;
-    };
-
-    struct Entity_Pixel : public Pixel {
-        uint8_t im_sprite_0 : 1;
-        uint8_t priority : 1;
-        uint8_t : 6;
-
-        struct Entity_Pixel operator=(const int val) {
-            struct Entity_Pixel ret;
-            ret.r = val;
-            ret.g = val;
-            ret.b = val;
-            ret.pt_data = val;
-            return ret;
-        }
     };
 
     class NES_Screen {
@@ -43,7 +26,7 @@ namespace roee_nes {
         NES_Screen(Controller* controller1, Controller* controller2);
         ~NES_Screen();
 
-        void draw_pixel_line(std::array<struct Pixel, 256>* data_render_line, int32_t scanline);
+        void draw_pixel_line(std::array<struct Pixel, 256>* data_render_buffer, int32_t scanline);
         void update_screen() const;
         void handle_events();
 

@@ -17,6 +17,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus) {
         cycles = 2; // takes 2 cycles to transfer one byte
     }
 
+    // if ((ppu->ext_regs.ppumask & 0b0001'1000))
     ppu->run_ppu(cycles * 3);
 
     if (ppu->nmi == 1) {
@@ -28,7 +29,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus) {
 }
 
 int main() {
-    const std::string rom_path = "roms/DK.nes";
+    const std::string rom_path = "roms/AI.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller1 = new Controller();

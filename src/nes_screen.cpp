@@ -32,9 +32,9 @@ namespace roee_nes {
         SDL_Quit();
     }
 
-    void NES_Screen::draw_pixel_line(std::array<struct Pixel, 256>* data_render_line, int32_t scanline) {
+    void NES_Screen::draw_pixel_line(std::array<struct Pixel, 256>* data_render_buffer, int32_t scanline) {
         for (int i = 0; i < 256; i++) {
-            SDL_SetRenderDrawColor(renderer, (*data_render_line)[i].r, (*data_render_line)[i].g, (*data_render_line)[i].b, 255);
+            SDL_SetRenderDrawColor(renderer, (*data_render_buffer)[i].r, (*data_render_buffer)[i].g, (*data_render_buffer)[i].b, 255);
             SDL_RenderDrawPoint(renderer, i, scanline);
         }
     }
