@@ -78,14 +78,6 @@ namespace roee_nes {
         shared_visible_prerender_scanline();
     }
 
-    // void PPU::print_sprites() {
-    //     static std::ofstream out("logs/SPRITES.log");
-    //     out << "-------- printing sprites -------\n";
-    //     for (int i = 0; i < 8; i++) {
-    //         out << "sprite " << i << 
-    //     }
-    // }
-
     void PPU::visible_scanline() {
         if (curr_cycle == 0) // idle cycle; do nothing
             return;
@@ -96,36 +88,33 @@ namespace roee_nes {
             if (65 <= curr_cycle) { // sprite evaluation 
                 if (curr_cycle == 65) {
                     sprite_rendering_stage = SPRITE_EVAL;
+                    sec_oam_cnt = 0;
+                    pri_oam_cnt = 0;
                     for (auto it = secondary_oam.begin(); it != secondary_oam.end(); it++)
                         *it = 0xff;
                 }
 
                 if ((ext_regs.ppumask & 0b0001'1000)) { // if either sprites or background rendering is enabled
-                    // switch (sprite_rendering_stage) {
-                    //     case SPRITE_EVAL:
-                    //         sprite_evaluation();
-                    //         break;
-                    //     case SPRITE_OVERFLOW:
-                    //         sprite_overflow_check();
-                    //         break;
-                    //     case BROKEN_READ:
-                    //         break;
-                    //     default:
-                    //         std::cerr << "UNKNOWN FG 1-256 PART!\n";
-                    //         break;
-                    // }
+                    switch (sprite_rendering_stage) {
+                        case SPRITE_EVAL:
+                            sprite_evaluation();
+                            break;
+                        case SPRITE_OVERFLOW:
+                            // sprite_overflow_check();
+                            break;
+                        case BROKEN_READ:
+                            break;
+                        default:
+                            std::cerr << "UNKNOWN FG 1-256 PART!\n";
+                            break;
+                    }
                 }
             }
         }
 
-        if (curr_cycle == 256)
-            merge_bg_fg_render_buffer();
         if ((257 <= curr_cycle) && (curr_cycle <= 320))
             fill_sprites_render_data();
-
-        // if (cycle == 320)
-        //     print_sprites();
-        if (curr_cycle == 321) {
+        else if (curr_cycle == 321) {
             screen->draw_pixel_line(&data_render_buffer, curr_scanline);
 #ifdef DEBUG
             print_oam();
@@ -144,7 +133,6 @@ namespace roee_nes {
     }
 
     void PPU::fill_sprites_render_data() {
-        static uint8_t y_diff;
         static uint8_t n;
         if (curr_cycle == 257) {
             n = 0;
@@ -152,50 +140,50 @@ namespace roee_nes {
 
         switch ((curr_cycle - 1) % 8) {
             case Y_BYTE_0: // case this is 0
-                sprites[n].y = primary_oam[(4 * n) + 0];
+                sprites[n].y = secondary_oam[(4 * n) + 0];
                 y_diff = curr_scanline - sprites[n].y - 1;
 
-                if ((0 <= y_diff) && (y_diff <= 7))
+                if ((0 <= y_diff) && (y_diff <= 7) && (n == 0))
                     sprite_0 = &(sprites[0]);
                 else
                     sprite_0 = nullptr;
                 break;
             case TILE_BYTE_1: // case this is 1
                 if ((0 <= y_diff) && (y_diff <= 7))
-                    sprites[n].tile = primary_oam[(4 * n) + 1];
+                    sprites[n].tile = secondary_oam[(4 * n) + 1];
                 break;
             case AT_BYTE_2: // case this is 2
                 if ((0 <= y_diff) && (y_diff <= 7))
-                    sprites[n].at = primary_oam[(4 * n) + 2];
+                    sprites[n].at = secondary_oam[(4 * n) + 2];
                 break;
             case X_BYTE_3: // case this is 3
                 if ((0 <= y_diff) && (y_diff <= 7))
-                    sprites[n].x = primary_oam[(4 * n) + 3];
+                    sprites[n].x = secondary_oam[(4 * n) + 3];
                 break;
             case FILL_BUFFER: // case this is 4
                 if ((0 <= y_diff) && (y_diff <= 7))
-                    fill_sprite_pixels(n, y_diff);
-                n = (n + 1) % 64;
+                    fill_sprite_pixels(n);
+                n = (n+1)%8;
                 break;
             default: // if its 5,6,7
                 // the PPU should fetch here X byte again 4 times, but for emulation this is unessecary, so do nothing
                 break;
         }
-
-        // sprite_fetch_type = (sprite_fetch_type+1)%8;
     }
 
-    void PPU::fill_sprite_pixels(uint8_t n, uint8_t y_diff) {
+    void PPU::fill_sprite_pixels(uint8_t n) {
         if (ext_regs.ppustatus & 0b0001'0000)
             std::cerr << "fill sprite pixels rendering not enableded\n";
 
-        uint8_t pt_low = fetch_fg_pt_byte(PT_LSB, y_diff, sprites[n].tile);
-        uint8_t pt_high = fetch_fg_pt_byte(PT_MSB, y_diff, sprites[n].tile);
+        uint8_t pt_low = fetch_fg_pt_byte(PT_LSB, sprites[n].tile);
+        uint8_t pt_high = fetch_fg_pt_byte(PT_MSB, sprites[n].tile);
 
         for (int i = 0; i < 8; i++) {
             uint8_t pt_data = get_color_bit(pt_low, pt_high, i, 8);
             sprites[n].palette_indices[i] = bus->ppu_read(0x3f10 + (4 * (sprites[n].at & 0b0000'0011)) + pt_data);
             sprites[n].pt_data = pt_data;
+
+            x_to_sprite_map.emplace(sprites[n].x + i, &(sprites[n]));
         }
     }
 
@@ -228,21 +216,6 @@ namespace roee_nes {
         return data;
     }
 
-    void PPU::merge_bg_fg_render_buffer() {
-        for (auto it = sprites.cbegin(); it != sprites.cend(); it++) { // go over each sprite
-            uint8_t y_diff = curr_scanline - it->y - 1;
-            if ((ext_regs.ppumask & 0b0001'0000) && ((it->at & 0b0010'0000) == 0) && (it->pt_data != 0)) {
-                if ((0 <= y_diff) && (y_diff <= 7)) {
-                    for (int i = 0; i < 8; i++) {
-                        data_render_buffer[it->x + i].r = bus->color_palette[(it->palette_indices[i] * 3) + 0];
-                        data_render_buffer[it->x + i].g = bus->color_palette[(it->palette_indices[i] * 3) + 1];
-                        data_render_buffer[it->x + i].b = bus->color_palette[(it->palette_indices[i] * 3) + 2];
-                    }
-                }
-            }
-        }
-    }
-
 #ifdef DEBUG
     void PPU::print_oam() {
         static std::ofstream a("logs/POAM.log");
@@ -262,42 +235,37 @@ namespace roee_nes {
             if ((i % 15) == 0)
                 a << "\n";
             i++;
-    }
+        }
         a << "\n";
-}
+    }
 #endif
 
-    //     void PPU::sprite_evaluation() {
-    //         static uint8_t byte_0;
-    // #ifdef DEBUG
-    //         static std::ofstream selog("logs/SELOG.log");
-    //         selog << "soam is " << std::dec << (int)soam_count.counter.n
-    //             << "\n poam is " << std::dec << (int)poam_count.counter.n << "\n";
-    // #endif
-    //         if ((curr_cycle % 2) == 1) // if cycle is odd
-    //             byte_0 = primary_oam[INDEX_OAM_AT(poam_count, 0)]; // read from primary oam
-    //         else {
-    //             if (soam_count.counter.n < 8) {
-    //                 secondary_oam[INDEX_OAM_AT(soam_count, 0)] = byte_0;
-    //                 uint8_t y_diff = curr_scanline - byte_0 - 1;
-    //                 if ((0 <= y_diff) && (y_diff <= 7)) {
-    //                     secondary_oam[INDEX_OAM_AT(soam_count, 1)] = primary_oam[INDEX_OAM_AT(poam_count, 1)]; // write all of them to secondary oam
-    //                     secondary_oam[INDEX_OAM_AT(soam_count, 2)] = primary_oam[INDEX_OAM_AT(poam_count, 2)]; // write all of them to secondary oam
-    //                     secondary_oam[INDEX_OAM_AT(soam_count, 3)] = primary_oam[INDEX_OAM_AT(poam_count, 3)]; // write all of them to secondary oam                    
-    //                 }
-    //                 soam_count.counter.n++;
-    //             }
-    //             poam_count.counter.n++;
+    void PPU::sprite_evaluation() {
+        static uint8_t byte_0;
+        if ((curr_cycle % 2) == 1) // if cycle is odd
+            byte_0 = primary_oam[(4*pri_oam_cnt) + 0]; // read from primary oam
+        else {
+            if (sec_oam_cnt < 8) {
+                secondary_oam[INDEX_OAM_AT(sec_oam_cnt, 0)] = byte_0;
+                uint8_t y_diff = curr_scanline - byte_0 - 1;
+                if ((0 <= y_diff) && (y_diff <= 7)) {
+                    secondary_oam[(4*sec_oam_cnt) + 1] = primary_oam[(4*pri_oam_cnt) + 1]; // write all of them to secondary oam
+                    secondary_oam[(4*sec_oam_cnt) + 2] = primary_oam[(4*pri_oam_cnt) + 2]; // write all of them to secondary oam
+                    secondary_oam[(4*sec_oam_cnt) + 3] = primary_oam[(4*pri_oam_cnt) + 3]; // write all of them to secondary oam                    
+                }
+                sec_oam_cnt++;
+            }
+            pri_oam_cnt++;
 
-    //             if (soam_count.counter.n == 8) {
-    //                 sprite_rendering_stage = SPRITE_OVERFLOW;
-    //             } // if more than 8 sprites have been found 
-    //             else if (poam_count.counter.n == 0)
-    //                 sprite_rendering_stage = BROKEN_READ;
-    //         }
-    //     }
+            if (sec_oam_cnt == 8) {
+                sprite_rendering_stage = SPRITE_OVERFLOW;
+            } // if more than 8 sprites have been found 
+            else if (pri_oam_cnt == 0)
+                sprite_rendering_stage = BROKEN_READ;
+        }
+    }
 
-    uint8_t PPU::fetch_fg_pt_byte(uint16_t priority, uint8_t y_diff, uint16_t tile) {
+    uint8_t PPU::fetch_fg_pt_byte(uint16_t priority, uint16_t tile) {
         uint16_t addr = y_diff & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
         addr |= priority; // bits 3 setting msb/lsb
         addr |= (tile << 4); // bits 4-11 setting the tile to select from
@@ -348,30 +316,25 @@ namespace roee_nes {
     }
 
     void PPU::add_render_pixel() {
-        uint8_t palette_index = 0;
-        if (ext_regs.ppustatus & 0b0000'1000)
-            palette_index = 0;
+        uint8_t bg_palette_index = get_bg_palette_index();
 
-        uint8_t pt_data = get_color_bit(bg_regs.pt_shift_lsb, bg_regs.pt_shift_msb, x, 16);
-        uint8_t at_data = get_color_bit(bg_regs.at_shift_lsb, bg_regs.at_shift_msb, x, 16);
+        using iterator = std::unordered_map<uint8_t, struct Sprite*>::iterator; 
+        iterator sprite = x_to_sprite_map.find(curr_cycle-1);
 
-        if ((!(ext_regs.ppustatus & 0b0100'0000)) && // if sprite 0 hit wasnt encountered yet
-            (sprite_0 != nullptr) && // if sprite 0 is in range
-            (ext_regs.ppumask & 0b0001'1000) && // and if either sprite or background rendering is enabled
-            (!(ext_regs.ppumask & 0b0000'0110)) && // and if left clipping isnt enabled 
-            ((curr_cycle - 1) != 255) &&  // and if the current pixel isnt the pixel at 255
-            ((curr_cycle - 1) <= sprite_0->x) && (sprite_0->x <= (curr_cycle + 7)) && // and if sprite 0 is in range for this specific pixel
-            (sprite_0->pt_data != 0) && // and if sprite pixel is opaque
-            (pt_data != 0)) { // and if background is opaque
+        if ((sprite != x_to_sprite_map.end()) &&
+            ((0 <= (curr_scanline - sprite->second->y - 1)) && ((curr_scanline - sprite->second->y - 1) <= 7)) && 
+            (ext_regs.ppumask & 0b0001'0000) &&
+            ((sprite->second->at & 0b0010'0000) == 0) &&
+            (sprite->second->pt_data != 0)) {
 
-            ext_regs.ppustatus |= 0b0100'0000; // then set sprite 0 hit to true;
+            data_render_buffer[curr_cycle - 1].r = bus->color_palette[(sprite->second->palette_indices[curr_cycle - sprite->second->x] * 3) + 0];
+            data_render_buffer[curr_cycle - 1].g = bus->color_palette[(sprite->second->palette_indices[curr_cycle - sprite->second->x] * 3) + 1];
+            data_render_buffer[curr_cycle - 1].b = bus->color_palette[(sprite->second->palette_indices[curr_cycle - sprite->second->x] * 3) + 2];
+        } else {
+            data_render_buffer[curr_cycle - 1].r = bus->color_palette[(bg_palette_index * 3) + 0];
+            data_render_buffer[curr_cycle - 1].g = bus->color_palette[(bg_palette_index * 3) + 1];
+            data_render_buffer[curr_cycle - 1].b = bus->color_palette[(bg_palette_index * 3) + 2];
         }
-
-        palette_index = bus->ppu_read((0x3f00 + (at_data * 4) + pt_data));
-
-        data_render_buffer[curr_cycle - 1].r = bus->color_palette[(palette_index * 3) + 0];
-        data_render_buffer[curr_cycle - 1].g = bus->color_palette[(palette_index * 3) + 1];
-        data_render_buffer[curr_cycle - 1].b = bus->color_palette[(palette_index * 3) + 2];
     }
 
     uint8_t PPU::fetch_bg_pt_byte(uint8_t byte_significance) {
