@@ -118,6 +118,8 @@ namespace roee_nes {
             }
         }
 
+        if (curr_cycle == 256)
+            merge_bg_fg_render_buffer();
         if ((257 <= curr_cycle) && (curr_cycle <= 320))
             fill_sprites_render_data();
 
@@ -144,18 +146,19 @@ namespace roee_nes {
     void PPU::fill_sprites_render_data() {
         static uint8_t y_diff;
         static uint8_t n;
-        if (curr_cycle == 257)
+        if (curr_cycle == 257) {
             n = 0;
-
-        if (n > 63) {
-            std::cerr << "n overflow\n";
-            return;
-        }
+        };
 
         switch ((curr_cycle - 1) % 8) {
             case Y_BYTE_0: // case this is 0
                 sprites[n].y = primary_oam[(4 * n) + 0];
                 y_diff = curr_scanline - sprites[n].y - 1;
+
+                if ((0 <= y_diff) && (y_diff <= 7))
+                    sprite_0 = &(sprites[0]);
+                else
+                    sprite_0 = nullptr;
                 break;
             case TILE_BYTE_1: // case this is 1
                 if ((0 <= y_diff) && (y_diff <= 7))
@@ -219,10 +222,25 @@ namespace roee_nes {
     }
 
     uint8_t get_color_bit(uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x, uint8_t size_of_shift_reg) {
-        uint8_t data = (0b0000'0001 & (shift_reg_lsb >> (size_of_shift_reg -1 - x)));
-        data |= (0b0000'0010 & (shift_reg_msb >> (size_of_shift_reg -2 - x)));
+        uint8_t data = (0b0000'0001 & (shift_reg_lsb >> (size_of_shift_reg - 1 - x)));
+        data |= (0b0000'0010 & (shift_reg_msb >> (size_of_shift_reg - 2 - x)));
 
         return data;
+    }
+
+    void PPU::merge_bg_fg_render_buffer() {
+        for (auto it = sprites.cbegin(); it != sprites.cend(); it++) { // go over each sprite
+            uint8_t y_diff = curr_scanline - it->y - 1;
+            if ((ext_regs.ppumask & 0b0001'0000) && ((it->at & 0b0010'0000) == 0) && (it->pt_data != 0)) {
+                if ((0 <= y_diff) && (y_diff <= 7)) {
+                    for (int i = 0; i < 8; i++) {
+                        data_render_buffer[it->x + i].r = bus->color_palette[(it->palette_indices[i] * 3) + 0];
+                        data_render_buffer[it->x + i].g = bus->color_palette[(it->palette_indices[i] * 3) + 1];
+                        data_render_buffer[it->x + i].b = bus->color_palette[(it->palette_indices[i] * 3) + 2];
+                    }
+                }
+            }
+        }
     }
 
 #ifdef DEBUG
@@ -244,9 +262,9 @@ namespace roee_nes {
             if ((i % 15) == 0)
                 a << "\n";
             i++;
-        }
-        a << "\n";
     }
+        a << "\n";
+}
 #endif
 
     //     void PPU::sprite_evaluation() {
@@ -330,31 +348,30 @@ namespace roee_nes {
     }
 
     void PPU::add_render_pixel() {
-        uint8_t palette_index = get_bg_palette_index();
+        uint8_t palette_index = 0;
+        if (ext_regs.ppustatus & 0b0000'1000)
+            palette_index = 0;
 
-        if (curr_scanline == 1) {
-            data_render_buffer[curr_cycle - 1].r = bus->color_palette[(palette_index * 3) + 0];
-            data_render_buffer[curr_cycle - 1].g = bus->color_palette[(palette_index * 3) + 1];
-            data_render_buffer[curr_cycle - 1].b = bus->color_palette[(palette_index * 3) + 2];
-        } else {
-            for (auto it = sprites.cbegin(); it != sprites.cend(); it++) { // go over each sprite
-                if (((curr_cycle - 1) <= it->x) && (it->x <= (curr_cycle + 7))) { // and check if bg and sprite overlap
-                    if (/* (ext_regs.ppumask & 0b0001'0000) && */ ((it->at & 0b0010'0000) == 0) && (it->pt_data != 0)) { // if they overlap and sprite is over the bg
-                        data_render_buffer[curr_cycle - 1].r = bus->color_palette[(it->palette_indices[curr_cycle - (it->x)] * 3) + 0];
-                        data_render_buffer[curr_cycle - 1].g = bus->color_palette[(it->palette_indices[curr_cycle - (it->x)] * 3) + 1];
-                        data_render_buffer[curr_cycle - 1].b = bus->color_palette[(it->palette_indices[curr_cycle - (it->x)] * 3) + 2];
-                    } else {
-                        data_render_buffer[curr_cycle - 1].r = bus->color_palette[(palette_index * 3) + 0];
-                        data_render_buffer[curr_cycle - 1].g = bus->color_palette[(palette_index * 3) + 1];
-                        data_render_buffer[curr_cycle - 1].b = bus->color_palette[(palette_index * 3) + 2];
-                    }
-                } else {
-                    data_render_buffer[curr_cycle - 1].r = bus->color_palette[(palette_index * 3) + 0];
-                    data_render_buffer[curr_cycle - 1].g = bus->color_palette[(palette_index * 3) + 1];
-                    data_render_buffer[curr_cycle - 1].b = bus->color_palette[(palette_index * 3) + 2];
-                }
-            }
+        uint8_t pt_data = get_color_bit(bg_regs.pt_shift_lsb, bg_regs.pt_shift_msb, x, 16);
+        uint8_t at_data = get_color_bit(bg_regs.at_shift_lsb, bg_regs.at_shift_msb, x, 16);
+
+        if ((!(ext_regs.ppustatus & 0b0100'0000)) && // if sprite 0 hit wasnt encountered yet
+            (sprite_0 != nullptr) && // if sprite 0 is in range
+            (ext_regs.ppumask & 0b0001'1000) && // and if either sprite or background rendering is enabled
+            (!(ext_regs.ppumask & 0b0000'0110)) && // and if left clipping isnt enabled 
+            ((curr_cycle - 1) != 255) &&  // and if the current pixel isnt the pixel at 255
+            ((curr_cycle - 1) <= sprite_0->x) && (sprite_0->x <= (curr_cycle + 7)) && // and if sprite 0 is in range for this specific pixel
+            (sprite_0->pt_data != 0) && // and if sprite pixel is opaque
+            (pt_data != 0)) { // and if background is opaque
+
+            ext_regs.ppustatus |= 0b0100'0000; // then set sprite 0 hit to true;
         }
+
+        palette_index = bus->ppu_read((0x3f00 + (at_data * 4) + pt_data));
+
+        data_render_buffer[curr_cycle - 1].r = bus->color_palette[(palette_index * 3) + 0];
+        data_render_buffer[curr_cycle - 1].g = bus->color_palette[(palette_index * 3) + 1];
+        data_render_buffer[curr_cycle - 1].b = bus->color_palette[(palette_index * 3) + 2];
     }
 
     uint8_t PPU::fetch_bg_pt_byte(uint8_t byte_significance) {
@@ -488,7 +505,7 @@ namespace roee_nes {
         // p_ppuctrl = ext_regs.ppuctrl;
         // p_ppumask = ext_regs.ppumask;
         // p_ppustatus = ext_regs.ppustatus;
-}
+    }
 #endif
 
 }

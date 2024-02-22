@@ -138,6 +138,7 @@ namespace roee_nes {
         // void sprite_overflow_check();
         void fill_sprites_render_data();
         void fill_sprite_pixels(uint8_t n, uint8_t y_diff);
+        void merge_bg_fg_render_buffer();
 
     public:
         loopy_reg v;
