@@ -26,7 +26,6 @@ namespace roee_nes {
     }
 
     uint8_t CNROM_3::ppu_read(uint16_t addr) {
-        
         return cart->chr_rom[(chr_bank_select * 0x2000) + addr];
     }
 

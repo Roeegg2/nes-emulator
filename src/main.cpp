@@ -2,21 +2,19 @@
 #include "../include/cpu.h"
 #include "../include/utils.h"
 #include "../include/nes_screen.h"
-
+#include <chrono>
 using namespace roee_nes;
 
 // extern "C" void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* nt_vram);
 
 uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus) {
     uint8_t cycles;
-
     if (bus->cpu_sleep_dma_counter == 0)
         cycles = cpu->run_cpu();
     else {
         bus->cpu_sleep_dma_counter--;
         cycles = 2; // takes 2 cycles to transfer one byte
     }
-
     // if ((ppu->ext_regs.ppumask.raw & 0b0001'1000))
     ppu->run_ppu(cycles * 3);
 
@@ -29,7 +27,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus) {
 }
 
 int main() {
-    const std::string rom_path = "roms/SMB1.nes";
+    const std::string rom_path = "roms/MEGAMAN.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller1 = new Controller();
@@ -46,9 +44,6 @@ int main() {
 
     while (1) {
         emulator_tick(cpu, ppu, bus);
-#ifdef DEBUG
-        bus->full_log();
-#endif
     }
 
     return 0;

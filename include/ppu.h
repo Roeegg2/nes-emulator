@@ -162,9 +162,9 @@ namespace roee_nes {
         void increment_coarse_x();
 #ifdef DEBUG
         void log() const;
-        void print_oam();
 #endif
 
+        void print_oam();
         uint8_t fetch_fg_pt_byte(uint16_t priority, uint16_t tile, uint8_t at);
         void get_fg_pixel();
         void sprite_evaluation();
@@ -173,6 +173,7 @@ namespace roee_nes {
         void fill_sprite_pixels(uint8_t n);
         void merge_bg_fg_render_buffer();
         void print_palette();
+        void get_chosen_pixel(uint8_t base, uint8_t palette_index);
 
         public:
         loopy_reg v;
@@ -194,12 +195,10 @@ namespace roee_nes {
 
         std::array<struct Pixel, 256> data_render_buffer;
         std::array<struct Sprite, 8> sprites;
-        std::unordered_map<uint8_t, struct Sprite*> x_to_sprite_map;
+        std::unordered_map<uint8_t, uint8_t> x_to_sprite_map;
         std::array<uint8_t, 256> primary_oam;
         std::array<uint8_t, 32> secondary_oam;
 
-        struct Sprite* next_sprite_0;
-        struct Sprite* curr_sprite_0;
         uint8_t pri_oam_cnt;
         uint8_t sec_oam_cnt;
         int32_t y_diff;
