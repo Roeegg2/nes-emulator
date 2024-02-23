@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <unordered_map>
-
+#include <string>
 #include "bus.h"
 #include "nes_screen.h"
 
@@ -98,8 +98,6 @@ namespace roee_nes {
         uint8_t at;
         uint8_t x;
         uint8_t palette_indices[8];
-        
-        uint16_t pt_data;
     };
 
     class PPU {
@@ -165,7 +163,8 @@ namespace roee_nes {
         std::array<uint8_t, 256> primary_oam;
         std::array<uint8_t, 32> secondary_oam;
 
-        struct Sprite* sprite_0;
+        struct Sprite* next_sprite_0;
+        struct Sprite* curr_sprite_0;
         uint8_t pri_oam_cnt;
         uint8_t sec_oam_cnt;
         int32_t y_diff;
@@ -178,8 +177,6 @@ namespace roee_nes {
     private:
         inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
     };
-
-    uint8_t get_color_bit(uint16_t shift_reg_lsb, uint16_t shift_reg_msb, uint8_t x, uint8_t size_of_shift_reg);
 }
 
 #endif

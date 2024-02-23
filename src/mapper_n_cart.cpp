@@ -11,10 +11,13 @@ namespace roee_nes {
         uint8_t mapper_number = (((uint8_t)cart->header.flag_7.parsed.mapper_num_high) << 4) | cart->header.flag_6.parsed.mapper_num_low;
         switch (mapper_number) {
             case 0: // mapper number 0 (NROM)
+                std::cout << "USER INFO: Game mapper is NROM (iNES 0)\n"; 
                 return new NROM_0(cart);
             case 2: // mapper number 2 (UNROM)
+                std::cout << "USER INFO: Game mapper is UNROM (iNES 2)\n";
                 return new UNROM_2(cart);
             case 3: // mapper number 3 (CNROM)
+                std::cout << "USER INFO: Game mapper is CNROM (iNES 3)\n";
                 return new CNROM_3(cart);
             default:
                 std::cerr << "ERROR: Mapper number " << std::dec << (int)mapper_number << "not implemented yet\n";

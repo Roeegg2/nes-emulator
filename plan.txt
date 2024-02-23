@@ -1,0 +1,10 @@
+background render line
+foreground render line
+
+each cycle:
+    get background pixel
+    get foreground pixel
+
+at cycle x:
+    combine the 2:
+        
