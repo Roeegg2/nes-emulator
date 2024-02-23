@@ -5,7 +5,7 @@ namespace roee_nes {
         // write the initilizer list in order please
         : v({ 0 }), t({ 0 }), x(0), w(0), bg_regs({ 0 }), ext_regs({ 0 }), oamdma(0), curr_scanline(0), curr_cycle(0),
         nmi(0), frame_oddness(0), frame_counter(0), sprite_rendering_stage(SPRITE_EVAL),
-        data_render_buffer({ 0 }), sprites({ 0 }), primary_oam({ 0 }), secondary_oam({ 0 }), pri_oam_cnt(0), sec_oam_cnt(0), y_diff(0)
+        data_render_buffer({ 0 }), sprites({ 0 }), primary_oam({ 0 }), secondary_oam({ 0 }), pri_oam_cnt(0), sec_oam_cnt(0)
         // NOTE: not sure about these yet!
     {
         this->bus = bus;
@@ -88,8 +88,9 @@ namespace roee_nes {
 
         if ((1 <= curr_cycle) && (curr_cycle <= 256)) {
             add_render_pixel(); // get bg pixel color; get sprite pixel color; decide which pixel to add to render line
-            // if (curr_cycle == 65)
-            //     sprite_evaluation();
+            if (curr_cycle == 64) {
+                // global_sprite_height = 0;
+            }
             if (65 <= curr_cycle) { // sprite evaluation 
                 if ((ext_regs.ppumask.raw & 0b0001'1000)) { // if either sprites or background rendering is enabled
                     switch (sprite_rendering_stage) {
@@ -186,9 +187,11 @@ namespace roee_nes {
             byte_0 = primary_oam[(4 * pri_oam_cnt) + 0]; // read from primary oam
         else {
             if (sec_oam_cnt < 8) {
-                int32_t diff = curr_scanline - byte_0 - 1;
                 secondary_oam[(4 * sec_oam_cnt) + 0] = byte_0;
-                if ((0 <= diff) && (diff <= 7)) {
+                int32_t diff = curr_scanline - byte_0 - 1;
+                // if (((0 <= diff) && (diff <= 7)) || ((curr_scanline >= byte_0) && (curr_scanline < (byte_0 + global_sprite_height)))) { 
+                // || ((ext_regs.ppuctrl.comp.sprite_size == 1) && (0 <= diff) && (diff <= 15))
+                if (((0 <= diff) && (diff <= 7))) { 
                     secondary_oam[(4 * sec_oam_cnt) + 1] = primary_oam[(4 * pri_oam_cnt) + 1]; // write all of them to secondary oam
                     secondary_oam[(4 * sec_oam_cnt) + 2] = primary_oam[(4 * pri_oam_cnt) + 2]; // write all of them to secondary oam
                     secondary_oam[(4 * sec_oam_cnt) + 3] = primary_oam[(4 * pri_oam_cnt) + 3]; // write all of them to secondary oam                    
@@ -205,6 +208,7 @@ namespace roee_nes {
     }
 
     void PPU::fill_sprites_render_data() {
+        // static int32_t y_diff;
         static uint8_t n;
         if (curr_cycle == 257) {
             n = 7;
@@ -213,7 +217,7 @@ namespace roee_nes {
         switch ((curr_cycle - 1) % 8) {
             case Y_BYTE_0: // case this is 0
                 sprites[n].y = secondary_oam[(4 * n) + 0];
-                y_diff = curr_scanline - sprites[n].y - 1;
+                // y_diff = curr_scanline - sprites[n].y - 1;
                 break;
             case TILE_BYTE_1: // case this is 1
                 sprites[n].tile = secondary_oam[(4 * n) + 1];
@@ -242,13 +246,13 @@ namespace roee_nes {
 
 
     void PPU::fill_sprite_pixels(uint8_t n) {
-        uint8_t pt_low = fetch_fg_pt_byte(PT_LSB, sprites[n].tile, sprites[n].at);
-        uint8_t pt_high = fetch_fg_pt_byte(PT_MSB, sprites[n].tile, sprites[n].at);
+        uint8_t pt_low = fetch_fg_pt_byte(PT_LSB, sprites[n]);
+        uint8_t pt_high = fetch_fg_pt_byte(PT_MSB, sprites[n]);
 
         for (int i = 0; i < 8; i++) {
             uint8_t pt_data = (((pt_high >> (7 - i)) & 0b0000'0001) << 1) | ((pt_low >> (7 - i)) & 0b0000'0001);
 
-            if (sprites[n].at & 0b0100'0000) {
+            if (sprites[n].at & 0b0100'0000) { // if sprite is flipped horizontally
                 sprites[n].palette_indices[7 - i] = ((4 * (sprites[n].at & 0b0000'0011)) + pt_data);
                 auto it = x_to_sprite_map.find(sprites[n].x + 7 - i);
                 if ((it == x_to_sprite_map.end()))
@@ -311,27 +315,31 @@ namespace roee_nes {
     }
     // #endif
 
-    uint8_t PPU::fetch_fg_pt_byte(uint16_t priority, uint16_t tile, uint8_t at) {
-        uint16_t addr = priority; // bits 3 setting msb/lsb
-        addr |= (tile << 4); // bits 4-11 setting the tile to select from
 
-        if (at & 0b1000'0000) // if the sprite is flipped vertically
-            addr |= (7 - y_diff) & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
-        else
+    uint8_t PPU::fetch_fg_pt_byte(uint16_t priority, struct Sprite& sprite) {
+        uint16_t addr = priority; // bits 3,13 setting msb/lsb (13 is constant 0 for now)
+
+        int32_t y_diff = curr_scanline - sprite.y - 1;
+        if (ext_regs.ppuctrl.comp.sprite_size) { // if this is a 8x16 sprite
+            addr |= ((((uint16_t)sprite.tile) & 0b0000'0001) << 12); // bit 12 
+
+            if ((0 <= y_diff) && (y_diff <= 7)) {
+                sprite.tile = (sprite.tile & 0b1111'1110);
+            } else if ((8 <= y_diff) && (y_diff <= 15)) {
+                sprite.tile = (sprite.tile & 0b1111'1110) + 1;
+            }
+
+
+        } else { // if this is a 8x8 sprite
+            addr |= ((ext_regs.ppuctrl.raw & 0b0000'1000) << 9); // bit 12 
+        }
+
+        // if (sprite.at & 0b1000'0000) // NOTE ONLY FOR 8x8!! if the sprite is flipped vertically AND is 8x8
+        //     addr |= (7 - y_diff) & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
+        // else
             addr |= y_diff & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
 
-        if (ext_regs.ppuctrl.raw & 0b0010'0000) { // bit 12 if this is a 8x16 sprite
-            if (tile & 0b0000'0001)
-                addr |= 0b0001'0000'0000'0000;
-            else
-                addr |= 0b0000'0000'0000'0000;
-            // tile >>= 1; // NOTE not sure about this shift, should i cancel bit 0?
-        } else {
-            if (ext_regs.ppuctrl.raw & 0b0000'1000)
-                addr |= 0b0001'0000'0000'0000;
-            else
-                addr |= 0b0000'0000'0000'0000;
-        }
+        addr |= (((uint16_t)sprite.tile) << 4); // bits 4,5,6,7,8,9,10,11 setting the tile to select from
 
         return bus->ppu_read(addr);
     }
@@ -388,16 +396,15 @@ namespace roee_nes {
             if (((sprites[it->second].at & 0b0010'0000) == 0) &&
                 (((sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x] % 0x4) != 0)))
                 get_chosen_pixel(0x10, sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x]);
-            // else if (bg_palette_index % 0x4 == 0)
-            //     get_chosen_pixel(0x10, sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x]);
             else
                 get_chosen_pixel(0, bg_palette_index);
-        } else
+        } 
+        else
             get_chosen_pixel(0, bg_palette_index);
     }
 
     void PPU::get_chosen_pixel(uint8_t base, uint8_t palette_index) {
-        // if (base == 0x10) {
+        // if (base == 0x10) { // FOR TESTING PURPOSES
         //     data_render_buffer[curr_cycle - 1].r = 0xff;
         //     data_render_buffer[curr_cycle - 1].g = 0xff;
         //     data_render_buffer[curr_cycle - 1].b = 0x0;
@@ -501,7 +508,6 @@ namespace roee_nes {
         sprite_rendering_stage = SPRITE_EVAL;
         sec_oam_cnt = 0;
         pri_oam_cnt = 0;
-        y_diff = 0;
     }
 
 #ifdef DEBUG
@@ -535,7 +541,7 @@ namespace roee_nes {
         // p_ppuctrl = ext_regs.ppuctrl.raw;
         // p_ppumask = ext_regs.ppumask.raw;
         // p_ppustatus = ext_regs.ppustatus.raw;
-}
+    }
 #endif
 
 }

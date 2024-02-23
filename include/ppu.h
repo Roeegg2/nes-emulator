@@ -165,7 +165,7 @@ namespace roee_nes {
 #endif
 
         void print_oam();
-        uint8_t fetch_fg_pt_byte(uint16_t priority, uint16_t tile, uint8_t at);
+        uint8_t fetch_fg_pt_byte(uint16_t priority, struct Sprite& sprite);
         void get_fg_pixel();
         void sprite_evaluation();
         void sprite_overflow_check();
@@ -201,7 +201,6 @@ namespace roee_nes {
 
         uint8_t pri_oam_cnt;
         uint8_t sec_oam_cnt;
-        int32_t y_diff;
 
         public:
         class Bus* bus;
