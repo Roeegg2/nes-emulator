@@ -17,7 +17,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus) {
         cycles = 2; // takes 2 cycles to transfer one byte
     }
 
-    // if ((ppu->ext_regs.ppumask & 0b0001'1000))
+    // if ((ppu->ext_regs.ppumask.raw & 0b0001'1000))
     ppu->run_ppu(cycles * 3);
 
     if (ppu->nmi == 1) {
@@ -46,9 +46,9 @@ int main() {
 
     while (1) {
         emulator_tick(cpu, ppu, bus);
-// #ifdef DEBUG
-//         bus->full_log();
-// #endif
+#ifdef DEBUG
+        bus->full_log();
+#endif
     }
 
     return 0;

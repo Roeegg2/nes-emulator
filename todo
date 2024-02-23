@@ -1,2 +1,5 @@
-- add ppumask grayscale support
+V add ppumask grayscale support
+- add left clipping support
+V add vertical flipping
+- sprites overriding eachother
 - add ppumask color emphesis support

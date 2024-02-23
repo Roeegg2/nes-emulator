@@ -66,9 +66,43 @@ namespace roee_nes {
     };
 
     struct External_Registers {
-        uint8_t ppuctrl;
-        uint8_t ppumask;
-        uint8_t ppustatus;
+        union {
+            struct {
+                uint8_t base_nt : 2;
+                uint8_t vram_inc : 1;
+                uint8_t sprite_pt : 1;
+                uint8_t bg_pt : 1;
+                uint8_t sprite_size : 1;
+                uint8_t master_slave : 1;
+                uint8_t nmi : 1;
+            } comp;
+            uint8_t raw;
+        } ppuctrl;
+
+        union {
+            struct {
+                uint8_t grayscale : 1;
+                uint8_t bg_leftmost : 1;
+                uint8_t fg_leftmost : 1;
+                uint8_t bg : 1;
+                uint8_t fg : 1;
+                uint8_t red : 1;
+                uint8_t green : 1;
+                uint8_t blue : 1;
+            } comp;
+            uint8_t raw;
+        } ppumask;
+
+        union {
+            struct {
+                uint8_t open_bus : 5;
+                uint8_t sprite_overflow : 1;
+                uint8_t sprite_0_hit : 1;
+                uint8_t vblank : 1;
+            } comp;
+            uint8_t raw;
+        } ppustatus;
+        
         uint8_t oamaddr;
     };
 
@@ -92,6 +126,7 @@ namespace roee_nes {
         uint8_t raw;
     } oam_counter;
 
+
     struct Sprite {
         uint8_t y;
         uint8_t tile;
@@ -101,20 +136,20 @@ namespace roee_nes {
     };
 
     class PPU {
-    public:
+        public:
         PPU(Bus* bus, NES_Screen* screen);
 
         void run_ppu(uint8_t cycles);
         void reset();
 
-    private:
+        private:
         void prerender_scanline();
         void visible_scanline();
         void vblank_scanline();
 
         void fetch_rendering_data(Fetch_Modes fetch_mode);
         uint8_t fetch_bg_pt_byte(uint8_t byte_significance);
-        
+
         void shared_visible_prerender_scanline();
         void load_shift_regs();
         void shift_regs();
@@ -130,7 +165,7 @@ namespace roee_nes {
         void print_oam();
 #endif
 
-        uint8_t fetch_fg_pt_byte(uint16_t priority, uint16_t tile);
+        uint8_t fetch_fg_pt_byte(uint16_t priority, uint16_t tile, uint8_t at);
         void get_fg_pixel();
         void sprite_evaluation();
         void sprite_overflow_check();
@@ -139,7 +174,7 @@ namespace roee_nes {
         void merge_bg_fg_render_buffer();
         void print_palette();
 
-    public:
+        public:
         loopy_reg v;
         loopy_reg t;
         uint8_t x;
@@ -168,13 +203,13 @@ namespace roee_nes {
         uint8_t pri_oam_cnt;
         uint8_t sec_oam_cnt;
         int32_t y_diff;
-        
-    public:
+
+        public:
         class Bus* bus;
         NES_Screen* screen;
 
-    private:
-        inline uint8_t Get_rendering_status() { return (ext_regs.ppumask & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
+        private:
+        inline uint8_t Get_rendering_status() { return (ext_regs.ppumask.raw & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
     };
 }
 

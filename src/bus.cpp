@@ -23,7 +23,9 @@ namespace roee_nes {
     }
 
     void Bus::ppu_write(uint16_t addr, uint8_t data, bool came_from_cpu) {
-        if (0x2000 <= addr && addr <= 0x3eff) {
+        if (0 <= addr && addr <= 0x1fff)
+            mapper->ppu_write(addr, data);
+        else if (0x2000 <= addr && addr <= 0x3eff) {
             addr %= 0x1000; // removing nametable mirroring
             if (mapper->Get_mirroring() == 'H') {
                 if (0 <= addr && addr <= 0x800)
@@ -73,9 +75,11 @@ namespace roee_nes {
             if (came_from_cpu) {
                 if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
                     addr -= 0x10;
-            }
-            else if ((addr & 0b11) == 0)
+            } else if ((addr & 0b11) == 0)
                 addr = 0;
+
+            if (ppu->ext_regs.ppumask.comp.grayscale)
+                return palette_vram[addr] & 0x30;
 
             return palette_vram[addr];
         }
@@ -96,11 +100,11 @@ namespace roee_nes {
                 break;
             case PPUCTRL:
                 // if (ppu-> <= 30000) return; // but not really important
-                ppu->ext_regs.ppuctrl = data;
+                ppu->ext_regs.ppuctrl.raw = data;
                 ppu->t.scroll_view.nt = data & 0b0000'0011;
                 break;
             case PPUMASK:
-                ppu->ext_regs.ppumask = data;
+                ppu->ext_regs.ppumask.raw = data;
                 break;
             case PPUSCROLL:
                 if (ppu->w == 0) {
@@ -125,7 +129,7 @@ namespace roee_nes {
                 break;
             case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
                 ppu_write(ppu->v.raw, data, true);
-                ppu->v.raw += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
+                ppu->v.raw += (ppu->ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
                 break;
         }
     }
@@ -139,15 +143,15 @@ namespace roee_nes {
                 break;
             case PPUSTATUS:
                 ppu->w = 0;
-                ret = (ppu->ext_regs.ppustatus & 0b11100000) | (ppu_stupid_buffer & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
-                ppu->ext_regs.ppustatus &= 0b01111111; // clearing vblank flag
+                ret = (ppu->ext_regs.ppustatus.raw & 0b11100000) | (ppu_stupid_buffer & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
+                ppu->ext_regs.ppustatus.raw &= 0b01111111; // clearing vblank flag
                 break;
             case PPUDATA:
                 ret = ppu_stupid_buffer;
                 ppu_stupid_buffer = ppu_read(ppu->v.raw, true);
                 if (addr >= 0x3f00)
                     ret = ppu_read(ppu->v.raw, true);
-                ppu->v.raw += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
+                ppu->v.raw += (ppu->ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
                 break;
         }
 
@@ -201,7 +205,7 @@ namespace roee_nes {
 
 #ifdef DEBUG
     void Bus::full_log() const {
-        static std::ofstream roee_file("ROEE_NES_MAIN.log");
+        static std::ofstream roee_file("logs/ROEE_NES_MAIN.log");
 
         roee_file << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(cpu->log_PC) << " "
             << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(cpu->IR) << " "
@@ -219,9 +223,9 @@ namespace roee_nes {
             << " v:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->v.raw)
             << " x:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->x)
             << " w:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->w)
-            << " ppuctrl:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppuctrl)
-            << " ppumask:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppumask)
-            << " ppustatus:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppustatus) << std::dec;
+            << " ppuctrl:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppuctrl.raw)
+            << " ppumask:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppumask.raw)
+            << " ppustatus:" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ppu->ext_regs.ppustatus.raw) << std::dec;
 
         roee_file << " PPU: " << ppu->curr_scanline << ", " << ppu->curr_cycle << ", CYC:" << ppu->curr_cycle / 3 << "\n";
     }

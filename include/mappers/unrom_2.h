@@ -17,7 +17,8 @@ namespace roee_nes {
 
         private:
         uint8_t prg_bank_select;
-        uint8_t last_bank;
+        uint32_t last_bank;
+        bool using_chr_ram;
     };
 }
 
