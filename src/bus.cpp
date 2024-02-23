@@ -22,7 +22,7 @@ namespace roee_nes {
         }
     }
 
-    void Bus::ppu_write(uint16_t addr, uint8_t data) {
+    void Bus::ppu_write(uint16_t addr, uint8_t data, bool came_from_cpu) {
         if (0x2000 <= addr && addr <= 0x3eff) {
             addr %= 0x1000; // removing nametable mirroring
             if (mapper->Get_mirroring() == 'H') {
@@ -37,15 +37,21 @@ namespace roee_nes {
                     nt_vram[1][addr % 0x400] = data;
             }
         } else if (0x3f00 <= addr && addr <= 0x3fff) {
-            addr %= 0x20;
-            if ((addr & 0b11) == 0) // dont understand this yet!
+            addr %= 0x20; // the actual size of the palette is 0x20
+
+            if (came_from_cpu) {
+                if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
+                    addr -= 0x10;
+            }
+
+            else if ((addr & 0b11) == 0)
                 addr = 0;
 
             palette_vram[addr] = data;
         }
     }
 
-    uint8_t Bus::ppu_read(uint16_t addr) {
+    uint8_t Bus::ppu_read(uint16_t addr, bool came_from_cpu) {
         if (0 <= addr && addr <= 0x1fff)
             return mapper->ppu_read(addr); // pattern table
         else if (0x2000 <= addr && addr <= 0x3eff) {
@@ -64,7 +70,11 @@ namespace roee_nes {
             }
         } else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20; // the actual size of the palette is 0x20
-            if ((addr & 0b11) == 0) // dont understand this yet!
+            if (came_from_cpu) {
+                if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
+                    addr -= 0x10;
+            }
+            else if ((addr & 0b11) == 0)
                 addr = 0;
 
             return palette_vram[addr];
@@ -114,7 +124,7 @@ namespace roee_nes {
                 ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
                 break;
             case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
-                ppu_write(ppu->v.raw, data);
+                ppu_write(ppu->v.raw, data, true);
                 ppu->v.raw += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
                 break;
         }
@@ -134,9 +144,9 @@ namespace roee_nes {
                 break;
             case PPUDATA:
                 ret = ppu_stupid_buffer;
-                ppu_stupid_buffer = ppu_read(ppu->v.raw);
+                ppu_stupid_buffer = ppu_read(ppu->v.raw, true);
                 if (addr >= 0x3f00)
-                    ret = ppu_read(ppu->v.raw);
+                    ret = ppu_read(ppu->v.raw, true);
                 ppu->v.raw += (ppu->ext_regs.ppuctrl & 0b00000100) ? 32 : 1;
                 break;
         }
@@ -159,8 +169,7 @@ namespace roee_nes {
                     ppu->primary_oam[i] = ram[start_addr + i];
                 }
             }
-        }
-        else if (addr == 0x4016)
+        } else if (addr == 0x4016)
             controller1->write(0b0000'0001 & data);
         else if (addr == 0x4017)
             controller2->write(0b0000'0001 & data);
@@ -336,15 +345,15 @@ namespace roee_nes {
             if (roee_token != nestest_token && !error_found) {
                 error = "cycle!";
                 error_found = true;
-    }
+            }
 
             if (error_found == true) {
                 std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
                 return;
             }
-}
+        }
 
         std::cout << "all goodie!" << "\n";
     }
 #endif
-}
+    }

@@ -9,7 +9,7 @@ namespace roee_nes {
     }
 
     uint8_t UNROM_2::cpu_read(uint16_t addr) {
-        uint32_t addr_32;
+        uint32_t addr_32 = (last_bank) + (addr % 0xc000);
 
         if ((0x6000 <= addr) && (addr <= 0x7fff))
             std::cerr << "reading from PRG RAM\n";

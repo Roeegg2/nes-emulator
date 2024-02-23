@@ -133,10 +133,11 @@ namespace roee_nes {
         uint8_t fetch_fg_pt_byte(uint16_t priority, uint16_t tile);
         void get_fg_pixel();
         void sprite_evaluation();
-        // void sprite_overflow_check();
+        void sprite_overflow_check();
         void fill_sprites_render_data();
         void fill_sprite_pixels(uint8_t n);
         void merge_bg_fg_render_buffer();
+        void print_palette();
 
     public:
         loopy_reg v;
@@ -154,7 +155,6 @@ namespace roee_nes {
         uint8_t frame_oddness;
         uint64_t frame_counter;
 
-        uint8_t sprite_fetch_type;
         uint8_t sprite_rendering_stage;
 
         std::array<struct Pixel, 256> data_render_buffer;
@@ -168,8 +168,7 @@ namespace roee_nes {
         uint8_t pri_oam_cnt;
         uint8_t sec_oam_cnt;
         int32_t y_diff;
-        uint8_t n_pri;
-        uint8_t n_sec;
+        
     public:
         class Bus* bus;
         NES_Screen* screen;
