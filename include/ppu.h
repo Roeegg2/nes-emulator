@@ -174,7 +174,8 @@ namespace roee_nes {
         void merge_bg_fg_render_buffer();
         void print_palette();
         void get_chosen_pixel(uint8_t base, uint8_t palette_index);
-
+        void add_to_x_map(uint8_t pt_data, uint8_t i_val);
+        
         public:
         loopy_reg v;
         loopy_reg t;
