@@ -45,11 +45,11 @@ namespace roee_nes {
     };
 
     enum FG_Fetch_Type {
-        Y_BYTE_0 = 0,
-        TILE_BYTE_1 = 1,
-        AT_BYTE_2 = 2,
-        X_BYTE_3 = 3,
-        FILL_BUFFER = 4,
+        Y_BYTE_0 = 1,
+        TILE_BYTE_1 = 2,
+        AT_BYTE_2 = 3,
+        X_BYTE_3 = 4,
+        FILL_BUFFER = 5,
     };
 
     struct Background_Regs {
@@ -201,6 +201,9 @@ namespace roee_nes {
 
         uint8_t pri_oam_cnt;
         uint8_t sec_oam_cnt;
+        uint8_t curr_sprite_0_index;
+        uint8_t next_sprite_0_index;
+        // bool possible_sprite_0_hit;
 
         public:
         class Bus* bus;

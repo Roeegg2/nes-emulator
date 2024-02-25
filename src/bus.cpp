@@ -45,8 +45,8 @@ namespace roee_nes {
                 if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
                     addr -= 0x10;
             }
-
-            else if ((addr & 0b11) == 0)
+            else 
+            if ((addr & 0b11) == 0)
                 addr = 0;
 
             palette_vram[addr] = data;
@@ -75,7 +75,9 @@ namespace roee_nes {
             if (came_from_cpu) {
                 if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
                     addr -= 0x10;
-            } else if ((addr & 0b11) == 0)
+            } 
+            else 
+            if ((addr & 0b11) == 0)
                 addr = 0;
 
             if (ppu->ext_regs.ppumask.comp.grayscale)
@@ -128,7 +130,7 @@ namespace roee_nes {
                 ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
                 break;
             case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
-                ppu_write(ppu->v.raw, data, true);
+                ppu_write(ppu->v.raw & 0x3fff, data, true); // & 0x3fff is to mirror if the addr is out of bounds
                 ppu->v.raw += (ppu->ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
                 break;
         }
@@ -148,9 +150,9 @@ namespace roee_nes {
                 break;
             case PPUDATA:
                 ret = ppu_stupid_buffer;
-                ppu_stupid_buffer = ppu_read(ppu->v.raw, true);
+                ppu_stupid_buffer = ppu_read(ppu->v.raw & 0x3fff, true);
                 if (addr >= 0x3f00)
-                    ret = ppu_read(ppu->v.raw, true);
+                    ret = ppu_read(ppu->v.raw & 0x3fff, true);
                 ppu->v.raw += (ppu->ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
                 break;
         }
