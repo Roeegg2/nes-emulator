@@ -80,101 +80,115 @@ namespace roee_nes {
 
     void NES_Screen::process_joypad_pressed_buttons(Controller* controller) {
         if (event.jbutton.button == 1) // a
-            controller->frame_controls |= 0b0000'0001;
+            controller->buttons.comp.a = 1;
         if (event.jbutton.button == 0) // b
-            controller->frame_controls |= 0b0000'0010;
+            controller->buttons.comp.b = 1;
         if (event.jbutton.button == 8) // select
-            controller->frame_controls |= 0b0000'0100;
+            controller->buttons.comp.select = 1;
         if (event.jbutton.button == 9) // start 
-            controller->frame_controls |= 0b0000'1000;
+            controller->buttons.comp.start = 1;
     }
 
     void NES_Screen::process_joypad_released_buttons(Controller* controller) {
         if (event.jbutton.button == 1) // a
-            controller->frame_controls &= ~0b0000'0001;
+            controller->buttons.comp.a = 0;
         if (event.jbutton.button == 0) // b
-            controller->frame_controls &= ~0b0000'0010;
+            controller->buttons.comp.b = 0;
         if (event.jbutton.button == 8) // select
-            controller->frame_controls &= ~0b0000'0100;
+            controller->buttons.comp.select = 0;
         if (event.jbutton.button == 9) // start
-            controller->frame_controls &= ~0b0000'1000;
+            controller->buttons.comp.start = 0;
 
     }
 
     void NES_Screen::process_joypad_dpad_hat_motion(Controller* controller) {
         if (event.jhat.value & SDL_HAT_LEFT)
-            controller->frame_controls |= 0b0100'0000; // left
+            controller->buttons.comp.left = 1; // left
         else if (event.jhat.value & SDL_HAT_RIGHT)
-            controller->frame_controls |= 0b1000'0000; // right
+            controller->buttons.comp.right = 1; // right
         if (event.jhat.value & SDL_HAT_UP)
-            controller->frame_controls |= 0b0001'0000; // up
+            controller->buttons.comp.up = 1; // up
         else if (event.jhat.value & SDL_HAT_DOWN)
-            controller->frame_controls |= 0b0010'0000; // down
+            controller->buttons.comp.down = 1; // down
 
         if (event.jhat.value == SDL_HAT_CENTERED) { // Reset hat
-            controller->frame_controls &= ~(0b1000'0000 | 0b0100'0000 | 0b0001'0000 | 0b0010'0000);
-        } else {
-            controller->frame_controls |= (0b1000'0000 | 0b0100'0000 | 0b0001'0000 | 0b0010'0000);
+            controller->buttons.comp.left = 0;
+            controller->buttons.comp.right = 0;
+            controller->buttons.comp.up = 0;
+            controller->buttons.comp.down = 0;
         }
     }
 
     void NES_Screen::process_joypad_dpad_axis_motion(Controller* controller) {
-        if (event.jaxis.value < -3200) {
-            if (event.jaxis.axis == 0)
-                controller->frame_controls |= 0b0100'0000; // left
-            else if (event.jaxis.axis == 1)
-                controller->frame_controls |= 0b0001'0000; // up
-        } else if (event.jaxis.value > 3200) {
-            if (event.jaxis.axis == 0)
-                controller->frame_controls |= 0b1000'0000; // right
-            else if (event.jaxis.axis == 1)
-                controller->frame_controls |= 0b0010'0000; // down
-        } else {
-            uint8_t key;
-            if (event.jaxis.axis == 0)
-                key = ~(0b1000'0000 & 0b0100'0000);
-            else if (event.jaxis.axis == 1)
-                key = ~(0b0010'0000 & 0b0001'0000);
-
-            controller->frame_controls &= ~key;
+        if (event.type == SDL_JOYAXISMOTION) {
+            // Check the axis number and value
+            switch (event.jaxis.axis) {
+                case 0: // X-axis
+                    if (event.jaxis.value < -16000) {
+                        controller->buttons.comp.left = 1;
+                        controller->buttons.comp.right = 0;
+                    } else if (event.jaxis.value > 16000) {
+                        controller->buttons.comp.right = 1;
+                        controller->buttons.comp.left = 0;
+                    }
+                    else {
+                        controller->buttons.comp.left = 0;
+                        controller->buttons.comp.right = 0;
+                    }
+                    break;
+                case 1: // Y-axis
+                    if (event.jaxis.value < -16000) {
+                        controller->buttons.comp.up = 1;
+                        controller->buttons.comp.down = 0;  
+                    } else if (event.jaxis.value > 16000) {
+                        controller->buttons.comp.down = 1; 
+                        controller->buttons.comp.up = 0; 
+                    }
+                    else {
+                        controller->buttons.comp.up = 0;
+                        controller->buttons.comp.down = 0;
+                    }
+                    break;
+                    // Add cases for additional axes if needed
+            }
         }
     }
     void NES_Screen::process_keyboard_pressed() {
         if (event.key.keysym.sym == SDLK_e) // a
-            controller1->frame_controls |= 0b0000'0001;
+            controller1->buttons.comp.a = 1;
         if (event.key.keysym.sym == SDLK_q) // b
-            controller1->frame_controls |= 0b0000'0010;
+            controller1->buttons.comp.b = 1;
         if (event.key.keysym.sym == SDLK_SPACE) // select
-            controller1->frame_controls |= 0b0000'0100;
+            controller1->buttons.comp.select = 1;
         if (event.key.keysym.sym == SDLK_RETURN) // start
-            controller1->frame_controls |= 0b0000'1000;
+            controller1->buttons.comp.start = 1;
         if (event.key.keysym.sym == SDLK_w) // up
-            controller1->frame_controls |= 0b0001'0000;
+            controller1->buttons.comp.up = 1;
         if (event.key.keysym.sym == SDLK_s) // down
-            controller1->frame_controls |= 0b0010'0000;
+            controller1->buttons.comp.down = 1;
         if (event.key.keysym.sym == SDLK_a) // left
-            controller1->frame_controls |= 0b0100'0000;
+            controller1->buttons.comp.left = 1;
         if (event.key.keysym.sym == SDLK_d) // right
-            controller1->frame_controls |= 0b1000'0000;
+            controller1->buttons.comp.right = 1;
     }
 
     void NES_Screen::process_keyboard_released() {
         if (event.key.keysym.sym == SDLK_e) // a
-            controller1->frame_controls &= ~0b0000'0001;
+            controller1->buttons.comp.a = 0;
         if (event.key.keysym.sym == SDLK_q) // b
-            controller1->frame_controls &= ~0b0000'0010;
+            controller1->buttons.comp.b = 0;
         if (event.key.keysym.sym == SDLK_SPACE) // select
-            controller1->frame_controls &= ~0b0000'0100;
+            controller1->buttons.comp.select = 0;
         if (event.key.keysym.sym == SDLK_RETURN) // start
-            controller1->frame_controls &= ~0b0000'1000;
+            controller1->buttons.comp.start = 0;
         if (event.key.keysym.sym == SDLK_w) // up
-            controller1->frame_controls &= ~0b0001'0000;
+            controller1->buttons.comp.up = 0;
         if (event.key.keysym.sym == SDLK_s) // down
-            controller1->frame_controls &= ~0b0010'0000;
+            controller1->buttons.comp.down = 0;
         if (event.key.keysym.sym == SDLK_a) // left
-            controller1->frame_controls &= ~0b0100'0000;
+            controller1->buttons.comp.left = 0;
         if (event.key.keysym.sym == SDLK_d) // right
-            controller1->frame_controls &= ~0b1000'0000;
+            controller1->buttons.comp.right = 0;
     }
 
     void NES_Screen::process_joypad_added() {

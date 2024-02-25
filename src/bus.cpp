@@ -176,9 +176,9 @@ namespace roee_nes {
                 }
             }
         } else if (addr == 0x4016)
-            controller1->write(0b0000'0001 & data);
+            controller1->write(data);
         else if (addr == 0x4017)
-            controller2->write(0b0000'0001 & data);
+            controller2->write(data);
         else if (0x4018 <= addr && addr <= 0x401f)
             return; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)

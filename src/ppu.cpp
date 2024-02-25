@@ -181,9 +181,6 @@ namespace roee_nes {
                     secondary_oam[(4 * sec_oam_cnt) + 2] = primary_oam[(4 * pri_oam_cnt) + 2]; // byte 2 at
                     secondary_oam[(4 * sec_oam_cnt) + 3] = primary_oam[(4 * pri_oam_cnt) + 3]; // byte 3 x                 
 
-                    if (primary_oam[(4 * pri_oam_cnt) + 3] == 255)
-                        std::cout << "heyyy\n";
-
                     if ((pri_oam_cnt == 0)) { // if sprite 0 is hit, this will be the index;
                         curr_sprite_0_index = sec_oam_cnt; // NOTE might need to add -1
                     }
@@ -391,7 +388,7 @@ namespace roee_nes {
                 // && ((sprites[0].palette_indices[curr_cycle - sprites[0].x]) != 0) // already checked that before!
                 && ((bg_palette_index % 4) != 0)
                 ) {
-                std::cout << "this is: " << (int)curr_cycle - 1 - sprites[it->second].x << "at dot: " << curr_cycle << " sl: " << curr_scanline << " sprite 0 hit\n";
+                // std::cout << "this is: " << (int)curr_cycle - 1 - sprites[it->second].x << "at dot: " << curr_cycle << " sl: " << curr_scanline << " sprite 0 hit\n";
                 ext_regs.ppustatus.comp.sprite_0_hit = 1;
             }
 
