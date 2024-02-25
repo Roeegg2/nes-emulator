@@ -181,7 +181,7 @@ namespace roee_nes {
                     secondary_oam[(4 * sec_oam_cnt) + 2] = primary_oam[(4 * pri_oam_cnt) + 2]; // byte 2 at
                     secondary_oam[(4 * sec_oam_cnt) + 3] = primary_oam[(4 * pri_oam_cnt) + 3]; // byte 3 x                 
 
-                    if (secondary_oam[(4 * sec_oam_cnt) + 3] == 255)
+                    if (primary_oam[(4 * pri_oam_cnt) + 3] == 255)
                         std::cout << "heyyy\n";
 
                     if ((pri_oam_cnt == 0)) { // if sprite 0 is hit, this will be the index;
@@ -203,26 +203,30 @@ namespace roee_nes {
     }
 
     void PPU::fill_sprites_render_data() {
-        // static int32_t y_diff;
+        static int32_t y_diff;
         if (sec_oam_cnt > 7)
             std::cout << "sec_oam_cnt: " << (int)sec_oam_cnt << "\n";
         // std::cout << "cycle: " << (int)curr_cycle << " sl: " << (int)curr_scanline << " sec_oam_cnt: " << (int)sec_oam_cnt << "\n";
         switch ((curr_cycle) % 8) {
             case Y_BYTE_0: // case this is 1
                 sprites[sec_oam_cnt].y = secondary_oam[(4 * sec_oam_cnt) + 0];
-                // y_diff = curr_scanline - sprites[sec_oam_cnt].y - 1;
+                y_diff = curr_scanline - sprites[sec_oam_cnt].y;
                 break;
             case TILE_BYTE_1: // case this is 2
-                sprites[sec_oam_cnt].tile = secondary_oam[(4 * sec_oam_cnt) + 1];
+                if (0 <= y_diff && y_diff <= 7)
+                    sprites[sec_oam_cnt].tile = secondary_oam[(4 * sec_oam_cnt) + 1];
                 break;
             case AT_BYTE_2: // case this is 3
-                sprites[sec_oam_cnt].at = secondary_oam[(4 * sec_oam_cnt) + 2];
+                if (0 <= y_diff && y_diff <= 7)
+                    sprites[sec_oam_cnt].at = secondary_oam[(4 * sec_oam_cnt) + 2];
                 break;
             case X_BYTE_3: // case this is 4
-                sprites[sec_oam_cnt].x = secondary_oam[(4 * sec_oam_cnt) + 3];
+                if (0 <= y_diff && y_diff <= 7)
+                    sprites[sec_oam_cnt].x = secondary_oam[(4 * sec_oam_cnt) + 3];
                 break;
             case FILL_BUFFER: // case this is 5
-                fill_sprite_pixels(sec_oam_cnt);
+                if (0 <= y_diff && y_diff <= 7)
+                    fill_sprite_pixels(sec_oam_cnt);
                 sec_oam_cnt = (sec_oam_cnt - 1);
                 break;
             default: // if its 6,7,0
@@ -385,9 +389,9 @@ namespace roee_nes {
                 && (it->second == curr_sprite_0_index)
                 && ((sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x] % 0x4) != 0)
                 // && ((sprites[0].palette_indices[curr_cycle - sprites[0].x]) != 0) // already checked that before!
-                && (bg_palette_index != 0)
+                && ((bg_palette_index % 4) != 0)
                 ) {
-                // std::cout << "this is: " << (int)curr_cycle - 1 - sprites[it->second].x << "at dot: " << curr_cycle << " sl: " << curr_scanline << " sprite 0 hit\n";
+                std::cout << "this is: " << (int)curr_cycle - 1 - sprites[it->second].x << "at dot: " << curr_cycle << " sl: " << curr_scanline << " sprite 0 hit\n";
                 ext_regs.ppustatus.comp.sprite_0_hit = 1;
             }
 
@@ -405,12 +409,12 @@ namespace roee_nes {
     }
 
     void PPU::get_chosen_pixel(uint8_t base, uint8_t palette_index) {
-        if (base == 0x10) { // FOR TESTING PURPOSES
-            data_render_buffer[curr_cycle - 1].r = 0xff;
-            data_render_buffer[curr_cycle - 1].g = 0xff;
-            data_render_buffer[curr_cycle - 1].b = 0x0;
-            return;
-        }
+        // if (base == 0x10) { // FOR TESTING PURPOSES
+        //     data_render_buffer[curr_cycle - 1].r = 0xff;
+        //     data_render_buffer[curr_cycle - 1].g = 0xff;
+        //     data_render_buffer[curr_cycle - 1].b = 0x0;
+        //     return;
+        // }
         uint8_t color_index = bus->ppu_read(0x3f00 + base + palette_index);
         data_render_buffer[curr_cycle - 1].r = bus->color_palette[(color_index * 3) + 0];
         data_render_buffer[curr_cycle - 1].g = bus->color_palette[(color_index * 3) + 1];
@@ -542,7 +546,7 @@ namespace roee_nes {
         // p_ppuctrl = ext_regs.ppuctrl.raw;
         // p_ppumask = ext_regs.ppumask.raw;
         // p_ppustatus = ext_regs.ppustatus.raw;
-    }
+}
 #endif
 
 }
