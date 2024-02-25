@@ -26,28 +26,19 @@ namespace roee_nes {
         if (0 <= addr && addr <= 0x1fff)
             mapper->ppu_write(addr, data);
         else if (0x2000 <= addr && addr <= 0x3eff) {
-            addr %= 0x1000; // removing nametable mirroring
-            if (mapper->Get_mirroring() == 'H') {
-                if (0 <= addr && addr <= 0x800)
-                    nt_vram[0][addr % 0x400] = data;
-                else
-                    nt_vram[1][addr % 0x400] = data;
-            } else if (mapper->Get_mirroring() == 'V') {
-                if ((0 <= addr && addr < 0x400) || (0x800 <= addr && addr < 0x2c00))
-                    nt_vram[0][addr % 0x400] = data;
-                else
-                    nt_vram[1][addr % 0x400] = data;
-            }
+            addr %= 0x1000;
+            addr = mapper->get_nt_mirrored_addr(addr);
+
+            nt_vram[addr] = data;
         } else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20; // the actual size of the palette is 0x20
 
             if (came_from_cpu) {
                 if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
                     addr -= 0x10;
-            }
-            else 
-            if ((addr & 0b11) == 0)
-                addr = 0;
+            } else
+                if ((addr & 0b11) == 0)
+                    addr = 0;
 
             palette_vram[addr] = data;
         }
@@ -58,27 +49,17 @@ namespace roee_nes {
             return mapper->ppu_read(addr); // pattern table
         else if (0x2000 <= addr && addr <= 0x3eff) {
             addr %= 0x1000;
+            addr = mapper->get_nt_mirrored_addr(addr);
 
-            if (mapper->Get_mirroring() == 'H') {
-                if (0 <= addr && addr <= 0x800)
-                    return nt_vram[0][addr % 0x400];
-                else
-                    return nt_vram[1][addr % 0x400];
-            } else if (mapper->Get_mirroring() == 'V') {
-                if ((0 <= addr && addr < 0x400) || (0x800 <= addr && addr < 0x2c00))
-                    return nt_vram[0][addr % 0x400];
-                else
-                    return nt_vram[1][addr % 0x400];
-            }
+            return nt_vram[addr];
         } else if (0x3f00 <= addr && addr <= 0x3fff) {
             addr %= 0x20; // the actual size of the palette is 0x20
             if (came_from_cpu) {
                 if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
                     addr -= 0x10;
-            } 
-            else 
-            if ((addr & 0b11) == 0)
-                addr = 0;
+            } else
+                if ((addr & 0b11) == 0)
+                    addr = 0;
 
             if (ppu->ext_regs.ppumask.comp.grayscale)
                 return palette_vram[addr] & 0x30;
@@ -356,8 +337,8 @@ namespace roee_nes {
             if (error_found == true) {
                 std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
                 return;
-            }
-        }
+    }
+}
 
         std::cout << "all goodie!" << "\n";
     }

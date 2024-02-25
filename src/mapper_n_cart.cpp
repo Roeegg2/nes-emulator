@@ -78,4 +78,16 @@ namespace roee_nes {
         chr_rom.resize(header.chr_rom_size * 8 * KILOBYTE);
         rom_file.read((char*)chr_rom.data(), chr_rom.size());
     }
+
+    uint16_t Mapper::get_nt_mirrored_addr(uint16_t addr) {
+        if (cart->header.flag_6.parsed.nt_layout == 1) { // vertical mirroring
+            return addr % 0x800;
+        }
+        else {
+            if (addr >= 0x800)
+                return (addr % 0x400) + 0x400;
+            else
+                return addr % 0x400;             
+        }
+    }
 }
