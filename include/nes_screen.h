@@ -42,7 +42,7 @@ namespace roee_nes {
 
     class NES_Screen {
         public:
-        NES_Screen(Controller* controller1, Controller* controller2);
+        NES_Screen(Controller* controller_1, Controller* controller_2);
         ~NES_Screen();
 
         void draw_pixel_line(const struct Pixel* render_pixel, const int32_t scanline, const int32_t x_pos) const;
@@ -53,17 +53,18 @@ namespace roee_nes {
         SDL_Window* window;
         SDL_Renderer* renderer;
         SDL_Event event;
-        SDL_Joystick* sdl_controller1;
-        SDL_Joystick* sdl_controller2;
+        SDL_Joystick* sdl_joystick_1;
+        SDL_Joystick* sdl_joystick_2;
 
-        Controller* controller1;
-        Controller* controller2;
+        Controller* controller_1;
+        Controller* controller_2;
 
         private:
-        void process_joypad_pressed_buttons(Controller* controller);
-        void process_joypad_released_buttons(Controller* controller);
-        void process_joypad_dpad_axis_motion(Controller* controller);
-        void process_joypad_dpad_hat_motion(Controller* controller);
+        Controller* get_controller_pressed();
+        void process_joypad_pressed_buttons();
+        void process_joypad_released_buttons();
+        void process_joypad_dpad_axis_motion();
+        void process_joypad_dpad_hat_motion();
         void process_keyboard_released();
         void process_keyboard_pressed();
         void process_joypad_added();

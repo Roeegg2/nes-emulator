@@ -33,10 +33,10 @@ int main() {
     const std::string rom_path = "roms/SMB1.nes";
     const std::string palette_path = "ntscpalette.pal";
 
-    Controller* controller1 = new Controller();
-    Controller* controller2 = new Controller();
-    NES_Screen* screen = new NES_Screen(controller1, controller2);
-    Bus* bus = new Bus(Mapper::create_mapper(&rom_path), controller1, controller2, &palette_path);
+    Controller* controller_1 = new Controller();
+    Controller* controller_2 = new Controller();
+    NES_Screen* screen = new NES_Screen(controller_1, controller_2);
+    Bus* bus = new Bus(Mapper::create_mapper(&rom_path), controller_1, controller_2, &palette_path);
     CPU* cpu = new CPU(bus);
     PPU* ppu = new PPU(bus, screen);
     bus->cpu = cpu;

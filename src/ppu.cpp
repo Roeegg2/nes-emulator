@@ -195,7 +195,6 @@ namespace roee_nes {
     }
 
     void PPU::fill_sprites_render_data() {
-        static bool in_range;
         if (sec_oam_cnt >= 8)
             return;
 
@@ -203,23 +202,18 @@ namespace roee_nes {
         switch ((curr_cycle) % 8) {
             case Y_BYTE_0: // case this is 1
                 sprites[sec_oam_cnt].y = secondary_oam[(4 * sec_oam_cnt) + 0];
-                in_range = (0 <= Y_DIFF && Y_DIFF <= 7) || ((ext_regs.ppuctrl.comp.sprite_size == 1) && (0 <= Y_DIFF) && (Y_DIFF <= 15));
                 break;
             case TILE_BYTE_1: // case this is 2
-                if (in_range)
-                    sprites[sec_oam_cnt].tile = secondary_oam[(4 * sec_oam_cnt) + 1];
+                sprites[sec_oam_cnt].tile = secondary_oam[(4 * sec_oam_cnt) + 1];
                 break;
             case AT_BYTE_2: // case this is 3
-                if (in_range)
-                    sprites[sec_oam_cnt].at = secondary_oam[(4 * sec_oam_cnt) + 2];
+                sprites[sec_oam_cnt].at = secondary_oam[(4 * sec_oam_cnt) + 2];
                 break;
             case X_BYTE_3: // case this is 4
-                if (in_range)
-                    sprites[sec_oam_cnt].x = secondary_oam[(4 * sec_oam_cnt) + 3];
+                sprites[sec_oam_cnt].x = secondary_oam[(4 * sec_oam_cnt) + 3];
                 break;
             case FILL_BUFFER: // case this is 5
-                if (in_range)
-                    fill_sprite_pixels(sec_oam_cnt);
+                fill_sprite_pixels(sec_oam_cnt);
                 sec_oam_cnt = (sec_oam_cnt - 1);
                 break;
             default: // if its 6,7,0
@@ -299,6 +293,7 @@ namespace roee_nes {
         uint16_t addr = priority; // bits 3,13 setting msb/lsb (13 is constant 0 for now)
         uint8_t tile = sprite.tile;
         int32_t y_diff = curr_scanline - sprite.y;
+
         if (ext_regs.ppuctrl.comp.sprite_size) { // if this is a 8x16 sprite
             addr |= ((((uint16_t)sprite.tile) & 0b0000'0001) << 12); // bit 12 
 
@@ -366,7 +361,7 @@ namespace roee_nes {
                 && ((bg_palette_index % 4) != 0)
                 ) {
 
-                if (((0 <= (curr_cycle - 1)) && ((curr_cycle - 1) <= 7)) && ((!ext_regs.ppumask.comp.fg_leftmost) && (!ext_regs.ppumask.comp.bg_leftmost)))
+                if (((0 <= (curr_cycle - 1)) && ((curr_cycle - 1) <= 7)) && ((!ext_regs.ppumask.comp.fg_leftmost) && (!ext_regs.ppumask.comp.bg_leftmost))) // if we are on the left and clipping is disabled
                     goto render; // dont check for sprite 0 hit
 
                 ext_regs.ppustatus.comp.sprite_0_hit = 1;

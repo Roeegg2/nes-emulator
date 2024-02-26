@@ -2,10 +2,10 @@
 #include <bitset>
 
 namespace roee_nes {
-    Bus::Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path) {
+    Bus::Bus(Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string* palette_path) {
         this->mapper = mapper;
-        this->controller1 = controller1;
-        this->controller2 = controller2;
+        this->controller_1 = controller_1;
+        this->controller_2 = controller_2;
         init_palette(palette_path);
     }
 
@@ -156,10 +156,10 @@ namespace roee_nes {
                     ppu->primary_oam[i] = ram[start_addr + i];
                 }
             }
-        } else if (addr == 0x4016)
-            controller1->write(data);
-        else if (addr == 0x4017)
-            controller2->write(data);
+        } else if (addr == 0x4016) {
+            controller_1->write(data);
+            controller_2->write(data);
+        }
         else if (0x4018 <= addr && addr <= 0x401f)
             return; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
@@ -167,16 +167,21 @@ namespace roee_nes {
     }
 
     uint8_t Bus::cpu_read(uint16_t addr) {
+        static std::ofstream c("logs/controller.log");
         if (0 <= addr && addr <= 0x1fff)
             return ram[addr % 0x800];
         else if (0x2000 <= addr && addr <= 0x3fff)
             return cpu_read_ppu(addr % 8);
         else if (0x4000 <= addr && addr <= 0x4015)
             return 0; // didnt implement yet
-        else if (addr == 0x4016)
-            return controller1->read();
-        else if (addr == 0x4017)
-            return controller2->read();
+        else if (addr == 0x4016) {
+            return controller_1->read();
+        }
+        else if (addr == 0x4017) {
+            // c << "before:" << std::bitset<8>(controller_2->read()) << "\n";
+            return controller_2->read();
+            // c << "after:" << std::bitset<8>(controller_2->read()) << "\n";
+        }
         else if (0x4018 <= addr && addr <= 0x401f)
             return 0; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)

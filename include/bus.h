@@ -43,13 +43,13 @@ namespace roee_nes {
         Mapper* mapper;
         PPU* ppu;
         CPU* cpu;
-        Controller* controller1;
-        Controller* controller2;
+        Controller* controller_1;
+        Controller* controller_2;
         
         uint8_t ppu_stupid_buffer;
         uint16_t cpu_sleep_dma_counter;
     public:
-        Bus(Mapper* mapper, Controller* controller1, Controller* controller2, const std::string* palette_path);
+        Bus(Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string* palette_path);
         uint8_t cpu_read(uint16_t addr);
         void cpu_write(uint16_t addr, uint8_t data);
         uint8_t ppu_read(uint16_t addr, bool came_from_cpu = false);

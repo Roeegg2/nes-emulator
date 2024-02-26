@@ -2,18 +2,18 @@
 
 namespace roee_nes {
 
-    NES_Screen::NES_Screen(Controller* controller1, Controller* controller2) {
-        this->controller1 = controller1;
-        this->controller2 = controller2;
-        sdl_controller1 = NULL;
-        sdl_controller2 = NULL;
+    NES_Screen::NES_Screen(Controller* controller_1, Controller* controller_2) {
+        this->controller_1 = controller_1;
+        this->controller_2 = controller_2;
+        sdl_joystick_1 = NULL;
+        sdl_joystick_2 = NULL;
 
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK) < 0) {
             std::cerr << "ERROR: SDL could not initialize; SDL_Error: " << SDL_GetError() << "\n";
             exit(1);
         }
 
-        window = SDL_CreateWindow("NES Emulator",
+        window = SDL_CreateWindow("Roee NES Emulator",
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             SCREEN_WIDTH * SCALE, SCREEN_HEIGHT * SCALE, 0);
@@ -57,16 +57,16 @@ namespace roee_nes {
                 process_joypad_removed();
                 break;
             case SDL_JOYBUTTONDOWN:
-                process_joypad_pressed_buttons(controller1);
+                process_joypad_pressed_buttons();
                 break;
             case SDL_JOYBUTTONUP:
-                process_joypad_released_buttons(controller1);
+                process_joypad_released_buttons();
                 break;
             case SDL_JOYAXISMOTION:
-                process_joypad_dpad_axis_motion(controller1);
+                process_joypad_dpad_axis_motion();
                 break;
             case SDL_JOYHATMOTION:
-                process_joypad_dpad_hat_motion(controller1);
+                process_joypad_dpad_hat_motion();
                 break;
             case SDL_KEYDOWN:
                 process_keyboard_pressed();
@@ -77,7 +77,17 @@ namespace roee_nes {
         }
     }
 
-    void NES_Screen::process_joypad_pressed_buttons(Controller* controller) {
+    Controller* NES_Screen::get_controller_pressed() {
+        if (SDL_JoystickInstanceID(sdl_joystick_1) == event.jbutton.which)
+            return controller_1;
+        else{
+            return controller_2;
+        }
+    }
+    
+    void NES_Screen::process_joypad_pressed_buttons() {
+        Controller* controller = get_controller_pressed();
+
         if (event.jbutton.button == 1) // a
             controller->buttons.comp.a = 1;
         if (event.jbutton.button == 0) // b
@@ -88,7 +98,9 @@ namespace roee_nes {
             controller->buttons.comp.start = 1;
     }
 
-    void NES_Screen::process_joypad_released_buttons(Controller* controller) {
+    void NES_Screen::process_joypad_released_buttons() {
+        Controller* controller = get_controller_pressed();
+
         if (event.jbutton.button == 1) // a
             controller->buttons.comp.a = 0;
         if (event.jbutton.button == 0) // b
@@ -100,7 +112,9 @@ namespace roee_nes {
 
     }
 
-    void NES_Screen::process_joypad_dpad_hat_motion(Controller* controller) {
+    void NES_Screen::process_joypad_dpad_hat_motion() {
+        Controller* controller = get_controller_pressed();
+
         if (event.jhat.value & SDL_HAT_LEFT)
             controller->buttons.comp.left = 1; // left
         else if (event.jhat.value & SDL_HAT_RIGHT)
@@ -118,11 +132,14 @@ namespace roee_nes {
         }
     }
 
-    void NES_Screen::process_joypad_dpad_axis_motion(Controller* controller) {
+    void NES_Screen::process_joypad_dpad_axis_motion() {
+        Controller* controller = get_controller_pressed();
+
         if (event.type == SDL_JOYAXISMOTION) {
             // Check the axis number and value
             switch (event.jaxis.axis) {
                 case 0: // X-axis
+                    // std::cout << "X-axis\n";
                     if (event.jaxis.value < -16000) {
                         controller->buttons.comp.left = 1;
                         controller->buttons.comp.right = 0;
@@ -146,65 +163,67 @@ namespace roee_nes {
                         controller->buttons.comp.down = 0;
                     }
                     break;
-                    // Add cases for additional axes if needed
             }
         }
     }
+
     void NES_Screen::process_keyboard_pressed() {
         if (event.key.keysym.sym == SDLK_e) // a
-            controller1->buttons.comp.a = 1;
+            controller_1->buttons.comp.a = 1;
         if (event.key.keysym.sym == SDLK_q) // b
-            controller1->buttons.comp.b = 1;
+            controller_1->buttons.comp.b = 1;
         if (event.key.keysym.sym == SDLK_SPACE) // select
-            controller1->buttons.comp.select = 1;
+            controller_1->buttons.comp.select = 1;
         if (event.key.keysym.sym == SDLK_RETURN) // start
-            controller1->buttons.comp.start = 1;
+            controller_1->buttons.comp.start = 1;
         if (event.key.keysym.sym == SDLK_w) // up
-            controller1->buttons.comp.up = 1;
+            controller_1->buttons.comp.up = 1;
         if (event.key.keysym.sym == SDLK_s) // down
-            controller1->buttons.comp.down = 1;
+            controller_1->buttons.comp.down = 1;
         if (event.key.keysym.sym == SDLK_a) // left
-            controller1->buttons.comp.left = 1;
+            controller_1->buttons.comp.left = 1;
         if (event.key.keysym.sym == SDLK_d) // right
-            controller1->buttons.comp.right = 1;
+            controller_1->buttons.comp.right = 1;
     }
 
     void NES_Screen::process_keyboard_released() {
         if (event.key.keysym.sym == SDLK_e) // a
-            controller1->buttons.comp.a = 0;
+            controller_1->buttons.comp.a = 0;
         if (event.key.keysym.sym == SDLK_q) // b
-            controller1->buttons.comp.b = 0;
+            controller_1->buttons.comp.b = 0;
         if (event.key.keysym.sym == SDLK_SPACE) // select
-            controller1->buttons.comp.select = 0;
+            controller_1->buttons.comp.select = 0;
         if (event.key.keysym.sym == SDLK_RETURN) // start
-            controller1->buttons.comp.start = 0;
+            controller_1->buttons.comp.start = 0;
         if (event.key.keysym.sym == SDLK_w) // up
-            controller1->buttons.comp.up = 0;
+            controller_1->buttons.comp.up = 0;
         if (event.key.keysym.sym == SDLK_s) // down
-            controller1->buttons.comp.down = 0;
+            controller_1->buttons.comp.down = 0;
         if (event.key.keysym.sym == SDLK_a) // left
-            controller1->buttons.comp.left = 0;
+            controller_1->buttons.comp.left = 0;
         if (event.key.keysym.sym == SDLK_d) // right
-            controller1->buttons.comp.right = 0;
+            controller_1->buttons.comp.right = 0;
     }
 
     void NES_Screen::process_joypad_added() {
-        if (sdl_controller1 == NULL) {
-            sdl_controller1 = SDL_JoystickOpen(event.jdevice.which);
+        if (sdl_joystick_1 == NULL) {
+            sdl_joystick_1 = SDL_JoystickOpen(event.jdevice.which);
             std::cout << "USER INFO: Controller 1 connected\n";
-        } else if (sdl_controller2 == NULL) {
-            sdl_controller2 = SDL_JoystickOpen(event.jdevice.which);
+        } else if (sdl_joystick_2 == NULL) {
+            sdl_joystick_2 = SDL_JoystickOpen(event.jdevice.which);
             std::cout << "USER INFO: Controller 2 connected\n";
         }
     }
 
     void NES_Screen::process_joypad_removed() {
         SDL_Joystick* removed = SDL_JoystickFromInstanceID(event.jdevice.which);
-        if (removed == sdl_controller1) {
+        if (removed == sdl_joystick_1) {
             SDL_JoystickClose(removed);
+            sdl_joystick_1 = NULL;
             std::cout << "USER INFO: Controller 1 disconnected\n";
-        } else if (removed == sdl_controller2) {
+        } else if (removed == sdl_joystick_2) {
             SDL_JoystickClose(removed);
+            sdl_joystick_2 = NULL;
             std::cout << "USER INFO: Controller 2 disconnected\n";
         }
     }
