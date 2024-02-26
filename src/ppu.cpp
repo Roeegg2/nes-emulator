@@ -5,7 +5,7 @@ namespace roee_nes {
         // write the initilizer list in order please
         : v({ 0 }), t({ 0 }), x(0), w(0), bg_regs({ 0 }), ext_regs({ 0 }), oamdma(0), curr_scanline(0), curr_cycle(0),
         nmi(0), frame_oddness(0), frame_counter(0), sprite_rendering_stage(SPRITE_EVAL),
-        data_render_buffer({ 0 }), sprites({ 0 }), primary_oam({ 0 }), secondary_oam({ 0 }), pri_oam_cnt(0), sec_oam_cnt(0)
+        render_pixel({ 0 }), sprites({ 0 }), primary_oam({ 0 }), secondary_oam({ 0 }), pri_oam_cnt(0), sec_oam_cnt(0)
         // NOTE: not sure about these yet!
     {
         this->bus = bus;
@@ -71,7 +71,6 @@ namespace roee_nes {
             ext_regs.ppustatus.raw &= 0b0001'1111; // clearing vblank, sprite 0 hit, and sprite overflow flag
         }
 
-
         if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
             v.scroll_view.coarse_y = t.scroll_view.coarse_y;
             v.scroll_view.nt = (v.scroll_view.nt & 0b01) | (t.scroll_view.nt & 0b10);
@@ -88,6 +87,8 @@ namespace roee_nes {
 
         if ((1 <= curr_cycle) && (curr_cycle <= 256)) {
             add_render_pixel(); // get bg pixel color; get sprite pixel color; decide which pixel to add to render line
+            screen->draw_pixel_line(&render_pixel, curr_scanline, curr_cycle - 1);
+
             if (65 <= curr_cycle) { // sprite evaluation 
                 if ((ext_regs.ppumask.raw & 0b0001'1000)) { // if either sprites or background rendering is enabled
                     switch (sprite_rendering_stage) {
@@ -119,9 +120,6 @@ namespace roee_nes {
 
         if ((257 <= curr_cycle) && (curr_cycle <= 320))
             fill_sprites_render_data();
-        else if (curr_cycle == 321) {
-            screen->draw_pixel_line(&data_render_buffer, curr_scanline);
-        }
 
         shared_visible_prerender_scanline();
     }
@@ -303,24 +301,30 @@ namespace roee_nes {
         if (ext_regs.ppuctrl.comp.sprite_size) { // if this is a 8x16 sprite
             addr |= ((((uint16_t)sprite.tile) & 0b0000'0001) << 12); // bit 12 
 
-            if ((0 <= y_diff) && (y_diff <= 7)) {
-                tile = (sprite.tile & 0b1111'1110);
-            } else if ((8 <= y_diff) && (y_diff <= 15)) { 
-                tile = (sprite.tile & 0b1111'1110) + 1;
+            if (sprite.at & 0b1000'0000) {
+                if ((8 <= y_diff) && (y_diff <= 15))
+                    tile = (sprite.tile & 0b1111'1110);
+                else if ((0 <= y_diff) && (y_diff <= 7))
+                    tile = (sprite.tile & 0b1111'1110) + 1;
+            } else {
+                if ((0 <= y_diff) && (y_diff <= 7))
+                    tile = (sprite.tile & 0b1111'1110);
+                else if ((8 <= y_diff) && (y_diff <= 15))
+                    tile = (sprite.tile & 0b1111'1110) + 1;
             }
 
-            addr |= y_diff & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
+            // addr |= y_diff & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
         } else { // if this is a 8x8 sprite
             addr |= ((ext_regs.ppuctrl.raw & 0b0000'1000) << 9); // bit 12 
-
-            if (sprite.at & 0b1000'0000) // NOTE ONLY FOR 8x8!
-                addr |= (7 - y_diff) & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
-            else
-                addr |= y_diff & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
         }
 
+        if (sprite.at & 0b1000'0000) // NOTE ONLY FOR 8x8!
+            addr |= (7 - y_diff) & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
+        else
+            addr |= y_diff & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
+
         addr |= (((uint16_t)tile) << 4); // bits 4,5,6,7,8,9,10,11 setting the tile to select from
-        
+
         return bus->ppu_read(addr);
     }
 
@@ -364,9 +368,15 @@ namespace roee_nes {
                 && ((sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x] % 0x4) != 0)
                 && ((bg_palette_index % 4) != 0)
                 ) {
+
+                if (((0 <= (curr_cycle - 1)) && ((curr_cycle - 1) <= 7)) && ((!ext_regs.ppumask.comp.fg_leftmost) && (!ext_regs.ppumask.comp.bg_leftmost)))
+                    goto render; // dont check for sprite 0 hit
+
                 ext_regs.ppustatus.comp.sprite_0_hit = 1;
+                // std::cout << "sprite 0 hit at cycle: " << (int)curr_cycle << " scanline: " << (int)curr_scanline << "\n";
             }
 
+        render:
             if (
                 ((sprites[it->second].at & 0b0010'0000) == 0) &&
                 (((sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x] % 0x4) != 0)))
@@ -387,9 +397,9 @@ namespace roee_nes {
         //     return;
         // }
         uint8_t color_index = bus->ppu_read(0x3f00 + base + palette_index);
-        data_render_buffer[curr_cycle - 1].r = bus->color_palette[(color_index * 3) + 0];
-        data_render_buffer[curr_cycle - 1].g = bus->color_palette[(color_index * 3) + 1];
-        data_render_buffer[curr_cycle - 1].b = bus->color_palette[(color_index * 3) + 2];
+        render_pixel.r = bus->color_palette[(color_index * 3) + 0];
+        render_pixel.g = bus->color_palette[(color_index * 3) + 1];
+        render_pixel.b = bus->color_palette[(color_index * 3) + 2];
     }
 
     uint8_t PPU::fetch_bg_pt_byte(uint8_t byte_significance) {

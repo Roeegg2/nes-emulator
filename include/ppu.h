@@ -194,7 +194,8 @@ namespace roee_nes {
 
         uint8_t sprite_rendering_stage;
 
-        std::array<struct Pixel, 256> data_render_buffer;
+        // std::array<struct Pixel, 256> data_render_buffer;
+        struct Pixel render_pixel;
         std::array<struct Sprite, 8> sprites;
         std::unordered_map<uint8_t, uint8_t> x_to_sprite_map;
         std::array<uint8_t, 256> primary_oam;

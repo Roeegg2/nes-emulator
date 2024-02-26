@@ -35,7 +35,7 @@ namespace roee_nes {
         fetch_decode_inst();
         (this->*inst->exec)();
         // sleep?
-        // std::this_thread::sleep_for(std::chrono::nanoseconds(200));
+        // std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 
         return inst->cycles;
     }

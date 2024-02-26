@@ -45,7 +45,7 @@ namespace roee_nes {
         NES_Screen(Controller* controller1, Controller* controller2);
         ~NES_Screen();
 
-        void draw_pixel_line(std::array<struct Pixel, 256>* data_render_buffer, int32_t scanline);
+        void draw_pixel_line(const struct Pixel* render_pixel, const int32_t scanline, const int32_t x_pos) const;
         void update_screen() const;
         void handle_events();
 

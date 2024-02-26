@@ -32,11 +32,10 @@ namespace roee_nes {
         SDL_Quit();
     }
 
-    void NES_Screen::draw_pixel_line(std::array<struct Pixel, 256>* data_render_buffer, int32_t scanline) {
-        for (int i = 0; i < 256; i++) {
-            SDL_SetRenderDrawColor(renderer, (*data_render_buffer)[i].r, (*data_render_buffer)[i].g, (*data_render_buffer)[i].b, 255);
-            SDL_RenderDrawPoint(renderer, i, scanline);
-        }
+    void NES_Screen::draw_pixel_line(const struct Pixel* render_pixel, const int32_t scanline, const int32_t x_pos) const {
+        SDL_SetRenderDrawColor(renderer, render_pixel->r, render_pixel->g, render_pixel->b, 255);
+        SDL_RenderDrawPoint(renderer, x_pos, scanline);
+
     }
 
     void NES_Screen::update_screen() const {
@@ -130,8 +129,7 @@ namespace roee_nes {
                     } else if (event.jaxis.value > 16000) {
                         controller->buttons.comp.right = 1;
                         controller->buttons.comp.left = 0;
-                    }
-                    else {
+                    } else {
                         controller->buttons.comp.left = 0;
                         controller->buttons.comp.right = 0;
                     }
@@ -139,12 +137,11 @@ namespace roee_nes {
                 case 1: // Y-axis
                     if (event.jaxis.value < -16000) {
                         controller->buttons.comp.up = 1;
-                        controller->buttons.comp.down = 0;  
+                        controller->buttons.comp.down = 0;
                     } else if (event.jaxis.value > 16000) {
-                        controller->buttons.comp.down = 1; 
-                        controller->buttons.comp.up = 0; 
-                    }
-                    else {
+                        controller->buttons.comp.down = 1;
+                        controller->buttons.comp.up = 0;
+                    } else {
                         controller->buttons.comp.up = 0;
                         controller->buttons.comp.down = 0;
                     }

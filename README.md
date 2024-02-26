@@ -1,6 +1,7 @@
 # nes-emulator
 
-a simple NES emulator written in C++
+a simple NES emulator written in C++, _currently_ for Linux systems.
+Might work on other operating systems, havent checked.
 
 
 ## Before building

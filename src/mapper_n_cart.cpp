@@ -20,7 +20,7 @@ namespace roee_nes {
                 std::cout << "USER INFO: Game mapper is CNROM (iNES 3)\n";
                 return new CNROM_3(cart);
             default:
-                std::cerr << "ERROR: Mapper number " << std::dec << (int)mapper_number << "not implemented yet\n";
+                std::cerr << "ERROR: Mapper number " << std::dec << (int)mapper_number << " not implemented yet\n";
                 exit(1);
         }
     }
@@ -83,7 +83,7 @@ namespace roee_nes {
         if (cart->header.flag_6.parsed.nt_layout == 1) { // vertical mirroring
             return addr % 0x800;
         }
-        else {
+        else { // horizontal mirroring
             if (addr >= 0x800)
                 return (addr % 0x400) + 0x400;
             else
