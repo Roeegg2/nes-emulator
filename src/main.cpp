@@ -30,7 +30,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus, NES_Screen* screen, uint8_t
 }
 
 int main() {
-    const std::string rom_path = "roms/GALAGA.nes";
+    const std::string rom_path = "roms/SMB1.nes";
     const std::string palette_path = "PVM Style D93 (FBX).pal";
 
     Controller* controller1 = new Controller();

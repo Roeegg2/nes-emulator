@@ -8,7 +8,7 @@
 #include "bus.h"
 #include "nes_screen.h"
 
-#define INDEX_OAM_AT(n, m) ((4*n) + m)
+#define Y_DIFF curr_scanline - sprites[sec_oam_cnt].y
 namespace roee_nes {
     constexpr uint8_t PT_MSB = 0b0000'1000;
     constexpr uint8_t PT_LSB = 0b0000'0000;
