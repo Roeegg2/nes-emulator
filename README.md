@@ -35,4 +35,4 @@ this is for simplicity, and being able to use the same mechanism used for the pa
 
 ## Final words
 
-If you are interested in emulation development of the NES, go check out my [https://roeegg2.github.io/nes-internals-blog] (NES internals blog)! I give try to give a there a simple introduction to it's architecture (at emulation level, I do not go in depth into the electronics).
+If you are interested in emulation development of the NES, go check out my [NES internals blog!](https://roeegg2.github.io/nes-internals-blog) I give try to give a there a simple introduction to it's architecture (at emulation level, I do not go in depth into the electronics).
