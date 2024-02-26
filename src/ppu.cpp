@@ -145,7 +145,7 @@ namespace roee_nes {
 
     void PPU::sprite_overflow_check() {
         static uint8_t m = 0;
-        uint8_t y = primary_oam[(4 * pri_oam_cnt) + m];
+        uint8_t y = primary_oam[(4 * pri_oam_cnt) + m]; // get y of the new sprite
         if ((0 <= (curr_scanline - y)) && ((curr_scanline - y) <= 7)) {
             ext_regs.ppustatus.raw |= 0b0010'0000;
             sprite_rendering_stage = BROKEN_READ;
@@ -158,7 +158,7 @@ namespace roee_nes {
                 pri_oam_cnt++;
             }
         }
-        if (pri_oam_cnt == 64)
+        if (pri_oam_cnt == 64) // if all sprites evaluated, goto broken read section
             sprite_rendering_stage = BROKEN_READ;
     }
 
