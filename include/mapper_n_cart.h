@@ -87,9 +87,7 @@ namespace roee_nes {
         virtual uint8_t ppu_read(uint16_t addr) = 0;
         virtual void ppu_write(uint16_t addr, uint8_t data) = 0;
         
-        uint16_t get_nt_mirrored_addr(uint16_t addr);
-
-        inline char Get_mirroring() { return (cart->header.flag_6.parsed.nt_layout == 1) ? 'V' : 'H'; } // NOTE: might need to rewrite this when implementing more mappers
+        virtual uint16_t get_nt_mirrored_addr(uint16_t addr);
 
         protected:
         Cartridge* cart;

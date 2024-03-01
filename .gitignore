@@ -3,3 +3,6 @@ roms
 logs
 .vscode
 bin
+
+src/mappers/mmc3*
+include/mappers/mmc3*

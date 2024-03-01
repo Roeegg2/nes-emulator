@@ -57,7 +57,7 @@ namespace roee_nes {
         }
 
         if (header.flag_6.parsed.prg_ram == 1) { // if there is prg ram
-            if (header.flag_8.prg_ram_size == 0)
+            if (header.flag_8.prg_ram_size == 0) // size 0 means 8kb
                 prg_ram.resize(8 * KILOBYTE);
             else
                 prg_ram.resize(header.flag_8.prg_ram_size * 8 * KILOBYTE);

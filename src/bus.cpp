@@ -36,8 +36,7 @@ namespace roee_nes {
             if (came_from_cpu) {
                 if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
                     addr -= 0x10;
-            } else
-                if ((addr & 0b11) == 0)
+            } else if ((addr & 0b11) == 0)
                     addr = 0;
 
             palette_vram[addr] = data;
