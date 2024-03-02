@@ -42,7 +42,7 @@ namespace roee_nes {
         struct {
             uint8_t bank : 4;
             uint8_t ext : 1;
-            uint8_t : 3;
+            uint8_t last_bank : 4;
         } prg_bank;
 
     };

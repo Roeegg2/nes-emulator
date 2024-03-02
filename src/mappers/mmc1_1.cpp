@@ -13,12 +13,15 @@ namespace roee_nes {
             chr_read_mem = &cart->chr_rom;
         }
 
-        last_prg_rom_bank = cart->chr_rom.size() - (16 * KILOBYTE);
+        // last_prg_rom_bank = cart->chr_rom.size() - (16 * KILOBYTE);
+        prg_bank.last_bank = (cart->prg_rom.size() / (32 * KILOBYTE)) - 1;
+        std::cout << "this is prg rom size: " << std::dec << (int)cart->prg_rom.size() << "\n";
+        std::cout << "this is last bank: " << std::dec << (int)prg_bank.last_bank << "\n";
     }
 
     void MMC1_1::cpu_write(uint16_t addr, uint8_t data) {
         if ((0x6000 <= addr) && (addr <= 0x7fff)) {
-            std::cout << "exit!\n";
+            // std::cout << "exit!\n";
             return;
         }
         if (data & 0b1000'0000) {
@@ -52,7 +55,7 @@ namespace roee_nes {
 
     uint8_t MMC1_1::cpu_read(uint16_t addr) {
         if ((0x6000 <= addr) && (addr <= 0x7fff)) {
-            std::cout << "exit!!!\n";
+            // std::cout << "exit!!!\n";
             return 0;
         }
 
@@ -68,8 +71,10 @@ namespace roee_nes {
             case 3:
                 if ((0x8000 <= addr) && (addr <= 0xbfff))
                     return cart->prg_rom[(prg_bank.bank * 16 * KILOBYTE) + (addr % 0x8000)];
-                else // addr is 0xc000 and over
-                    return cart->prg_rom[last_prg_rom_bank + (addr % 0x8000)]; // get last bank
+                else { // addr is 0xc000 and over
+                    // std::cout << "this is the last bank: " << std::hex << (int)(prg_bank.last_bank * 16 * KILOBYTE) << "\n";
+                    return cart->prg_rom[(prg_bank.last_bank * 32 * KILOBYTE) + (addr % 0x8000)]; // get last bank
+                } 
         }
     }
 
