@@ -16,6 +16,7 @@ namespace roee_nes {
         friend class NROM_0;
         friend class CNROM_3;
         friend class UNROM_2;
+        friend class MMC1_1;
         public:
         Cartridge(const std::string* rom_path);
 

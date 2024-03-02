@@ -30,7 +30,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus, NES_Screen* screen, uint8_t
 }
 
 int main() {
-    const std::string rom_path = "roms/PACMAN.nes";
+    const std::string rom_path = "roms/TETRIS.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller_1 = new Controller();
@@ -42,12 +42,16 @@ int main() {
     bus->cpu = cpu;
     bus->ppu = ppu;
 
+
     ppu->reset();
     cpu->reset();
 
     uint8_t val = 0;
     while (1) {
         emulator_tick(cpu, ppu, bus, screen, val);
+#ifdef DEBUG        
+        bus->full_log();
+#endif
         val++;
     }
 

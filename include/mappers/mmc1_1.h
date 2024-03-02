@@ -19,6 +19,8 @@ namespace roee_nes {
         void reset();
 
         private:
+        bool using_chr_ram;
+        std::vector<uint8_t>* chr_read_mem;
         uint8_t shift;
         uint8_t load; // NOTE not sure i need this reg
 
@@ -37,7 +39,11 @@ namespace roee_nes {
             uint8_t bank_1 : 4;
         } chr_bank;
 
-        uint8_t prg_bank;
+        struct {
+            uint8_t bank : 4;
+            uint8_t ext : 1;
+            uint8_t : 3;
+        } prg_bank;
 
     };
 }

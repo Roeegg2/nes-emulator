@@ -23,9 +23,10 @@ namespace roee_nes {
     }
 
     void Bus::ppu_write(uint16_t addr, uint8_t data, bool came_from_cpu) {
-        if (0 <= addr && addr <= 0x1fff)
+        if (0 <= addr && addr <= 0x1fff) {
+            std::cout << "here\n";
             mapper->ppu_write(addr, data);
-        else if (0x2000 <= addr && addr <= 0x3eff) {
+        } else if (0x2000 <= addr && addr <= 0x3eff) {
             addr %= 0x1000;
             addr = mapper->get_nt_mirrored_addr(addr);
 
@@ -37,16 +38,16 @@ namespace roee_nes {
                 if ((addr == 0x10) || (addr == 0x14) || (addr == 0x18) || (addr == 0x1c))
                     addr -= 0x10;
             } else if ((addr & 0b11) == 0)
-                    addr = 0;
+                addr = 0;
 
             palette_vram[addr] = data;
         }
     }
 
     uint8_t Bus::ppu_read(uint16_t addr, bool came_from_cpu) {
-        if (0 <= addr && addr <= 0x1fff)
+        if (0 <= addr && addr <= 0x1fff) {
             return mapper->ppu_read(addr); // pattern table
-        else if (0x2000 <= addr && addr <= 0x3eff) {
+        } else if (0x2000 <= addr && addr <= 0x3eff) {
             addr %= 0x1000;
             addr = mapper->get_nt_mirrored_addr(addr);
 
@@ -158,15 +159,13 @@ namespace roee_nes {
         } else if (addr == 0x4016) {
             controller_1->write(data);
             controller_2->write(data);
-        }
-        else if (0x4018 <= addr && addr <= 0x401f)
+        } else if (0x4018 <= addr && addr <= 0x401f)
             return; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
             mapper->cpu_write(addr, data);
     }
 
     uint8_t Bus::cpu_read(uint16_t addr) {
-        static std::ofstream c("logs/controller.log");
         if (0 <= addr && addr <= 0x1fff)
             return ram[addr % 0x800];
         else if (0x2000 <= addr && addr <= 0x3fff)
@@ -175,13 +174,9 @@ namespace roee_nes {
             return 0; // didnt implement yet
         else if (addr == 0x4016) {
             return controller_1->read();
-        }
-        else if (addr == 0x4017) {
-            // c << "before:" << std::bitset<8>(controller_2->read()) << "\n";
+        } else if (addr == 0x4017) {
             return controller_2->read();
-            // c << "after:" << std::bitset<8>(controller_2->read()) << "\n";
-        }
-        else if (0x4018 <= addr && addr <= 0x401f)
+        } else if (0x4018 <= addr && addr <= 0x401f)
             return 0; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
             return mapper->cpu_read(addr);
@@ -341,10 +336,10 @@ namespace roee_nes {
             if (error_found == true) {
                 std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
                 return;
-    }
-}
+            }
+        }
 
         std::cout << "all goodie!" << "\n";
     }
 #endif
-    }
+}

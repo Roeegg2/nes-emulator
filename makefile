@@ -1,6 +1,6 @@
 # defining compiler and the flags to be used
 CXX := g++
-CXXFLAGS := -g -Wall -pedantic -std=c++20
+CXXFLAGS := -g -Wall -pedantic -std=c++20 # -DDEBUG
 
 # emulator source files
 EMU_SRCS := cpu.cpp \
@@ -15,6 +15,7 @@ EMU_SRCS := cpu.cpp \
 	mappers/nrom_0.cpp \
 	mappers/cnrom_3.cpp \
 	mappers/unrom_2.cpp \
+	mappers/mmc1_1.cpp \
 
 EMU_OBJS := $(patsubst %.cpp,bin/%.o,$(EMU_SRCS))
 
