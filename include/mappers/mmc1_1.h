@@ -21,8 +21,8 @@ namespace roee_nes {
         private:
         bool using_chr_ram;
         std::vector<uint8_t>* chr_read_mem;
-        uint8_t shift;
-        uint8_t load; // NOTE not sure i need this reg
+        uint8_t shift_reg;
+        uint32_t last_prg_rom_bank;
 
         union {
             struct {
