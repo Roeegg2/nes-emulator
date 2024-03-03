@@ -203,9 +203,8 @@ namespace roee_nes {
 
         uint8_t pri_oam_cnt;
         uint8_t sec_oam_cnt;
-        uint8_t curr_sprite_0_index;
-        uint8_t next_sprite_0_index;
-        // bool possible_sprite_0_hit;
+        bool curr_sprite_0;
+        bool next_sprite_0;
 
         public:
         class Bus* bus;

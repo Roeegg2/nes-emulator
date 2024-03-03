@@ -5,7 +5,8 @@ namespace roee_nes {
         // write the initilizer list in order please
         : v({ 0 }), t({ 0 }), x(0), w(0), bg_regs({ 0 }), ext_regs({ 0 }), oamdma(0), curr_scanline(0), curr_cycle(0),
         nmi(0), frame_oddness(0), frame_counter(0), sprite_rendering_stage(SPRITE_EVAL),
-        render_pixel({ 0 }), sprites({ 0 }), primary_oam({ 0 }), secondary_oam({ 0 }), pri_oam_cnt(0), sec_oam_cnt(0)
+        render_pixel({ 0 }), sprites({ 0 }), primary_oam({ 0 }), secondary_oam({ 0 }), pri_oam_cnt(0), sec_oam_cnt(0),
+        curr_sprite_0(false), next_sprite_0(false)
         // NOTE: not sure about these yet!
     {
         this->bus = bus;
@@ -81,15 +82,23 @@ namespace roee_nes {
     }
 
     void PPU::visible_scanline() {
-        if (curr_cycle == 0) {
-            return; // idle cycle; do nothing
+        if (curr_cycle == 0) { // idle cycle. in real NES do nothing, for emulation purposes i use this cycle to clear an internal sprite 0 hit flag
+            curr_sprite_0 = next_sprite_0;
+            next_sprite_0 = false;
+            return; 
         }
 
         if ((1 <= curr_cycle) && (curr_cycle <= 256)) {
             add_render_pixel(); // get bg pixel color; get sprite pixel color; decide which pixel to add to render line
             screen->draw_pixel_line(&render_pixel, curr_scanline, curr_cycle - 1);
 
-            if (65 <= curr_cycle) { // sprite evaluation 
+            if (curr_cycle == 64) {
+                for (auto it = secondary_oam.begin(); it != secondary_oam.end(); it++)
+                    *it = 0xff;
+                sprite_rendering_stage = SPRITE_EVAL;
+                sec_oam_cnt = 0;
+                pri_oam_cnt = 0;
+            } else if (65 <= curr_cycle) { // sprite evaluation 
                 if ((ext_regs.ppumask.raw & 0b0001'1000)) { // if either sprites or background rendering is enabled
                     switch (sprite_rendering_stage) {
                         case SPRITE_EVAL:
@@ -105,12 +114,6 @@ namespace roee_nes {
                             break;
                     }
                 }
-            } else if (curr_cycle == 64) {
-                sprite_rendering_stage = SPRITE_EVAL;
-                sec_oam_cnt = 0;
-                pri_oam_cnt = 0;
-                for (auto it = secondary_oam.begin(); it != secondary_oam.end(); it++)
-                    *it = 0xff;
             }
         } else if (curr_cycle == 257) {
             for (auto it = sprites.begin(); it != sprites.end(); it++)
@@ -170,15 +173,15 @@ namespace roee_nes {
             if (sec_oam_cnt < 8) {
                 secondary_oam[(4 * sec_oam_cnt) + 0] = byte_0;
                 int32_t diff = curr_scanline - byte_0;
-                // if (((0 <= diff) && (diff <= 7)) || ((curr_scanline >= byte_0) && (curr_scanline < (byte_0 + global_sprite_height)))) { 
-                // || ((ext_regs.ppuctrl.comp.sprite_size == 1) && (0 <= diff) && (diff <= 15))
+
                 if (((0 <= diff) && (diff <= 7)) || ((ext_regs.ppuctrl.comp.sprite_size == 1) && (8 <= diff) && (diff <= 15))) {
                     secondary_oam[(4 * sec_oam_cnt) + 1] = primary_oam[(4 * pri_oam_cnt) + 1]; // byte 1 tile
                     secondary_oam[(4 * sec_oam_cnt) + 2] = primary_oam[(4 * pri_oam_cnt) + 2]; // byte 2 at
                     secondary_oam[(4 * sec_oam_cnt) + 3] = primary_oam[(4 * pri_oam_cnt) + 3]; // byte 3 x                 
 
-                    if ((pri_oam_cnt == 0)) { // if sprite 0 is hit, this will be the index;
-                        curr_sprite_0_index = sec_oam_cnt; // NOTE might need to add -1
+                    if (pri_oam_cnt == 0) { // if sprite 0 is hit, this will be the index;
+                        next_sprite_0 = true;
+                        // std::cout << "scanline: " << curr_scanline << "\n";
                     }
 
                     sec_oam_cnt++;
@@ -195,8 +198,7 @@ namespace roee_nes {
     }
 
     void PPU::fill_sprites_render_data() {
-        if (sec_oam_cnt >= 8)
-            return;
+        // std::cout << "sec_oam_cnt " << (int)sec_oam_cnt << " scanline is: " << (int)curr_scanline << "\n";
 
         // std::cout << "cycle: " << (int)curr_cycle << " sl: " << (int)curr_scanline << " sec_oam_cnt: " << (int)sec_oam_cnt << "\n";
         switch ((curr_cycle) % 8) {
@@ -214,13 +216,14 @@ namespace roee_nes {
                 break;
             case FILL_BUFFER: // case this is 5
                 fill_sprite_pixels(sec_oam_cnt);
-                sec_oam_cnt = (sec_oam_cnt - 1);
                 break;
-            default: // if its 6,7,0
+            case 0:
+                sec_oam_cnt = (sec_oam_cnt - 1);
+            default: // if its 6,7
                 // the PPU should fetch here X byte again 4 times, but for emulation this is unessecary, so do nothing
                 break;
         }
-        sec_oam_cnt %= 8;
+        // sec_oam_cnt %= 8;
     }
 
     void PPU::add_to_x_map(uint8_t pt_data, uint8_t i_val) {
@@ -356,7 +359,8 @@ namespace roee_nes {
         if ((it != x_to_sprite_map.end()) && (curr_scanline != 0) && ((curr_cycle - 1 - sprites[it->second].x) >= 0)) {
             if ((ext_regs.ppustatus.comp.sprite_0_hit != 1)
                 && ((curr_cycle - 1) != 255) // 255 doesnt not hit 
-                && (it->second == curr_sprite_0_index)
+                && (curr_sprite_0)
+                && (it->second == 0)
                 && ((sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x] % 0x4) != 0)
                 && ((bg_palette_index % 4) != 0)
                 ) {
@@ -365,7 +369,6 @@ namespace roee_nes {
                     goto render; // dont check for sprite 0 hit
 
                 ext_regs.ppustatus.comp.sprite_0_hit = 1;
-                // std::cout << "sprite 0 hit at cycle: " << (int)curr_cycle << " scanline: " << (int)curr_scanline << "\n";
             }
 
         render:
