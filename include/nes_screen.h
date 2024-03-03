@@ -11,7 +11,7 @@
 #include "controller.h"
 
 namespace roee_nes {
-    constexpr uint8_t SCALE = 3;
+    constexpr uint8_t SCALE = 4;
     constexpr uint16_t SCREEN_WIDTH = 256;
     constexpr uint8_t SCREEN_HEIGHT = 240;
 

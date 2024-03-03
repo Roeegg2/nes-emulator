@@ -13,10 +13,8 @@ namespace roee_nes {
             chr_read_mem = &cart->chr_rom;
         }
 
-        // last_prg_rom_bank = cart->chr_rom.size() - (16 * KILOBYTE);
-        prg_bank.last_bank = (cart->prg_rom.size() / (32 * KILOBYTE)) - 1;
-        std::cout << "this is prg rom size: " << std::dec << (int)cart->prg_rom.size() << "\n";
-        std::cout << "this is last bank: " << std::dec << (int)prg_bank.last_bank << "\n";
+        prg_bank_num = (cart->prg_rom.size() / (16 * KILOBYTE));
+        chr_bank_num = (cart->chr_rom.size() / (16 * KILOBYTE));
     }
 
     void MMC1_1::cpu_write(uint16_t addr, uint8_t data) {
@@ -30,19 +28,22 @@ namespace roee_nes {
         } else {
             if (shift_reg & 0b0000'0001) { // if this is the 5th write
                 uint8_t target_reg = (addr >> 13) & 0b0000'0000'0000'0011;
+                uint8_t foo = (((data & 0b0000'0001) << 4) | ((shift_reg & 0b0001'1110) >> 1));
 
                 switch (target_reg) {
                     case 0:
-                        ctrl.raw = ((data & 0b0000'0001) << 4) | ((shift_reg & 0b0001'1110) >> 1);
+                        ctrl.comp.mirroring = foo & 0b11;
+                        ctrl.comp.prg_rom_mode = (foo & 0b1100) >> 2;
+                        ctrl.comp.chr_rom_mode = (foo & 0b10000) >> 4;
                     case 1:
-                        chr_bank.bank_0 = ((data & 0b0000'0001) << 4) | ((shift_reg & 0b0001'1110) >> 1);
+                        chr_bank.bank_0 = foo;
                         break;
                     case 2:
-                        chr_bank.bank_1 = ((data & 0b0000'0001) << 4) | ((shift_reg & 0b0001'1110) >> 1);
+                        chr_bank.bank_1 = foo;
                         break;
                     case 3:
-                        prg_bank.bank = (shift_reg & 0b0001'1110) >> 1;
-                        prg_bank.ext = (data & 0b0000'0001) << 4;
+                        prg_bank.bank = foo & 0b0000'1111;
+                        prg_bank.ext = (foo >> 4) & 0b0000'0001;
                         break;
                 }
                 shift_reg = 0b0001'0000;
@@ -65,28 +66,30 @@ namespace roee_nes {
                 return cart->prg_rom[((prg_bank.bank & 0b1110) * 32 * KILOBYTE) + (addr % 0x8000)];
             case 2: // fix first bank at $8000 and switch 16 KB bank at $C000
                 if ((0x8000 <= addr) && (addr <= 0xbfff))
-                    return cart->prg_rom[(addr % 0x8000)]; // get first bank
+                    return cart->prg_rom[(addr % 0x4000)]; // get first bank
                 else // addr is 0xc000 and over
-                    return cart->prg_rom[(prg_bank.bank * 16 * KILOBYTE) + (addr % 0x8000)];
+                    return cart->prg_rom[(prg_bank.bank * 16 * KILOBYTE) + (addr % 0x4000)];
             case 3:
                 if ((0x8000 <= addr) && (addr <= 0xbfff))
-                    return cart->prg_rom[(prg_bank.bank * 16 * KILOBYTE) + (addr % 0x8000)];
-                else { // addr is 0xc000 and over
-                    // std::cout << "this is the last bank: " << std::hex << (int)(prg_bank.last_bank * 16 * KILOBYTE) << "\n";
-                    return cart->prg_rom[(prg_bank.last_bank * 32 * KILOBYTE) + (addr % 0x8000)]; // get last bank
-                } 
+                    return cart->prg_rom[(prg_bank.bank * 16 * KILOBYTE) + (addr % 0x4000)];
+                else // addr is 0xc000 and over
+                    return cart->prg_rom[((prg_bank_num - 1) * 16 * KILOBYTE) + (addr % 0x4000)]; // get first bank
         }
     }
 
     uint8_t MMC1_1::ppu_read(uint16_t addr) {
         switch (ctrl.comp.chr_rom_mode) {
             case 0:
-                return (*chr_read_mem)[(chr_bank.bank_0 * 8 * KILOBYTE) + addr];
-            default: // case 1:
-                if ((0x000 <= addr) && (addr <= 0x0fff))
-                    return (*chr_read_mem)[(chr_bank.bank_0 * 4 * KILOBYTE) + addr];
-                else // if ((0x1000 <= addr) && (addr <= 0x1fff))
+                return (*chr_read_mem)[(chr_bank.bank_0 * 8 * KILOBYTE) + (addr % 0x2000)];
+            case 1:
+                if ((0x0000 <= addr) && (addr <= 0x0fff)) {
+                    return (*chr_read_mem)[(chr_bank.bank_0 * 4 * KILOBYTE) + (addr % 0x1000)];
+                } else if ((0x1000 <= addr) && (addr <= 0x1fff)) {
                     return (*chr_read_mem)[(chr_bank.bank_1 * 4 * KILOBYTE) + (addr % 0x1000)];
+                } else {
+                    std::cerr << "MMC1 BAD PPU READ!\n";
+                    return 0;
+                }
         }
     }
 
@@ -94,17 +97,19 @@ namespace roee_nes {
         if (using_chr_ram == true) {
             switch (ctrl.comp.chr_rom_mode) {
                 case 0:
-                    (*chr_read_mem)[(chr_bank.bank_0 * 8 * KILOBYTE) + addr] = data;
+                    (*chr_read_mem)[(chr_bank.bank_0 * 8 * KILOBYTE) + (addr % 0x2000)] = data;
                 case 1:
-                    if ((0x000 <= addr) && (addr <= 0x0fff))
-                        (*chr_read_mem)[(chr_bank.bank_0 * 4 * KILOBYTE) + addr] = data;
-                    else // if ((0x1000 <= addr) && (addr <= 0x1fff))
+                    if ((0x0000 <= addr) && (addr <= 0x0fff))
+                        (*chr_read_mem)[(chr_bank.bank_0 * 4 * KILOBYTE) + (addr % 0x1000)] = data;
+                    else if ((0x1000 <= addr) && (addr <= 0x1fff))
                         (*chr_read_mem)[(chr_bank.bank_1 * 4 * KILOBYTE) + (addr % 0x1000)] = data;
-
-                    // std::cerr << "MMC1 BAD PPU READ!\n";
-                    // return 0;
+                    else {
+                        std::cerr << "MMC1 BAD PPU READ!\n";
+                        return;
+                    }
             }
-        }
+        } else
+            std::cerr << "ERR trying to write to chr rom!\n";
     }
 
     void MMC1_1::reset() {
@@ -114,20 +119,18 @@ namespace roee_nes {
     }
 
     uint16_t MMC1_1::get_nt_mirrored_addr(uint16_t addr) {
-        if (ctrl.comp.mirroring == 0b00)
-            return addr % 0x400;
-        else if (ctrl.comp.mirroring == 0b01)
-            return (addr % 0x400) + 0x400;
-        else if (ctrl.comp.mirroring == 0b10) // vertical
-            return addr % 0x800;
-        else //if (ctrl.comp.mirroring == 0b11) 
-        { // horizontal
-            if (addr >= 0x800)
-                return (addr % 0x400) + 0x400;
-            else
+        switch (ctrl.comp.mirroring) {
+            case 0:
                 return addr % 0x400;
+            case 1:
+                return (addr % 0x400) + 0x400;
+            case 2:
+                return addr % 0x800;
+            default: // 3
+                if (addr >= 0x800)
+                    return addr % 0x400;
+                else
+                    return (addr % 0x400) + 0x400;
         }
-        // else
-        //     std::cerr << "MMC1 MIRRORING PROBLEM!\n";
     }
 }

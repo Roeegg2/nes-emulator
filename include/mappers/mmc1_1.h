@@ -22,7 +22,6 @@ namespace roee_nes {
         bool using_chr_ram;
         std::vector<uint8_t>* chr_read_mem;
         uint8_t shift_reg;
-        uint32_t last_prg_rom_bank;
 
         union {
             struct {
@@ -35,16 +34,17 @@ namespace roee_nes {
         } ctrl;
 
         struct {
-            uint8_t bank_0 : 4;
-            uint8_t bank_1 : 4;
+            uint8_t bank_0 : 5;
+            uint8_t bank_1 : 5;
         } chr_bank;
 
         struct {
             uint8_t bank : 4;
             uint8_t ext : 1;
-            uint8_t last_bank : 4;
         } prg_bank;
 
+        uint8_t prg_bank_num;
+        uint8_t chr_bank_num;
     };
 }
 

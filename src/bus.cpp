@@ -24,7 +24,6 @@ namespace roee_nes {
 
     void Bus::ppu_write(uint16_t addr, uint8_t data, bool came_from_cpu) {
         if (0 <= addr && addr <= 0x1fff) {
-            std::cout << "here\n";
             mapper->ppu_write(addr, data);
         } else if (0x2000 <= addr && addr <= 0x3eff) {
             addr %= 0x1000;
