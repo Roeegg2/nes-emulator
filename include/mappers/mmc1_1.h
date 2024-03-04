@@ -2,12 +2,12 @@
 #define MMC1_1_H
 
 #include <cstdint>
-
+#include <array>
 #include "../mapper_n_cart.h"
 
 namespace roee_nes {
     class MMC1_1 : public Mapper {
-        public:
+    public:
         MMC1_1(Cartridge* cart);
 
         uint8_t cpu_read(uint16_t addr) override;
@@ -18,10 +18,15 @@ namespace roee_nes {
         uint16_t get_nt_mirrored_addr(uint16_t addr) override;
         void reset();
 
-        private:
+    private:
+        void update_chr(uint16_t addr);
+        void update_prg(uint16_t addr);
+
+    private:
         bool using_chr_ram;
-        std::vector<uint8_t>* chr_read_mem;
         uint8_t shift_reg;
+        std::vector<uint8_t>* chr_read_mem;
+        std::array<uint8_t, 0x2000> save_data;
 
         union {
             struct {
@@ -34,8 +39,8 @@ namespace roee_nes {
         } ctrl;
 
         struct {
-            uint8_t bank_0 : 5;
-            uint8_t bank_1 : 5;
+            uint16_t bank_0 : 5;
+            uint16_t bank_1 : 5;
         } chr_bank;
 
         struct {
@@ -45,6 +50,9 @@ namespace roee_nes {
 
         uint8_t prg_bank_num;
         uint8_t chr_bank_num;
+
+        uint8_t final_bank;
+        uint16_t final_addr;
     };
 }
 

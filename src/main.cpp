@@ -3,6 +3,7 @@
 #include "../include/utils.h"
 #include "../include/nes_screen.h"
 #include <chrono>
+
 using namespace roee_nes;
 
 // extern "C" void debugger_run(std::array<std::array<uint8_t, 0x400>, 4>* nt_vram);
@@ -30,7 +31,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus, NES_Screen* screen, uint8_t
 }
 
 int main() {
-    const std::string rom_path = "roms/SMB1.nes";
+    const std::string rom_path = "roms/TETRIS.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller_1 = new Controller();

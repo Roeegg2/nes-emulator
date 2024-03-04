@@ -298,7 +298,8 @@ namespace roee_nes {
         int32_t y_diff = curr_scanline - sprite.y;
 
         if (ext_regs.ppuctrl.comp.sprite_size) { // if this is a 8x16 sprite
-            addr |= ((((uint16_t)sprite.tile) & 0b0000'0001) << 12); // bit 12 
+            uint16_t temp = (sprite.tile & 0b0000'0001) << 12;
+            addr |= temp;
 
             if (sprite.at & 0b1000'0000) {
                 if ((8 <= y_diff) && (y_diff <= 15))
@@ -314,7 +315,7 @@ namespace roee_nes {
         } else // if this is a 8x8 sprite
             addr |= ((ext_regs.ppuctrl.raw & 0b0000'1000) << 9); // bit 12 
 
-        if (sprite.at & 0b1000'0000) // NOTE ONLY FOR 8x8!
+        if (sprite.at & 0b1000'0000)
             addr |= (7 - y_diff) & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
         else
             addr |= y_diff & 0b0000'0000'0000'0111; // bits 0,1,2 masking just in case
