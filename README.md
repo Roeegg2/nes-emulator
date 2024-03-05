@@ -5,7 +5,7 @@ Might work on other operating systems, havent checked.
 
 ## Before building
 
-1. If you are planning on using a controller, you might have to change the numbers checked on `process_joypad_pressed_buttons(Controller* controller)` and `process_joypad_released_buttons(Controller* controller)`. To do this add the following for into the source code, and press the controller buttons to see to which numbers they are mapped.
+1. If you are planning on using a controller, you might have to change the numbers checked on `process_joypad_pressed_buttons()` and `process_joypad_released_buttons()`. To do this add the following for into the source code, and press the controller buttons to see to which numbers they are mapped.
 
 ```cpp
 for (int i = 0; i < SDL_JoystickNumButtons(joystick); i++) {
