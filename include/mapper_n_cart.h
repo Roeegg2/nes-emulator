@@ -83,7 +83,7 @@ namespace roee_nes {
         Mapper(Cartridge* cart) : cart(cart) {}
         static Mapper* create_mapper(const std::string* rom_path);
 
-        virtual uint8_t cpu_read(uint16_t addr) = 0;
+        virtual uint8_t cpu_read(uint16_t addr, uint8_t open_bus_data) = 0;
         virtual void cpu_write(uint16_t addr, uint8_t data) = 0;
         virtual uint8_t ppu_read(uint16_t addr) = 0;
         virtual void ppu_write(uint16_t addr, uint8_t data) = 0;
@@ -92,6 +92,8 @@ namespace roee_nes {
 
         protected:
         Cartridge* cart;
+        uint8_t chr_bank_num;
+        uint8_t prg_bank_num;
     };
 
 }

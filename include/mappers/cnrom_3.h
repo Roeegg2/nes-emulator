@@ -10,7 +10,7 @@ namespace roee_nes {
     public:
         CNROM_3(Cartridge* cart);
 
-        uint8_t cpu_read(uint16_t addr) override;
+        uint8_t cpu_read(uint16_t addr, uint8_t open_bus_data) override;
         void cpu_write(uint16_t addr, uint8_t data) override;
         uint8_t ppu_read(uint16_t addr) override;
         void ppu_write(uint16_t addr, uint8_t data) override;

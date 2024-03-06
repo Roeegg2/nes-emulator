@@ -39,9 +39,9 @@ namespace roee_nes {
 
                 switch (target_reg) {
                     case 0:
-                        ctrl.comp.mirroring = foo & 0b00011;
-                        ctrl.comp.prg_rom_mode = (foo & 0b01100) >> 2;
-                        ctrl.comp.chr_rom_mode = (foo & 0b10000) >> 4;
+                        ctrl.comp.mirroring = foo & 0b0'0011;
+                        ctrl.comp.prg_rom_mode = (foo & 0b0'1100) >> 2;
+                        ctrl.comp.chr_rom_mode = (foo & 0b1'0000) >> 4;
                         break;
                     case 1:
                         chr_bank.bank_0 = foo;
@@ -56,13 +56,13 @@ namespace roee_nes {
                 }
                 shift_reg = 0b0001'0000;
             } else { /// emplace back bit 0 of data
+                shift_reg |= (0b0010'0000 & (data << 5));
                 shift_reg >>= 1;
-                shift_reg |= (0b0001'0000 & (data << 4));
             }
         }
     }
 
-    uint8_t MMC1_1::cpu_read(uint16_t addr) {
+    uint8_t MMC1_1::cpu_read(uint16_t addr, uint8_t open_bus_data) {
         // std::cout << "prg mode "
         //     << std::hex << " chr rom mode " << (int)ctrl.comp.chr_rom_mode
         //     << std::hex << " prg rom mode " << (int)ctrl.comp.prg_rom_mode
@@ -71,17 +71,23 @@ namespace roee_nes {
         //     << std::hex << " chr bank 0 " << (int)chr_bank.bank_0
         //     << std::hex << " chr bank 1 " << (int)chr_bank.bank_1
         //     << "\n";
-        if ((0x6000 <= addr) && (addr <= 0x7fff))
+        if ((0x6000 <= addr) && (addr <= 0x7fff)) {
             return save_data[addr % 0x6000];
+        }
+        else if ((0x8000 <= addr) && (addr <= 0xffff)) {
+            update_prg(addr);
+            return cart->prg_rom[(final_bank * 16 * KILOBYTE) + final_addr];
+        }
+        else {
+            return open_bus_data;
+        }
         
-        update_prg(addr);
-        return cart->prg_rom[(final_bank * 16 * KILOBYTE) + final_addr];
     }
 
     void MMC1_1::update_chr(uint16_t addr) {
         if (ctrl.comp.chr_rom_mode == 0) {
             final_addr = addr % 0x2000;
-            final_bank = (chr_bank.bank_0 % (chr_bank_num / 2)) & 0b0000'1110;
+            final_bank = ((chr_bank.bank_0 & 0b0001'1110) % chr_bank_num);
         } else {
             final_addr = addr % 0x1000;
             if ((0x0000 <= addr) && (addr <= 0x0fff))
@@ -95,7 +101,7 @@ namespace roee_nes {
         switch (ctrl.comp.prg_rom_mode) {
             case 0:
             case 1: // switch 32 KB at $8000
-                final_bank = (prg_bank.bank % (prg_bank_num)) & 0b0000'1110;
+                final_bank = ((prg_bank.bank & 0b0000'1110) % prg_bank_num);
                 final_addr = addr % 0x8000;
                 break;
             case 2: // fix first bank at $8000 and switch 16 KB bank at $C000

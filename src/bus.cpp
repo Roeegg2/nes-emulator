@@ -60,8 +60,9 @@ namespace roee_nes {
                 if ((addr & 0b11) == 0)
                     addr = 0;
 
-            if (ppu->ext_regs.ppumask.comp.grayscale)
+            if (ppu->ext_regs.ppumask.comp.grayscale) {
                 return palette_vram[addr] & 0x30;
+            }
 
             return palette_vram[addr];
         }
@@ -166,22 +167,21 @@ namespace roee_nes {
 
     uint8_t Bus::cpu_read(uint16_t addr) {
         if (0 <= addr && addr <= 0x1fff)
-            return ram[addr % 0x800];
+            cpu_dma_controllers_open_bus = ram[addr % 0x800];
         else if (0x2000 <= addr && addr <= 0x3fff)
-            return cpu_read_ppu(addr % 8);
+            cpu_dma_controllers_open_bus = cpu_read_ppu(addr % 8);
         else if (0x4000 <= addr && addr <= 0x4015)
-            return 0; // didnt implement yet
+            cpu_dma_controllers_open_bus = 0; // didnt implement yet
         else if (addr == 0x4016) {
-            return controller_1->read();
+            cpu_dma_controllers_open_bus = controller_1->read();
         } else if (addr == 0x4017) {
-            return controller_2->read();
+            cpu_dma_controllers_open_bus = controller_2->read();
         } else if (0x4018 <= addr && addr <= 0x401f)
-            return 0; // didnt implement yet
+            cpu_dma_controllers_open_bus = 0; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
-            return mapper->cpu_read(addr);
+            cpu_dma_controllers_open_bus = mapper->cpu_read(addr, cpu_dma_controllers_open_bus);
 
-
-        return 0;
+        return cpu_dma_controllers_open_bus;
     }
 
 #ifdef DEBUG

@@ -4,7 +4,7 @@ namespace roee_nes {
     CNROM_3::CNROM_3(Cartridge* cart) :
         Mapper(cart), chr_bank_select(0) {}
 
-    uint8_t CNROM_3::cpu_read(uint16_t addr) {
+    uint8_t CNROM_3::cpu_read(uint16_t addr, uint8_t open_bus_data) {
         if ((0x8000 <= addr) && (addr <= 0xffff)) {
             if (cart->header.prg_rom_size == 1) // 16 kib
                 addr %= 0x4000;
@@ -12,10 +12,8 @@ namespace roee_nes {
                 addr %= 0x8000;
 
             return cart->prg_rom[addr];
-        } else {
-            std::cerr << "WARNING: cpu reading not in range\n";
-            return 0;
-        }
+        } else
+            return open_bus_data;
     }
 
     void CNROM_3::cpu_write(uint16_t addr, uint8_t data) {

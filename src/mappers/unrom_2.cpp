@@ -10,15 +10,18 @@ namespace roee_nes {
         }
         else
             using_chr_ram = false;
-// std::cout << "AAAAAAAAAAAAAAAAAAAA\n";
-        last_bank = cart->prg_rom.size() - 0x4000;
+
+        last_bank = cart->prg_rom.size() - (16 * KILOBYTE);
     }
 
-    uint8_t UNROM_2::cpu_read(uint16_t addr) {
-        if (addr < 0xc000)
-            return cart->prg_rom[(prg_bank_select << 14) | ((addr - 0x8000) % 0x4000)];
-        else
+    uint8_t UNROM_2::cpu_read(uint16_t addr, uint8_t open_bus_data) {
+        if ((0x8000 <= addr) && (addr <= 0xbfff))
+            return cart->prg_rom[(prg_bank_select * 0x4000) + (addr % 0x4000)];
+        else if ((0xc000 <= addr) && (addr <= 0xffff))
             return cart->prg_rom[last_bank + (addr % 0x4000)];
+        else {
+            return open_bus_data;
+        }
     }
 
     void UNROM_2::cpu_write(uint16_t addr, uint8_t data) {
@@ -34,7 +37,7 @@ namespace roee_nes {
 
     void UNROM_2::ppu_write(uint16_t addr, uint8_t data) {
         if (using_chr_ram)
-            cart->chr_ram[addr] = data;
+            cart->chr_ram[addr % 0x4000] = data;
         else
             std::cerr << "WARNING: trying to write to CHR ROM\n";
     }
