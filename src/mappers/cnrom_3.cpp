@@ -2,7 +2,7 @@
 
 namespace roee_nes {
     CNROM_3::CNROM_3(Cartridge* cart) :
-        Mapper(cart), chr_bank_select(0) {}
+        Mapper(cart), chr_bank_select(0) { }
 
     uint8_t CNROM_3::cpu_read(uint16_t addr, uint8_t open_bus_data) {
         if ((0x8000 <= addr) && (addr <= 0xffff)) {

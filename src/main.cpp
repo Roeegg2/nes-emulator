@@ -31,7 +31,7 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus, NES_Screen* screen, uint8_t
 }
 
 int main() {
-    const std::string rom_path = "roms/CASTLEVANIA.nes";
+    const std::string rom_path = "roms/LOZ.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller_1 = new Controller();

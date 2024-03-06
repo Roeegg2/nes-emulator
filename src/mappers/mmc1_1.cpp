@@ -6,13 +6,13 @@ namespace roee_nes {
         Mapper(cart), shift_reg(0b0001'0000), ctrl({ 0 }), chr_bank({ 0 }), prg_bank({ 0 }) {
         if (cart->chr_rom.size() == 0) {
             cart->chr_ram.resize(8 * KILOBYTE);
-            chr_bank_num = 2;
-            chr_read_mem = &cart->chr_ram;
             using_chr_ram = true;
+            chr_read_mem = &cart->chr_ram;
+            chr_bank_num = 2;
         } else {
             using_chr_ram = false;
             chr_read_mem = &cart->chr_rom;
-            chr_bank_num = (cart->chr_rom.size() / (4 * KILOBYTE));
+            chr_bank_num = (cart->header.chr_rom_size / (4 * KILOBYTE));
         }
 
         prg_bank_num = (cart->prg_rom.size() / (16 * KILOBYTE));
@@ -145,15 +145,19 @@ namespace roee_nes {
         switch (ctrl.comp.mirroring) {
             case 0: // single nt, first one
                 return addr % 0x400;
+                break;
             case 1: // single nt, second one
                 return (addr % 0x400) + 0x400;
+                break;
             case 2: // horizontal mirroring
                 return addr % 0x800;
-            default: // vertical mirroring
+                break;
+            case 3: // vertical mirroring
                 if (addr >= 0x800)
                     return addr % 0x400;
                 else
                     return (addr % 0x400) + 0x400;
+                break;
         }
     }
 }

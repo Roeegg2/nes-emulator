@@ -138,7 +138,6 @@ namespace roee_nes {
     class PPU {
         public:
         PPU(Bus* bus, NES_Screen* screen);
-
         void run_ppu(uint8_t cycles);
         void reset();
 
@@ -146,36 +145,28 @@ namespace roee_nes {
         void prerender_scanline();
         void visible_scanline();
         void vblank_scanline();
-
         void fetch_rendering_data(Fetch_Modes fetch_mode);
         uint8_t fetch_bg_pt_byte(uint8_t byte_significance);
-
         void shared_visible_prerender_scanline();
         void load_shift_regs();
         void shift_regs();
-
         void add_render_pixel();
         uint8_t get_bg_palette_index();
-
         void increment_cycle(uint8_t cycles);
         void increment_y();
         void increment_coarse_x();
-#ifdef DEBUG
-        void log() const;
-#endif
-
-        void print_oam();
         uint8_t fetch_fg_pt_byte(uint16_t priority, struct Sprite& sprite);
-        void get_fg_pixel();
         void sprite_evaluation();
         void sprite_overflow_check();
         void fill_sprites_render_data();
         void fill_sprite_pixels(uint8_t n);
-        void merge_bg_fg_render_buffer();
-        void print_palette();
         void get_chosen_pixel(uint8_t base, uint8_t palette_index);
         void add_to_x_map(uint8_t pt_data, uint8_t i_val);
-        
+        void check_sprite_0_hit(uint8_t sprite_index, uint8_t bg_palette_index);
+
+#ifdef DEBUG
+        void log() const;
+#endif
         public:
         loopy_reg v;
         loopy_reg t;

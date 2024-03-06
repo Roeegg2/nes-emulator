@@ -27,7 +27,7 @@ namespace roee_nes {
         uint8_t shift_reg;
         std::vector<uint8_t>* chr_read_mem;
         std::array<uint8_t, 0x2000> save_data;
-
+        
         union {
             struct {
                 uint8_t mirroring : 2;

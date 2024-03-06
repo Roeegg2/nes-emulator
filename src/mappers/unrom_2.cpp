@@ -11,7 +11,7 @@ namespace roee_nes {
         else
             using_chr_ram = false;
 
-        last_bank = cart->prg_rom.size() - (16 * KILOBYTE);
+        last_bank = cart->prg_rom.size() - 0x4000;
     }
 
     uint8_t UNROM_2::cpu_read(uint16_t addr, uint8_t open_bus_data) {

@@ -85,7 +85,7 @@ namespace roee_nes {
         if (curr_cycle == 0) { // idle cycle. in real NES do nothing, for emulation purposes i use this cycle to clear an internal sprite 0 hit flag
             curr_sprite_0 = next_sprite_0;
             next_sprite_0 = false;
-            return; 
+            return;
         }
 
         if ((1 <= curr_cycle) && (curr_cycle <= 256)) {
@@ -134,16 +134,6 @@ namespace roee_nes {
             if (ext_regs.ppuctrl.raw & 0b1000'0000)
                 nmi = 1;
         }
-    }
-
-    void PPU::print_palette() {
-        static std::ofstream a("logs/PALETTE.log");
-        for (int i = 0; i < 32; i++) {
-            if (((i % 4) == 0))
-                a << "\n";
-            a << std::hex << (int)bus->ppu_read(0x3f00 + i) << " ";
-        }
-        a << "\nfinished \n";
     }
 
     void PPU::sprite_overflow_check() {
@@ -267,30 +257,6 @@ namespace roee_nes {
         return (4 * at_data) + pt_data;
     }
 
-    // #ifdef DEBUG
-    void PPU::print_oam() {
-        static std::ofstream a("logs/POAM.log");
-        // a << "printing primary oam\n";
-        int i = 0;
-        // for (auto it = primary_oam.cbegin(); it != primary_oam.cend(); it++) {
-        //     a << std::hex << (int)*it << " ";
-        //     if ((i % 15) == 0)
-        //         a << "\n";
-        //     i++;
-        // }
-        a << "\n";
-        i = 0;
-        a << "printing secondary oam\n";
-        for (auto it = secondary_oam.cbegin(); it != secondary_oam.cend(); it++) {
-            a << std::hex << (int)*it << " ";
-            if ((i % 15) == 0)
-                a << "\n";
-            i++;
-        }
-        a << "\n";
-    }
-    // #endif
-
 
     uint8_t PPU::fetch_fg_pt_byte(uint16_t priority, struct Sprite& sprite) {
         uint16_t addr = priority; // bits 3,13 setting msb/lsb (13 is constant 0 for now)
@@ -353,24 +319,29 @@ namespace roee_nes {
         }
     }
 
+    void PPU::check_sprite_0_hit(uint8_t sprite_index, uint8_t bg_palette_index) {
+            if ((ext_regs.ppustatus.comp.sprite_0_hit != 1)
+                && ((curr_cycle - 1) != 255) // 255 doesnt not hit 
+                && (curr_sprite_0)
+                && (sprite_index == 0)
+                && ((sprites[sprite_index].palette_indices[curr_cycle - 1 - sprites[sprite_index].x] % 0x4) != 0)
+                && ((bg_palette_index % 4) != 0)
+                ) {
+
+                ext_regs.ppustatus.comp.sprite_0_hit = 1;
+                // std::cout << "sprite 0 hit at cycle: " << (int)curr_cycle << " scanline: " << (int)curr_scanline << "\n";
+            }
+    }
+
     void PPU::add_render_pixel() {
         uint8_t bg_palette_index = get_bg_palette_index();
         auto it = x_to_sprite_map.find(curr_cycle - 1);
 
         if ((it != x_to_sprite_map.end()) && (curr_scanline != 0) && ((curr_cycle - 1 - sprites[it->second].x) >= 0)) {
-            if ((ext_regs.ppustatus.comp.sprite_0_hit != 1)
-                && ((curr_cycle - 1) != 255) // 255 doesnt not hit 
-                && (curr_sprite_0)
-                && (it->second == 0)
-                && ((sprites[it->second].palette_indices[curr_cycle - 1 - sprites[it->second].x] % 0x4) != 0)
-                && ((bg_palette_index % 4) != 0)
-                ) {
+            if (((0 <= (curr_cycle - 1)) && ((curr_cycle - 1) <= 7)) && ((!ext_regs.ppumask.comp.fg_leftmost) && (!ext_regs.ppumask.comp.bg_leftmost))) // if we are on the left and clipping is disabled
+                goto render; // dont check for sprite 0 hit
 
-                if (((0 <= (curr_cycle - 1)) && ((curr_cycle - 1) <= 7)) && ((!ext_regs.ppumask.comp.fg_leftmost) && (!ext_regs.ppumask.comp.bg_leftmost))) // if we are on the left and clipping is disabled
-                    goto render; // dont check for sprite 0 hit
-
-                ext_regs.ppustatus.comp.sprite_0_hit = 1;
-            }
+            check_sprite_0_hit(it->second, bg_palette_index);
 
         render:
             if ((0xf9 <= sprites[it->second].x) && (sprites[it->second].x <= 0xff)) {
