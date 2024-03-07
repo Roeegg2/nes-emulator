@@ -3,7 +3,7 @@
 namespace roee_nes {
 
     MMC1_1::MMC1_1(Cartridge* cart) :
-        Mapper(cart), shift_reg(0b0001'0000) {
+        Mapper(cart), shift_reg(0b0001'0000), save_data({ 0 }) {
         if (cart->chr_rom.size() == 0) {
             cart->chr_ram.resize(8 * KILOBYTE);
             using_chr_ram = true;
@@ -18,19 +18,25 @@ namespace roee_nes {
         ctrl.comp.prg_rom_mode = 3;
         ctrl.comp.chr_rom_mode = 1;
         ctrl.comp.mirroring = 0;
-        // if (cart->header.flag_6.parsed.prg_ram == 1) {
-        //     save_data.open("AAAA", std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
-        //     std::cout << "hjere!\n";
-        //     if (save_data.is_open())
-        //         std::cout << "yesh\n"; 
-        // }
+        save_file_path = cart->rom_path + ".sav";
+
+        if (cart->header.flag_6.parsed.prg_ram == 1) { // if there is save data
+            if (std::filesystem::exists(save_file_path)) {
+                std::cout << "USER INFO: Save game data found. Reading from save data\n";
+
+                std::ifstream input_save_file(save_file_path, std::ios::in | std::ios::binary);
+                input_save_file.read(reinterpret_cast<char*>(save_data.data()), 0x2000);
+
+                input_save_file.close();
+            }
+            else
+                std::cout << "USER INFO: No past game save data found\n";
+        }
     }
 
     void MMC1_1::cpu_write(uint16_t addr, uint8_t data) {
         // static int i = 0;
         if ((0x6000 <= addr) && (addr <= 0x7fff)) {
-            // save_data.seekg(addr % 0x6000);
-            // save_data.write(reinterpret_cast<const char*>(&data), sizeof(data));
             save_data[addr % 0x6000] = data;
         } else if (data & 0b1000'0000) {
             shift_reg = 0b0001'0000;
@@ -41,11 +47,9 @@ namespace roee_nes {
 
                 if ((0x8000 <= addr) && (addr <= 0x9fff)) {
                     ctrl.comp.mirroring = foo & 0b0'0011;
-                    std::cout << std::hex << " mirroring " << (int)ctrl.comp.mirroring << "\n";
                     ctrl.comp.prg_rom_mode = (foo & 0b0'1100) >> 2;
                     ctrl.comp.chr_rom_mode = (foo & 0b1'0000) >> 4;
-                }
-                else if ((0xa000 <= addr) && (addr <= 0xbfff))
+                } else if ((0xa000 <= addr) && (addr <= 0xbfff))
                     chr_bank.bank_0 = foo & 0b0001'1111;
                 else if ((0xc000 <= addr) && (addr <= 0xdfff))
                     chr_bank.bank_1 = foo & 0b0001'1111;
@@ -55,15 +59,7 @@ namespace roee_nes {
                 }
 
                 shift_reg = 0b0001'0000;
-            } else { /// emplace back bit 0 of data
-                // if (ctrl.comp.mirroring == 2) {
-                //     if (i < 50) {
-                //         std::cout << "shift_reg " << std::bitset<8>(shift_reg) << " data " << std::bitset<8>(data) << "\n";
-                //         i++;
-                //     }
-                //     else
-                //         exit(0);
-                // }
+            } else {
                 shift_reg >>= 1;
                 shift_reg |= (0b0001'0000 & (data << 4));
             }
@@ -170,5 +166,16 @@ namespace roee_nes {
                 else
                     return (addr % 0x400) + 0x400;
         }
+    }
+
+    void MMC1_1::save() {
+        std::ofstream output_save_file(save_file_path, std::ios::out | std::ios::binary);
+        std::cout << "USER INFO: Saving game...\n";
+
+        for (uint8_t num : save_data) {
+            output_save_file << num;
+        }
+        output_save_file.close();
+        std::cout << "USER INFO: Saving done!\n";
     }
 }

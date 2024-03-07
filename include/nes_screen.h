@@ -9,6 +9,7 @@
 #include <array>
 
 #include "controller.h"
+#include "mapper_n_cart.h"
 
 namespace roee_nes {
     constexpr uint8_t SCALE = 4;
@@ -42,7 +43,7 @@ namespace roee_nes {
 
     class NES_Screen {
         public:
-        NES_Screen(Controller* controller_1, Controller* controller_2);
+        NES_Screen(Mapper* mapper, Controller* controller_1, Controller* controller_2);
         ~NES_Screen();
 
         void draw_pixel_line(const struct Pixel* render_pixel, const int32_t scanline, const int32_t x_pos) const;
@@ -58,9 +59,12 @@ namespace roee_nes {
 
         Controller* controller_1;
         Controller* controller_2;
+        
+        Mapper* mapper;
 
         private:
         Controller* get_controller_pressed();
+        
         void process_joypad_pressed_buttons();
         void process_joypad_released_buttons();
         void process_joypad_dpad_axis_motion();

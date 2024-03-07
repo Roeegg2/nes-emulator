@@ -76,6 +76,7 @@ namespace roee_nes {
 
         std::vector<uint8_t> trainer;
         // TODO make all writes/reads to nt go through the cartridge
+        std::string rom_path;
     };
 
     class Mapper {
@@ -88,6 +89,7 @@ namespace roee_nes {
         virtual uint8_t ppu_read(uint16_t addr) = 0;
         virtual void ppu_write(uint16_t addr, uint8_t data) = 0;
         
+        virtual void save();
         virtual uint16_t get_nt_mirrored_addr(uint16_t addr);
 
         protected:

@@ -31,13 +31,14 @@ uint16_t emulator_tick(CPU* cpu, PPU* ppu, Bus* bus, NES_Screen* screen, uint8_t
 }
 
 int main() {
-    const std::string rom_path = "roms/MEGAMAN2.nes";
+    const std::string rom_path = "roms/LOZ.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller_1 = new Controller();
     Controller* controller_2 = new Controller();
-    NES_Screen* screen = new NES_Screen(controller_1, controller_2);
-    Bus* bus = new Bus(Mapper::create_mapper(&rom_path), controller_1, controller_2, &palette_path);
+    Mapper* mapper = Mapper::create_mapper(&rom_path);
+    NES_Screen* screen = new NES_Screen(mapper, controller_1, controller_2);
+    Bus* bus = new Bus(mapper, controller_1, controller_2, &palette_path);
     CPU* cpu = new CPU(bus);
     PPU* ppu = new PPU(bus, screen);
     bus->cpu = cpu;

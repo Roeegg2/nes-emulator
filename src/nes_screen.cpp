@@ -2,9 +2,10 @@
 
 namespace roee_nes {
 
-    NES_Screen::NES_Screen(Controller* controller_1, Controller* controller_2) {
+    NES_Screen::NES_Screen(Mapper* mapper, Controller* controller_1, Controller* controller_2) {
         this->controller_1 = controller_1;
         this->controller_2 = controller_2;
+        this->mapper = mapper;
         sdl_joystick_1 = NULL;
         sdl_joystick_2 = NULL;
 
@@ -49,6 +50,7 @@ namespace roee_nes {
 
         switch (event.type) {
             case SDL_QUIT:
+                mapper->save();
                 exit(0);
             case SDL_JOYDEVICEADDED:
                 process_joypad_added();

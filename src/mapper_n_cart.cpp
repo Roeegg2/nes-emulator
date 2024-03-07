@@ -47,6 +47,7 @@ namespace roee_nes {
             }
         }
 
+        this->rom_path = *rom_path;
         rom_file.read((char*)&header.prg_rom_size, 1);
         rom_file.read((char*)&header.chr_rom_size, 1);
         rom_file.read((char*)&header.flag_6.raw, 1);
@@ -93,5 +94,9 @@ namespace roee_nes {
             else
                 return addr % 0x400;             
         }
+    }
+
+    void Mapper::save() {
+        return; // do nothing!
     }
 }
