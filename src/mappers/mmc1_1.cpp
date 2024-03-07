@@ -38,10 +38,7 @@ namespace roee_nes {
 
                 if ((0x8000 <= addr) && (addr <= 0x9fff)) {
                     ctrl.comp.mirroring = foo & 0b0'0011;
-                    // std::cout << "wrote\n";
-                    // std::cout << "mirroring " << std::bitset<8>(ctrl.comp.mirroring) << " data " << std::bitset<8>(data) << " foo " << std::bitset<8>(foo) << "\n";
-                    // std::cout << " shift reg " << std::bitset<8>(shift_reg) << "\n";
-                    // std::cout << " addr " << std::hex << addr;
+                    std::cout << std::hex << " mirroring " << (int)ctrl.comp.mirroring << "\n";
                     ctrl.comp.prg_rom_mode = (foo & 0b0'1100) >> 2;
                     ctrl.comp.chr_rom_mode = (foo & 0b1'0000) >> 4;
                 }
@@ -143,7 +140,7 @@ namespace roee_nes {
 
     void MMC1_1::ppu_write(uint16_t addr, uint8_t data) {
         if (using_chr_ram == true) {
-            // update_chr(addr);
+            update_chr(addr);
             (*chr_read_mem)[addr] = data;
         } else
             std::cerr << "ERR trying to write to chr rom!\n";
@@ -160,19 +157,15 @@ namespace roee_nes {
         switch (ctrl.comp.mirroring) {
             case 0: // single nt, first one
                 return addr % 0x400;
-                break;
             case 1: // single nt, second one
                 return (addr % 0x400) + 0x400;
-                break;
-            case 2: // horizontal mirroring
+            case 2: // vertical mirroring
                 return addr % 0x800;
-                break;
-            default: // case 3: // vertical mirroring
-                if (addr >= 0x800)
+            default: // case 3: // horizontal mirroring
+                if (addr < 0x0800)
                     return addr % 0x400;
                 else
                     return (addr % 0x400) + 0x400;
-                break;
         }
     }
 }
