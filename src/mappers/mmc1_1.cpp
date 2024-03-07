@@ -3,7 +3,7 @@
 namespace roee_nes {
 
     MMC1_1::MMC1_1(Cartridge* cart) :
-        Mapper(cart), shift_reg(0b0001'0000), ctrl({ 0 }), chr_bank({ 0 }), prg_bank({ 0 }) {
+        Mapper(cart), shift_reg(0b0001'0000) {
         if (cart->chr_rom.size() == 0) {
             cart->chr_ram.resize(8 * KILOBYTE);
             using_chr_ram = true;
@@ -15,6 +15,9 @@ namespace roee_nes {
 
         chr_bank_num = (chr_read_mem->size() / (4 * KILOBYTE));
         prg_bank_num = (cart->prg_rom.size() / (16 * KILOBYTE));
+        ctrl.comp.prg_rom_mode = 3;
+        ctrl.comp.chr_rom_mode = 1;
+        ctrl.comp.mirroring = 0;
         // if (cart->header.flag_6.parsed.prg_ram == 1) {
         //     save_data.open("AAAA", std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
         //     std::cout << "hjere!\n";
