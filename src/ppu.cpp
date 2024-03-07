@@ -320,6 +320,7 @@ namespace roee_nes {
     }
 
     void PPU::check_sprite_0_hit(uint8_t sprite_index, uint8_t bg_palette_index) {
+        // static std::ofstream file("logs/sprite_0.txt");
             if ((ext_regs.ppustatus.comp.sprite_0_hit != 1)
                 && ((curr_cycle - 1) != 255) // 255 doesnt not hit 
                 && (curr_sprite_0)
@@ -329,7 +330,7 @@ namespace roee_nes {
                 ) {
 
                 ext_regs.ppustatus.comp.sprite_0_hit = 1;
-                // std::cout << "sprite 0 hit at cycle: " << (int)curr_cycle << " scanline: " << (int)curr_scanline << "\n";
+                // file << "sprite 0 hit at cycle: " << (int)curr_cycle << " scanline: " << (int)curr_scanline << "\n";
             }
     }
 

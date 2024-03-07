@@ -8,14 +8,14 @@ namespace roee_nes {
         if (inst->mode != IMM)
             bytes = bus->cpu_read(bytes);
 
-        uint16_t foo = A + bytes + get_flag_status(CARRY_BIT);
+        uint8_t val = (uint8_t)bytes;
+        int16_t sum = A + val + get_flag_status(CARRY_BIT);
         
-        // UNDERSTAND THIS!
-        set_flag(OVERFLOW_BIT, (~((uint16_t)A ^ (uint16_t)bytes) & ((uint16_t)A ^ (uint16_t)foo)) & 0x0080);
-        A = (uint8_t)foo;
-        set_flag(ZERO_BIT, A == 0);
-        set_flag(NEGATIVE_BIT, A & 0b10000000);
-        set_flag(CARRY_BIT, foo != A);
+        set_flag(CARRY_BIT, sum > 0xFF);
+        set_flag(ZERO_BIT, (sum & 0x00FF) == 0);
+        set_flag(OVERFLOW_BIT, ((A ^ sum) & (val ^ sum) & 0x0080));
+        set_flag(NEGATIVE_BIT, sum & 0x0080);
+        A = (uint8_t)sum;
     }
 
     /* accumulator bitwise AND */
@@ -320,14 +320,14 @@ namespace roee_nes {
         if (inst->mode != IMM)
             bytes = bus->cpu_read(bytes);
 
-        uint16_t val = ((uint16_t)bytes) ^ 0x00FF;
+        uint8_t val = ~bytes;
+        int16_t sum = A + val + get_flag_status(CARRY_BIT);
 
-        uint32_t foo = (uint16_t)A + val + (uint16_t)get_flag_status(CARRY_BIT);
-        set_flag(CARRY_BIT, foo & 0xFF00 || foo == 0); // the || is my addition
-	    set_flag(ZERO_BIT, ((foo & 0x00FF) == 0));
-	    set_flag(OVERFLOW_BIT, (foo ^ (uint16_t)A) & (foo ^ val) & 0x0080);
-	    set_flag(NEGATIVE_BIT, foo & 0x0080);
-	    A = foo & 0x00FF;
+        set_flag(CARRY_BIT, sum > 0xFF);
+        set_flag(ZERO_BIT, (sum & 0x00FF) == 0);
+        set_flag(OVERFLOW_BIT, ((A ^ sum) & (val ^ sum) & 0x0080));
+        set_flag(NEGATIVE_BIT, sum & 0x0080);
+        A = (uint8_t)sum;
     }
 
     /* set carry bit */
@@ -347,6 +347,10 @@ namespace roee_nes {
 
     /* store accumulator in memory */
     void CPU::STA() {
+        // std::cout << "bytes: " << std::hex << (int)bytes << " byte converted: " << bytes << " A " << (int)A << "\n";
+        // if ((bytes == 0x8000)) {
+        //     std::cout << "PC: " << (int)PC << "A: " << (int)A << "\n";
+        // }
         bus->cpu_write(bytes, A);
     }
 

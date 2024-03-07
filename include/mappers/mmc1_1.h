@@ -39,13 +39,16 @@ namespace roee_nes {
         } ctrl;
 
         struct {
-            uint16_t bank_0 : 5;
+            uint8_t bank_0 : 5;
+            uint8_t : 3;
             uint16_t bank_1 : 5;
+            uint8_t : 3;
         } chr_bank;
 
         struct {
             uint8_t bank : 4;
             uint8_t ext : 1;
+            uint8_t : 3;
         } prg_bank;
 
         uint8_t prg_bank_num;

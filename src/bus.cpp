@@ -161,8 +161,9 @@ namespace roee_nes {
             controller_2->write(data);
         } else if (0x4018 <= addr && addr <= 0x401f)
             return; // didnt implement yet
-        else if (0x4020 <= addr && addr <= 0xffff)
+        else if (0x4020 <= addr && addr <= 0xffff) {
             mapper->cpu_write(addr, data);
+        }
     }
 
     uint8_t Bus::cpu_read(uint16_t addr) {

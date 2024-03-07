@@ -8,13 +8,12 @@ namespace roee_nes {
             cart->chr_ram.resize(8 * KILOBYTE);
             using_chr_ram = true;
             chr_read_mem = &cart->chr_ram;
-            chr_bank_num = 2;
         } else {
             using_chr_ram = false;
             chr_read_mem = &cart->chr_rom;
-            chr_bank_num = (cart->header.chr_rom_size / (4 * KILOBYTE));
         }
 
+        chr_bank_num = (chr_read_mem->size() / (4 * KILOBYTE));
         prg_bank_num = (cart->prg_rom.size() / (16 * KILOBYTE));
         // if (cart->header.flag_6.parsed.prg_ram == 1) {
         //     save_data.open("AAAA", std::ios::in | std::ios::out | std::ios::app | std::ios::binary);
@@ -25,6 +24,7 @@ namespace roee_nes {
     }
 
     void MMC1_1::cpu_write(uint16_t addr, uint8_t data) {
+        // static int i = 0;
         if ((0x6000 <= addr) && (addr <= 0x7fff)) {
             // save_data.seekg(addr % 0x6000);
             // save_data.write(reinterpret_cast<const char*>(&data), sizeof(data));
@@ -32,59 +32,72 @@ namespace roee_nes {
         } else if (data & 0b1000'0000) {
             shift_reg = 0b0001'0000;
             ctrl.comp.prg_rom_mode = 3;
-        } else {
+        } else if ((0x8000 <= addr) && (addr <= 0xffff)) {
             if (shift_reg & 0b0000'0001) { // if this is the 5th write
-                uint8_t target_reg = (addr >> 13) & 0b0000'0000'0000'0011;
-                uint8_t foo = (((data & 0b0000'0001) << 4) | ((shift_reg & 0b0001'1110) >> 1));
+                uint8_t foo = (((data & 0b0000'0001) << 4) | (shift_reg >> 1));
 
-                switch (target_reg) {
-                    case 0:
-                        ctrl.comp.mirroring = foo & 0b0'0011;
-                        ctrl.comp.prg_rom_mode = (foo & 0b0'1100) >> 2;
-                        ctrl.comp.chr_rom_mode = (foo & 0b1'0000) >> 4;
-                        break;
-                    case 1:
-                        chr_bank.bank_0 = foo;
-                        break;
-                    case 2:
-                        chr_bank.bank_1 = foo;
-                        break;
-                    case 3:
-                        prg_bank.bank = foo & 0b0000'1111;
-                        prg_bank.ext = (foo >> 4) & 0b0000'0001;
-                        break;
+                if ((0x8000 <= addr) && (addr <= 0x9fff)) {
+                    ctrl.comp.mirroring = foo & 0b0'0011;
+                    // std::cout << "wrote\n";
+                    // std::cout << "mirroring " << std::bitset<8>(ctrl.comp.mirroring) << " data " << std::bitset<8>(data) << " foo " << std::bitset<8>(foo) << "\n";
+                    // std::cout << " shift reg " << std::bitset<8>(shift_reg) << "\n";
+                    // std::cout << " addr " << std::hex << addr;
+                    ctrl.comp.prg_rom_mode = (foo & 0b0'1100) >> 2;
+                    ctrl.comp.chr_rom_mode = (foo & 0b1'0000) >> 4;
                 }
+                else if ((0xa000 <= addr) && (addr <= 0xbfff))
+                    chr_bank.bank_0 = foo & 0b0001'1111;
+                else if ((0xc000 <= addr) && (addr <= 0xdfff))
+                    chr_bank.bank_1 = foo & 0b0001'1111;
+                else if ((0xe000 <= addr) && (addr <= 0xffff)) {
+                    prg_bank.bank = foo & 0b0000'1111;
+                    prg_bank.ext = (foo >> 4) & 0b0000'0001;
+                }
+
                 shift_reg = 0b0001'0000;
             } else { /// emplace back bit 0 of data
-                shift_reg |= (0b0010'0000 & (data << 5));
+                // if (ctrl.comp.mirroring == 2) {
+                //     if (i < 50) {
+                //         std::cout << "shift_reg " << std::bitset<8>(shift_reg) << " data " << std::bitset<8>(data) << "\n";
+                //         i++;
+                //     }
+                //     else
+                //         exit(0);
+                // }
                 shift_reg >>= 1;
+                shift_reg |= (0b0001'0000 & (data << 4));
             }
         }
     }
 
     uint8_t MMC1_1::cpu_read(uint16_t addr, uint8_t open_bus_data) {
-        // std::cout << "prg mode "
-        //     << std::hex << " chr rom mode " << (int)ctrl.comp.chr_rom_mode
-        //     << std::hex << " prg rom mode " << (int)ctrl.comp.prg_rom_mode
-        //     << std::hex << " mirroring " << (int)ctrl.comp.mirroring
-        //     << std::hex << " prg bank " << (int)prg_bank.bank
-        //     << std::hex << " chr bank 0 " << (int)chr_bank.bank_0
-        //     << std::hex << " chr bank 1 " << (int)chr_bank.bank_1
-        //     << "\n";
         if ((0x6000 <= addr) && (addr <= 0x7fff)) {
             return save_data[addr % 0x6000];
-        }
-        else if ((0x8000 <= addr) && (addr <= 0xffff)) {
+        } else if ((0x8000 <= addr) && (addr <= 0xffff)) {
             update_prg(addr);
             return cart->prg_rom[(final_bank * 16 * KILOBYTE) + final_addr];
-        }
-        else {
+        } else {
             return open_bus_data;
         }
-        
+
     }
 
     void MMC1_1::update_chr(uint16_t addr) {
+        // if (using_chr_ram == true) {
+        //     final_addr = addr;
+        //     final_bank = 0;
+        //     return;
+        // }
+
+        //     std::cout << "prg mode "
+        // << std::hex << " chr rom mode " << (int)ctrl.comp.chr_rom_mode
+        // << std::hex << " prg rom mode " << (int)ctrl.comp.prg_rom_mode
+        // << std::hex << " mirroring " << (int)ctrl.comp.mirroring
+        // << std::hex << " prg bank " << (int)prg_bank.bank
+        // << std::hex << " chr bank 0 " << (int)chr_bank.bank_0
+        // << std::hex << " chr bank 1 " << (int)chr_bank.bank_1
+        // << "\n";
+
         if (ctrl.comp.chr_rom_mode == 0) {
             final_addr = addr % 0x2000;
             final_bank = ((chr_bank.bank_0 & 0b0001'1110) % chr_bank_num);
@@ -95,6 +108,8 @@ namespace roee_nes {
             else // if ((0x1000 <= addr) && (addr <= 0x1fff)) {
                 final_bank = chr_bank.bank_1 % chr_bank_num;
         }
+        if (using_chr_ram == true)
+            final_bank &= 1;
     }
 
     void MMC1_1::update_prg(uint16_t addr) {
@@ -128,8 +143,8 @@ namespace roee_nes {
 
     void MMC1_1::ppu_write(uint16_t addr, uint8_t data) {
         if (using_chr_ram == true) {
-            update_chr(addr);
-            (*chr_read_mem)[(final_bank * 4 * KILOBYTE) + final_addr] = data;
+            // update_chr(addr);
+            (*chr_read_mem)[addr] = data;
         } else
             std::cerr << "ERR trying to write to chr rom!\n";
     }
@@ -152,7 +167,7 @@ namespace roee_nes {
             case 2: // horizontal mirroring
                 return addr % 0x800;
                 break;
-            case 3: // vertical mirroring
+            default: // case 3: // vertical mirroring
                 if (addr >= 0x800)
                     return addr % 0x400;
                 else
