@@ -41,8 +41,11 @@ namespace roee_nes {
                 case SEQ_4_STEP_3:
                     // clock envelope & triangle linear counter
                     break;
-                    // case SEQ_4_STEP_4_1:
-                    //     break;
+                case SEQ_4_STEP_4_1:
+                    if (some_seq_flag.comp.inhibit_int == 0) {
+                        // set frame interrupt flag
+                    }
+                    break;
                 case SEQ_4_STEP_4_2:
                     // clock envelope & triangle linear counter
                     // clock length counter & sweep units
@@ -57,6 +60,82 @@ namespace roee_nes {
                     }
                     break;
             }
+        }
+    }
+
+    void APU::cpu_write_apu(uint8_t addr, uint8_t data) {
+
+        auto handle_pulse_write = [](Pulse_Channel* pulse, uint8_t data) {
+            pulse->duty_cycle = (data & 0b11000000) >> 6;
+            pulse->length_counter_halt = (data & 0b00100000) >> 5;
+            pulse->constant_volume = (data & 0b00010000) >> 4;
+            pulse->volume_envelope = data & 0b00001111;
+            };
+
+        // please complete all the switch case until 0x401a
+        switch (addr) {
+            case 0x0: // pulse 1
+                handle_pulse_write(&pulse_1, data);
+                break;
+            case 0x1:
+                pulse_1.apu_sweep = data;
+                break;
+            case 0x2:
+                pulse_1.timer = (pulse_1.timer & 0b111'0000'0000) | data;
+                break;
+            case 0x3:
+                pulse_1.timer = (pulse_1.timer & 0b000'1111'1111) | (data << 8);
+                pulse_1.length_counter_load = data >> 3;
+                break;
+            case 0x4: // pulse 2
+                handle_pulse_write(&pulse_2, data);
+                break;
+            case 0x5:
+                pulse_2.apu_sweep = data;
+                break;
+            case 0x6:
+                pulse_2.timer = (pulse_2.timer & 0b111'0000'0000) | data;
+                break;
+            case 0x7:
+                pulse_2.timer = (pulse_2.timer & 0b000'1111'1111) | (data << 8);
+                pulse_2.length_counter_load = data >> 3;
+                break;
+            case 0x8:
+                break;
+            case 0x9:
+                break;
+            case 0xa:
+                break;
+            case 0xb:
+                break;
+            case 0xc:
+                break;
+            case 0xd:
+                break;
+            case 0xe:
+                break;
+            case 0xf:
+                break;
+            case 0x10:
+                break;
+            case 0x11:
+                break;
+            case 0x12:
+                break;
+            case 0x13:
+                break;
+            case 0x14:
+                break;
+            case 0x15:
+                break;
+            case 0x17:
+                break;
+            case 0x18:
+            case 0x19:
+            case 0x1a:
+                // some rarely used apt functionality
+                break;
+
         }
     }
 }

@@ -146,24 +146,26 @@ namespace roee_nes {
             ram[addr % 0x800] = data;
         else if (0x2000 <= addr && addr <= 0x3fff)
             cpu_write_ppu(addr % 8, data);
-        else if (0x4000 <= addr && addr <= 0x4015) {
-            if (addr == OAMDMA) {
-                cpu_sleep_dma_counter = 513; // TODO takes more sometimes
-                uint16_t start_addr = data;
-                start_addr <<= 8;
-                // start_addr |= (0x00ff & ppu->ext_regs.oamaddr);
-                for (int i = 0; i < 256; i++) {
-                    ppu->primary_oam[i] = ram[start_addr + i];
-                }
+        else if (addr == 0x4014) { // OAMDMA
+            cpu_sleep_dma_counter = 513; // TODO takes more sometimes
+            uint16_t start_addr = data;
+            start_addr <<= 8;
+            // start_addr |= (0x00ff & ppu->ext_regs.oamaddr);
+            for (int i = 0; i < 256; i++) {
+                ppu->primary_oam[i] = ram[start_addr + i];
             }
-        } else if (addr == 0x4016) {
+        }
+        else if (addr == 0x4016) {
             controller_1->write(data);
             controller_2->write(data);
-        } else if (0x4018 <= addr && addr <= 0x401f)
-            return; // didnt implement yet
-        else if (0x4020 <= addr && addr <= 0xffff) {
+        } 
+        else if ((0x4000 <= addr) && (addr <= 0x401a)) // APU
+            apu->cpu_write_apu(addr % 0x4000, data);
+        else if (0x4020 <= addr && addr <= 0xffff)
             mapper->cpu_write(addr, data);
-        }
+        
+        // else if ((0x401c <= addr) && (addr <= 0x401f)) // unfinished IRQ timer functionality
+        //     return; // do nothing!
     }
 
     uint8_t Bus::cpu_read(uint16_t addr) {
@@ -173,18 +175,16 @@ namespace roee_nes {
             cpu_dma_controllers_open_bus = cpu_read_ppu(addr % 8);
         else if (0x4000 <= addr && addr <= 0x4015)
             cpu_dma_controllers_open_bus = 0; // didnt implement yet
-        else if (addr == 0x4016) {
+        else if (addr == 0x4016)
             cpu_dma_controllers_open_bus = controller_1->read();
-        } else if (addr == 0x4017) {
+        else if (addr == 0x4017)
             cpu_dma_controllers_open_bus = controller_2->read();
-        } 
-        else if (0x4018 <= addr && addr <= 0x401f)
-            cpu_dma_controllers_open_bus = 0; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
             cpu_dma_controllers_open_bus = mapper->cpu_read(addr, cpu_dma_controllers_open_bus);
 
         return cpu_dma_controllers_open_bus;
     }
+
 
 #ifdef DEBUG
     void Bus::full_log() const {
@@ -338,9 +338,9 @@ namespace roee_nes {
                 std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
                 return;
             }
-        }
+    }
 
         std::cout << "all goodie!" << "\n";
-    }
+}
 #endif
 }

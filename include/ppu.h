@@ -9,6 +9,7 @@
 #include "nes_screen.h"
 
 #define Y_DIFF curr_scanline - sprites[sec_oam_cnt].y
+
 namespace roee_nes {
     constexpr uint8_t PT_MSB = 0b0000'1000;
     constexpr uint8_t PT_LSB = 0b0000'0000;

@@ -18,8 +18,6 @@
 #include "apu.h"
 
 namespace roee_nes {
-    constexpr uint16_t OAMDMA = 0x4014;
-
     class PPU;
     class CPU;
 
@@ -61,6 +59,7 @@ namespace roee_nes {
         struct Color* ppu_get_color(uint16_t addr);
         uint8_t cpu_read_ppu(uint16_t addr);
         void cpu_write_ppu(uint16_t addr, uint8_t data);
+        void cpu_write_apu(uint16_t addr, uint8_t data);
         
 #ifdef DEBUG
         void full_log() const;
