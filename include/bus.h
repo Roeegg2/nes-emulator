@@ -15,6 +15,7 @@
 #include "ppu.h"
 #include "cpu.h"
 #include "controller.h"
+#include "apu.h"
 
 namespace roee_nes {
     constexpr uint16_t OAMDMA = 0x4014;
@@ -43,6 +44,7 @@ namespace roee_nes {
         Mapper* mapper;
         PPU* ppu;
         CPU* cpu;
+        APU* apu;
         Controller* controller_1;
         Controller* controller_2;
         
@@ -59,7 +61,6 @@ namespace roee_nes {
         struct Color* ppu_get_color(uint16_t addr);
         uint8_t cpu_read_ppu(uint16_t addr);
         void cpu_write_ppu(uint16_t addr, uint8_t data);
-        uint8_t cpu_read_controller(Controller* controller);
         
 #ifdef DEBUG
         void full_log() const;

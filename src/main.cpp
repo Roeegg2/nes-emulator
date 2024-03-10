@@ -41,6 +41,7 @@ int main() {
     Bus* bus = new Bus(mapper, controller_1, controller_2, &palette_path);
     CPU* cpu = new CPU(bus);
     PPU* ppu = new PPU(bus, screen);
+    APU* apu = new APU();
     bus->cpu = cpu;
     bus->ppu = ppu;
 

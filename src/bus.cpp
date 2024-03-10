@@ -177,7 +177,8 @@ namespace roee_nes {
             cpu_dma_controllers_open_bus = controller_1->read();
         } else if (addr == 0x4017) {
             cpu_dma_controllers_open_bus = controller_2->read();
-        } else if (0x4018 <= addr && addr <= 0x401f)
+        } 
+        else if (0x4018 <= addr && addr <= 0x401f)
             cpu_dma_controllers_open_bus = 0; // didnt implement yet
         else if (0x4020 <= addr && addr <= 0xffff)
             cpu_dma_controllers_open_bus = mapper->cpu_read(addr, cpu_dma_controllers_open_bus);

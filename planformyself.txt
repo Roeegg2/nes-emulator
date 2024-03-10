@@ -1,0 +1,11 @@
+--------------- APU --------------
+
+------ frame counter ------
+frame counter has:
+1. divider
+2. sequencer - loops over certain values/events. keeps track of how many APU cycles so frame
+    sequencer will move to next step each time the cycle counter reaches a certain amount. then it is set to 0. 
+3. frame interrupt flag
+
+
+every 2 cpu cycles we clock sequencer.
