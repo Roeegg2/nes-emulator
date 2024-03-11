@@ -15,7 +15,7 @@ namespace roee_nes {
         SEQ_4_STEP_4_3 = 0, // 14915
     };
 
-    enum Seq_Mode_4 : uint16_t {
+    enum Seq_Mode_5 : uint16_t {
         SEQ_5_STEP_1 = 7457, // 3728.5
         SEQ_5_STEP_2 = 14913, // 7456.5
         SEQ_5_STEP_3 = 22371, // 11185.5
@@ -34,18 +34,12 @@ namespace roee_nes {
         
         uint16_t timer : 11; // low + high
         uint16_t length_counter_load : 5;
-        // uint8_t timer_low;
-        // uint8_t timer_high : 3;
     };
 
 
     class APU {
         public:
-        // APU pulse components
-        Pulse_Channel pulse_1;
-        Pulse_Channel pulse_2;
-
-
+        // frame counter stuff
         union {
             struct {
                 uint8_t seq_mode : 1; // sequencer mode
@@ -54,12 +48,22 @@ namespace roee_nes {
             } comp;
             uint8_t raw;
         } some_seq_flag;
-
+        
         uint16_t apu_cycle_counter;
+        uint8_t frame_interrupt;
+
+        Pulse_Channel pulse_1;
+        Pulse_Channel pulse_2;
+
+        uint8_t status;
 
         public:
         void step_sequencer(uint8_t cycles);
         void cpu_write_apu(uint8_t addr, uint8_t data);
+
+        private:
+        void clock_pulse_envelope(Pulse_Channel* pulse);
+        
         APU();
     };
 }
