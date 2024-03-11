@@ -58,13 +58,13 @@ namespace roee_nes {
         uint8_t status;
 
         public:
+        APU();
         void step_sequencer(uint8_t cycles);
         void cpu_write_apu(uint8_t addr, uint8_t data);
 
         private:
         void clock_pulse_envelope(Pulse_Channel* pulse);
         
-        APU();
     };
 }
 

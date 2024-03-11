@@ -4,6 +4,7 @@ namespace roee_nes {
 
     MMC1_1::MMC1_1(Cartridge* cart) :
         Mapper(cart), shift_reg(0b0001'0000), save_data({ 0 }) {
+        
         if (cart->chr_rom.size() == 0) {
             cart->chr_ram.resize(8 * KILOBYTE);
             using_chr_ram = true;
@@ -15,11 +16,12 @@ namespace roee_nes {
 
         chr_bank_num = (chr_read_mem->size() / (4 * KILOBYTE));
         prg_bank_num = (cart->prg_rom.size() / (16 * KILOBYTE));
+
         ctrl.comp.prg_rom_mode = 3;
         ctrl.comp.chr_rom_mode = 1;
         ctrl.comp.mirroring = 0;
-        save_file_path = cart->rom_path + ".sav";
 
+        save_file_path = cart->rom_path + ".sav";
         if (cart->header.flag_6.parsed.prg_ram == 1) { // if there is save data
             if (std::filesystem::exists(save_file_path)) {
                 std::cout << "USER INFO: Save game data found. Reading from save data\n";
@@ -79,21 +81,6 @@ namespace roee_nes {
     }
 
     void MMC1_1::update_chr(uint16_t addr) {
-        // if (using_chr_ram == true) {
-        //     final_addr = addr;
-        //     final_bank = 0;
-        //     return;
-        // }
-
-        //     std::cout << "prg mode "
-        // << std::hex << " chr rom mode " << (int)ctrl.comp.chr_rom_mode
-        // << std::hex << " prg rom mode " << (int)ctrl.comp.prg_rom_mode
-        // << std::hex << " mirroring " << (int)ctrl.comp.mirroring
-        // << std::hex << " prg bank " << (int)prg_bank.bank
-        // << std::hex << " chr bank 0 " << (int)chr_bank.bank_0
-        // << std::hex << " chr bank 1 " << (int)chr_bank.bank_1
-        // << "\n";
-
         if (ctrl.comp.chr_rom_mode == 0) {
             final_addr = addr % 0x2000;
             final_bank = ((chr_bank.bank_0 & 0b0001'1110) % chr_bank_num);

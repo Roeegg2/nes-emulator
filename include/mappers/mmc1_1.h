@@ -30,7 +30,6 @@ namespace roee_nes {
         std::vector<uint8_t>* chr_read_mem;
         std::array<uint8_t, 0x2000> save_data;
         std::string save_file_path;
-        
         union {
             struct {
                 uint8_t mirroring : 2;
@@ -40,23 +39,19 @@ namespace roee_nes {
             } comp;
             uint8_t raw;
         } ctrl;
-
         struct {
             uint8_t bank_0 : 5;
             uint8_t : 3;
             uint16_t bank_1 : 5;
             uint8_t : 3;
         } chr_bank;
-
         struct {
             uint8_t bank : 4;
             uint8_t ext : 1;
             uint8_t : 3;
         } prg_bank;
-
         uint8_t prg_bank_num;
         uint8_t chr_bank_num;
-
         uint8_t final_bank;
         uint16_t final_addr;
     };

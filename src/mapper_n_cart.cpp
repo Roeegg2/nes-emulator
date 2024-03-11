@@ -3,6 +3,7 @@
 #include "../include/mappers/unrom_2.h"
 #include "../include/mappers/cnrom_3.h"
 #include "../include/mappers/mmc1_1.h"
+#include "../include/mappers/mmc3_4.h"
 
 namespace roee_nes {
     Mapper* Mapper::create_mapper(const std::string* rom_path) {
@@ -23,6 +24,9 @@ namespace roee_nes {
             case 3: // mapper number 3 (CNROM)
                 std::cout << "USER INFO: Game mapper is CNROM (iNES 3)\n";
                 return new CNROM_3(cart);
+            case 4: // mapper number 4 (MMC3)
+                std::cout << "USER INFO: Game mapper is MMC3 (iNES 4)\n";
+                return new MMC3_4(cart);
             default:
                 std::cerr << "ERROR: Mapper number " << std::dec << (int)mapper_number << " not implemented yet\n";
                 exit(1);

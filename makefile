@@ -1,7 +1,7 @@
 # defining compiler and the flags to be used
 CXX := g++
 CXXFLAGS := -g -Wall -pedantic -std=c++20 \
-# -fsanitize=shift -fsanitize=undefined -fsanitize=address
+-fsanitize=shift -fsanitize=undefined -fsanitize=address
 # -DDEBUG
 
 
@@ -20,6 +20,7 @@ EMU_SRCS := apu.cpp \
 	mappers/cnrom_3.cpp \
 	mappers/unrom_2.cpp \
 	mappers/mmc1_1.cpp \
+	mappers/mmc3_4.cpp \
 
 EMU_OBJS := $(patsubst %.cpp,bin/%.o,$(EMU_SRCS))
 
