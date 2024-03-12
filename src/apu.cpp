@@ -5,36 +5,48 @@ namespace roee_nes {
         : some_seq_flag({ 0 }), apu_cycle_counter(0), pulse_1({ 0 }), pulse_2({ 0 }) {
     }
 
-    void APU::clock_pulse_envelope(Pulse_Channel* pulse) {
-        /*
-        if (start flag is clear) {
-            clock divider
-            if (divider is zero) {
-                reload divider with V
-                clock decay level counter
-                if (decay level counter is not zero) {
-                    decrement it
-                }
-                else if (loop flag is set) {
-                    load decay level counter with 15
-                }
-            }
+    // void APU::clock_pulse_envelope(Pulse_Channel* pulse) {
+    //     
+    //     if (start flag is clear) {
+    //         clock divider
+    //         if (divider is zero) {
+    //             reload divider with V
+    //             clock decay level counter
+    //             if (decay level counter is not zero) {
+    //                 decrement it
+    //             }
+    //             else if (loop flag is set) {
+    //                 load decay level counter with 15
+    //             }
+    //         }
+    //     }
+    //     else {
+    //         clear start flag
+    //         load decay level counter with 15
+    //         reload divider 
+    //     }
+    //     
+    // }
+
+    void APU::clock_triangle_linear_counter() {
+        if (triangle.linear_counter_reload_flag == 1) {
+            triangle.linear_counter = triangle.linear_counter_reload_val;
+        } else if (triangle.linear_counter != 0) {
+            triangle.linear_counter--;
         }
-        else {
-            clear start flag
-            load decay level counter with 15
-            reload divider 
+        if (triangle.ctrl == 0) {
+            triangle.linear_counter_reload_flag = 0;
         }
-        */
     }
 
     void APU::step_sequencer(uint8_t cycles) {
         if (some_seq_flag.comp.seq_mode == 1) { // 5-step mode
             switch (apu_cycle_counter) {
                 case SEQ_5_STEP_1:
-                    clock_pulse_envelope(&pulse_1);
-                    clock_pulse_envelope(&pulse_2);
+                    // clock_pulse_envelope(&pulse_1);
+                    // clock_pulse_envelope(&pulse_2);
                     // clock envelope & triangle linear counter
+                    clock_triangle_linear_counter();
                     break;
                 case SEQ_5_STEP_2:
                     // clock envelope & triangle linear counter
@@ -131,6 +143,7 @@ namespace roee_nes {
             case 0xa:
                 break;
             case 0xb:
+                triangle.lc_reload_flag = 1;
                 break;
             case 0xc:
                 break;

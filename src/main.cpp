@@ -31,7 +31,7 @@ uint16_t emulator_tick(Bus* bus, NES_Screen* screen, uint8_t val) {
 }
 
 int main() {
-    const std::string rom_path = "roms/SMB3.nes";
+    const std::string rom_path = "roms/DK.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller_1 = new Controller();

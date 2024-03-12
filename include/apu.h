@@ -36,6 +36,15 @@ namespace roee_nes {
         uint16_t length_counter_load : 5;
     };
 
+    struct Triangle_Channel {
+        uint8_t linear_counter_reload_val : 7;
+        uint8_t ctrl : 1;
+        uint16_t timer : 11; // low + high
+        uint16_t length_counter_load : 5;
+        
+        uint8_t linear_counter_reload_flag : 1;
+        uint8_t linear_counter: 7;
+    };
 
     class APU {
         public:
@@ -54,8 +63,10 @@ namespace roee_nes {
 
         Pulse_Channel pulse_1;
         Pulse_Channel pulse_2;
+        Triangle_Channel triangle;
 
         uint8_t status;
+        double freq;
 
         public:
         APU();
@@ -63,8 +74,8 @@ namespace roee_nes {
         void cpu_write_apu(uint8_t addr, uint8_t data);
 
         private:
-        void clock_pulse_envelope(Pulse_Channel* pulse);
-        
+        // void clock_pulse_envelope(Pulse_Channel* pulse);
+        void clock_triangle_linear_counter();  
     };
 }
 
