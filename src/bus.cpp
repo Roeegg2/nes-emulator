@@ -173,8 +173,12 @@ namespace roee_nes {
             cpu_dma_controllers_open_bus = ram[addr % 0x800];
         else if (0x2000 <= addr && addr <= 0x3fff)
             cpu_dma_controllers_open_bus = cpu_read_ppu(addr % 8);
-        else if (0x4000 <= addr && addr <= 0x4015)
+        else if (0x4000 <= addr && addr <= 0x4014)
             cpu_dma_controllers_open_bus = 0; // didnt implement yet
+        else if (addr == 0x4015) {
+            cpu_dma_controllers_open_bus = apu->status_reg;
+            apu->status_reg &= 0b1011'1111; // clearing frame interrupt flag
+        }
         else if (addr == 0x4016)
             cpu_dma_controllers_open_bus = controller_1->read();
         else if (addr == 0x4017)

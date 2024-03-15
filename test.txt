@@ -1,0 +1,19 @@
+linear/length counter?
+simple
+they get loaded a value
+frame counter ticks them and their value gets decremented. when they are 0 the channels volume is 0. easy.
+
+
+you have a timer. gets ticked every cpu cycle.
+when the timer reaches 0 you increment an index and reload the timer
+and then send the value pointed by the index to the mixer, which sends it to the audio thread
+
+
+
+
+
+
+
+------------------------------------------------------
+
+

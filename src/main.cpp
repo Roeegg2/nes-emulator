@@ -21,7 +21,8 @@ uint16_t emulator_tick(Bus* bus, NES_Screen* screen, uint8_t val) {
     }
     
     bus->ppu->run_ppu(cycles * 3);
-
+    bus->apu->run_apu();
+    
     if (bus->ppu->nmi == 1) {
         bus->ppu->nmi = 0;
         bus->cpu->nmi();
@@ -31,7 +32,7 @@ uint16_t emulator_tick(Bus* bus, NES_Screen* screen, uint8_t val) {
 }
 
 int main() {
-    const std::string rom_path = "roms/DK.nes";
+    const std::string rom_path = "roms/SMB1.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* controller_1 = new Controller();
@@ -52,6 +53,7 @@ int main() {
     uint8_t val = 0;
     while (1) {
         emulator_tick(bus, screen, val);
+        screen->output_audio();
 #ifdef DEBUG        
         bus->full_log();
 #endif

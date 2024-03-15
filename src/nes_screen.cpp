@@ -9,7 +9,7 @@ namespace roee_nes {
         sdl_joystick_1 = NULL;
         sdl_joystick_2 = NULL;
 
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK) < 0) {
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) < 0) {
             std::cerr << "ERROR: SDL could not initialize; SDL_Error: " << SDL_GetError() << "\n";
             exit(1);
         }
@@ -230,4 +230,10 @@ namespace roee_nes {
         }
     }
 
+    // const uint8_t* buffer, const int32_t buffer_size
+    void NES_Screen::output_audio() {
+        uint8_t buffer[4096] = {1};
+        int32_t buffer_size = 4096;
+        SDL_QueueAudio(1, buffer, buffer_size);
+    }
 }

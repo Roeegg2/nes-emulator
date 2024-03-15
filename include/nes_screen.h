@@ -20,25 +20,6 @@ namespace roee_nes {
         uint8_t r;
         uint8_t g;
         uint8_t b;
-
-        // inline bool operator==(const struct Pixel& other) {
-        //     return (r == other.r) && (g == other.g) && (b == other.b);
-        // }
-
-        // inline bool operator!=(const int val) {
-        //     return (r != val) || (g != val) || (b == val);
-        // }
-
-        // inline struct Pixel operator=(const struct Pixel& other) {
-        //     return Pixel{other.r, other.g, other.b};
-        // }
-        // // struct Pixel operator=(struct Pixel other) {
-        // //     struct Pixel ret;
-        // //     ret.r = other.r;
-        // //     ret.g = other.g;
-        // //     ret.b = other.b;
-        // //     return ret;
-        // // }
     };
 
     class NES_Screen {
@@ -49,7 +30,8 @@ namespace roee_nes {
         void draw_pixel_line(const struct Pixel* render_pixel, const int32_t scanline, const int32_t x_pos) const;
         void update_screen() const;
         void handle_events();
-
+        void output_audio();
+        
         private:
         SDL_Window* window;
         SDL_Renderer* renderer;

@@ -1,149 +1,165 @@
 #include "../include/apu.h"
+#include <fstream>
 
 namespace roee_nes {
-    APU::APU()
-        : some_seq_flag({ 0 }), apu_cycle_counter(0), pulse_1({ 0 }), pulse_2({ 0 }) {
+    APU::APU() {
+
     }
 
-    // void APU::clock_pulse_envelope(Pulse_Channel* pulse) {
-    //     
-    //     if (start flag is clear) {
-    //         clock divider
-    //         if (divider is zero) {
-    //             reload divider with V
-    //             clock decay level counter
-    //             if (decay level counter is not zero) {
-    //                 decrement it
-    //             }
-    //             else if (loop flag is set) {
-    //                 load decay level counter with 15
-    //             }
-    //         }
-    //     }
-    //     else {
-    //         clear start flag
-    //         load decay level counter with 15
-    //         reload divider 
-    //     }
-    //     
-    // }
+    void APU::run_apu() {
+        // clock frame counter
+        triangle.clock_timer();
+        // clock pulse channels
+        // clock noise channel
+        // clock DMC channel
+        clock_frame_counter();
+    }
 
-    void APU::clock_triangle_linear_counter() {
-        if (triangle.linear_counter_reload_flag == 1) {
-            triangle.linear_counter = triangle.linear_counter_reload_val;
-        } else if (triangle.linear_counter != 0) {
-            triangle.linear_counter--;
-        }
-        if (triangle.ctrl == 0) {
-            triangle.linear_counter_reload_flag = 0;
+    void APU::mix_audio() {
+        static std::ofstream file("audio.raw", std::ios::binary);
+        file << "triangle output: " << triangle.get_output() << "\n";
+    }
+
+    uint8_t Triangle_Channel::get_output() const {
+        // std::cout << "output: " << (int)waveform_seq[seq_index] << "\n";
+        if ((length_counter == 0) || (linear_counter == 0))
+            return 0;
+        else
+            return waveform_seq[seq_index];
+    }
+
+    void Triangle_Channel::clock_timer() {
+        if (timer == 0) {
+            timer = (timer_reload + 1) & 0b0000'0111'1111'1111; // NOTE not sure about the +1
+            if ((linear_counter > 0) && (length_counter > 0))
+                seq_index = (seq_index + 1) % 32;
+
+            // static std::ofstream file("audio.raw", std::ios::binary);
+            // file << "triangle output: " << (int)get_output() << "\n";
+            // clock waveform generator
+        } else {
+            timer--;
         }
     }
 
-    void APU::step_sequencer(uint8_t cycles) {
-        if (some_seq_flag.comp.seq_mode == 1) { // 5-step mode
-            switch (apu_cycle_counter) {
+    void Triangle_Channel::clock_linear_counter() {
+        if (linear_counter_reload_flag == 1) {
+            linear_counter = linear_counter_reload;
+        } else if (linear_counter != 0) {
+            linear_counter--;
+        }
+        if (ctrl_halt == 0) {
+            linear_counter_reload_flag = 0;
+        }
+    }
+
+    void Triangle_Channel::clock_length_counter() {
+        if (ctrl_halt == 0 && length_counter > 0) {
+            length_counter--;
+        }
+    }
+
+    void APU::clock_frame_counter() {
+        if (frame_counter.mode == 1) { // 5-step mode
+            switch (frame_counter.counter) {
                 case SEQ_5_STEP_1:
-                    // clock_pulse_envelope(&pulse_1);
-                    // clock_pulse_envelope(&pulse_2);
                     // clock envelope & triangle linear counter
-                    clock_triangle_linear_counter();
+                    triangle.clock_linear_counter();
                     break;
                 case SEQ_5_STEP_2:
                     // clock envelope & triangle linear counter
                     // clock length counter & sweep units
+                    triangle.clock_linear_counter();
+                    triangle.clock_length_counter();
                     break;
                 case SEQ_5_STEP_3:
                     // clock envelope & triangle linear counter
+                    triangle.clock_linear_counter();
                     break;
                 case SEQ_5_STEP_4:
                     break;
                 case SEQ_5_STEP_5_1:
                     // clock envelope & triangle linear counter
                     // clock length counter & sweep units
-                    apu_cycle_counter = 0;
+                    triangle.clock_linear_counter();
+                    triangle.clock_length_counter();
                     break;
                 case SEQ_5_STEP_5_2:
+                    frame_counter.counter = -1; // setting to -1 will make it 0 in the next line
                     break;
             }
         } else { // 4-step mode 
-            switch (apu_cycle_counter) {
+            switch (frame_counter.counter) {
                 case SEQ_4_STEP_1:
                     // clock envelope & triangle linear counter
+                    triangle.clock_linear_counter();
                     break;
                 case SEQ_4_STEP_2:
                     // clock envelope & triangle linear counter
                     // clock length counter & sweep units
+                    triangle.clock_linear_counter();
+                    triangle.clock_length_counter();
                     break;
                 case SEQ_4_STEP_3:
                     // clock envelope & triangle linear counter
+                    triangle.clock_linear_counter();
                     break;
                 case SEQ_4_STEP_4_1:
-                    if (some_seq_flag.comp.inhibit_int == 0) {
-                        // set frame interrupt flag
-                    }
+                    if (frame_counter.inhibit_frame_interrupt == 0)
+                        frame_counter.frame_interrupt = 1;
+
                     break;
                 case SEQ_4_STEP_4_2:
                     // clock envelope & triangle linear counter
                     // clock length counter & sweep units
-                    if (some_seq_flag.comp.inhibit_int == 0) {
-                        // set frame interrupt flag
-                    }
-                    apu_cycle_counter = 0;
+                    triangle.clock_linear_counter();
+                    triangle.clock_length_counter();
+                    if (frame_counter.inhibit_frame_interrupt == 0)
+                        frame_counter.frame_interrupt = 1;
+
                     break;
                 case SEQ_4_STEP_4_3:
-                    if (some_seq_flag.comp.inhibit_int == 0) {
-                        // set frame interrupt flag
-                    }
+                    if (frame_counter.inhibit_frame_interrupt == 0)
+                        frame_counter.frame_interrupt = 1;
+
+                    frame_counter.counter = -1; // setting to -1 will make it 0 in the next line
                     break;
             }
         }
+        frame_counter.counter++;
     }
 
-    void APU::cpu_write_apu(uint8_t addr, uint8_t data) {
-
-        auto handle_pulse_write = [](Pulse_Channel* pulse, uint8_t data) {
-            pulse->duty_cycle = (data & 0b11000000) >> 6;
-            pulse->length_counter_halt = (data & 0b00100000) >> 5;
-            pulse->constant_volume = (data & 0b00010000) >> 4;
-            pulse->volume_envelope = data & 0b00001111;
-            };
-
-        // please complete all the switch case until 0x401a
+    void APU::cpu_write_apu(const uint8_t addr, const uint8_t data) {
         switch (addr) {
             case 0x0: // pulse 1
-                handle_pulse_write(&pulse_1, data);
                 break;
             case 0x1:
-                pulse_1.apu_sweep = data;
                 break;
             case 0x2:
-                pulse_1.timer = (pulse_1.timer & 0b111'0000'0000) | data;
                 break;
             case 0x3:
-                pulse_1.timer = (pulse_1.timer & 0b000'1111'1111) | (data << 8);
-                pulse_1.length_counter_load = data >> 3;
                 break;
-            case 0x4: // pulse 2
-                handle_pulse_write(&pulse_2, data);
+            case 0x4:
                 break;
             case 0x5:
-                pulse_2.apu_sweep = data;
                 break;
             case 0x6:
-                pulse_2.timer = (pulse_2.timer & 0b111'0000'0000) | data;
                 break;
             case 0x7:
-                pulse_2.timer = (pulse_2.timer & 0b000'1111'1111) | (data << 8);
-                pulse_2.length_counter_load = data >> 3;
                 break;
             case 0x8:
+                triangle.ctrl_halt = data >> 7;
+                triangle.linear_counter_reload = data & 0b0111'1111;
                 break;
             case 0x9:
+                // unused
                 break;
             case 0xa:
+                triangle.timer_reload = (triangle.timer_reload & 0b111'0000'0000) | data;
                 break;
             case 0xb:
-                triangle.lc_reload_flag = 1;
+                triangle.timer_reload = (triangle.timer_reload & 0b000'1111'1111) | ((data & 0b111) << 8);
+                triangle.linear_counter_reload_flag = 1;
                 break;
             case 0xc:
                 break;
@@ -164,8 +180,17 @@ namespace roee_nes {
             case 0x14:
                 break;
             case 0x15:
+                status_reg = data;
+                // enable the channels flags
+
+                triangle.ctrl_halt = 0; // NOTE is this correct? enable triangle length counter
                 break;
             case 0x17:
+                // reset frame counter divider
+                // reset frame counter sequencer
+                // configure sequencer mode
+
+                // * If the write occurs during an APU cycle, the effects occur 3 CPU cycles after the $4017 write cycle, and if the write occurs between APU cycles, the effects occurs 4 CPU cycles after the write cycle. 
                 break;
             case 0x18:
             case 0x19:

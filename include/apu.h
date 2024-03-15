@@ -2,6 +2,9 @@
 #define APU_H
 
 #include <cstdint>
+#include <array>
+#include <iostream>
+#include <SDL2/SDL.h>
 
 namespace roee_nes {
 
@@ -24,58 +27,56 @@ namespace roee_nes {
         SEQ_5_STEP_5_2 = 0, // 18641
     };
 
-    struct Pulse_Channel {
-        uint8_t volume_envelope : 4;
-        uint8_t constant_volume : 1;
-        uint8_t length_counter_halt : 1;
-        uint8_t duty_cycle : 2;
+    class Triangle_Channel {
+        public:
+        uint16_t timer;
+        uint8_t length_counter;
+        uint8_t linear_counter;
+        uint8_t linear_counter_reload_flag;
+        uint8_t ctrl_halt; // length counter halt/linear counter control
+        uint8_t linear_counter_reload;
+        uint16_t timer_reload;
+        uint8_t seq_index;
 
-        uint8_t apu_sweep;
-        
-        uint16_t timer : 11; // low + high
-        uint16_t length_counter_load : 5;
-    };
+        const std::array<uint8_t, 32> waveform_seq = { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-    struct Triangle_Channel {
-        uint8_t linear_counter_reload_val : 7;
-        uint8_t ctrl : 1;
-        uint16_t timer : 11; // low + high
-        uint16_t length_counter_load : 5;
-        
-        uint8_t linear_counter_reload_flag : 1;
-        uint8_t linear_counter: 7;
+        public:
+        void clock_length_counter();
+        void clock_linear_counter();
+        void clock_timer();
+        uint8_t get_output() const;
+
+        // double get_tnd_out() {
+        //     // std::cout << "output: " << (int)get_output() << "\n";
+        //     return (159.79 / ((1 / (get_output() / 8227) + (0 / 12241) + (0 / 22638)) + 100));
+        // }
     };
 
     class APU {
         public:
-        // frame counter stuff
-        union {
-            struct {
-                uint8_t seq_mode : 1; // sequencer mode
-                uint8_t inhibit_int : 1; // inhibit IRQ interrupt
-                uint8_t : 6;
-            } comp;
-            uint8_t raw;
-        } some_seq_flag;
-        
-        uint16_t apu_cycle_counter;
-        uint8_t frame_interrupt;
-
-        Pulse_Channel pulse_1;
-        Pulse_Channel pulse_2;
         Triangle_Channel triangle;
 
-        uint8_t status;
-        double freq;
+        struct {
+            uint16_t counter;
+            uint8_t mode : 1;
+            uint8_t inhibit_frame_interrupt : 1;
+            uint8_t frame_interrupt : 1;
+            uint8_t : 5;
+        } frame_counter;
+
+
+        uint8_t status_reg;
 
         public:
         APU();
-        void step_sequencer(uint8_t cycles);
+        void clock_frame_counter();
         void cpu_write_apu(uint8_t addr, uint8_t data);
+        void run_apu();
+        void mix_audio();
 
-        private:
-        // void clock_pulse_envelope(Pulse_Channel* pulse);
-        void clock_triangle_linear_counter();  
+        // double get_tnd_out() {
+        //     return (159.79 / ((1 / (triangle.get_output() / 8227) + (0 / 12241) + (0 / 22638)) + 100));
+        // }
     };
 }
 
@@ -85,6 +86,12 @@ namespace roee_nes {
  * some important notes for later:
  *
  * 1. frame counter: If the write occurs during an APU cycle, the effects occur 3 CPU cycles
- * after the $4017 write cycle, and if the write occurs between APU cycles, the effects occurs
- * 4 CPU cycles after the write cycle.
+ *    after the $4017 write cycle, and if the write occurs between APU cycles, the effects occurs
+ *    4 CPU cycles after the write cycle.
+ *
+ * 2. triangle channel: At the lowest two periods ($400B = 0 and $400A = 0 or 1), the resulting
+ *    frequency is so high that the DAC effectively outputs a value half way between 7 and 8.
+ *
+ *
+ *
 */
