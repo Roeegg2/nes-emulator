@@ -1,19 +1,19 @@
+#include <iostream>
+
 #include "../include/ppu.h"
 
 namespace roee_nes {
-    PPU::PPU(Bus* bus, NES_Screen* screen)
-        // write the initilizer list in order please
+    PPU::PPU(NES_Screen* screen)
         : v({ 0 }), t({ 0 }), x(0), w(0), bg_regs({ 0 }), ext_regs({ 0 }), oamdma(0), curr_scanline(0), curr_cycle(0),
         nmi(0), frame_oddness(0), frame_counter(0), sprite_rendering_stage(SPRITE_EVAL),
         render_pixel({ 0 }), sprites({ 0 }), primary_oam({ 0 }), secondary_oam({ 0 }), pri_oam_cnt(0), sec_oam_cnt(0),
-        curr_sprite_0(false), next_sprite_0(false)
-        // NOTE: not sure about these yet!
-    {
+        curr_sprite_0(false), next_sprite_0(false) {
+
         this->bus = bus;
         this->screen = screen;
     }
 
-    void PPU::run_ppu(uint8_t cycles) {
+    void PPU::run_ppu(const uint8_t cycles) {
         for (uint8_t i = 0; i < cycles; i++) {
             if (curr_scanline == PRE_RENDER_SCANLINE)
                 prerender_scanline();
@@ -38,16 +38,17 @@ namespace roee_nes {
         }
 
         if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336))) {
-            if (Get_rendering_status())
-                shift_regs(); // every cycle we shift the shift registers
-            if (Get_rendering_status() && ((curr_cycle % 8) == 0))
-                increment_coarse_x();
+            if (ext_regs.ppumask.raw & 0b00011000) { // if either foreground or background rendering is enabled
+                update_shift_regs(); // every cycle we shift the shift registers
+                if ((curr_cycle % 8) == 0)
+                    increment_coarse_x();
+            }
         }
 
-        if (Get_rendering_status() && (curr_cycle == 256))
+        if ((ext_regs.ppumask.raw & 0b00011000) && (curr_cycle == 256))
             increment_y();
 
-        if (Get_rendering_status() && (curr_cycle == 257)) {// copy all horizontal bits from t onto v
+        if ((ext_regs.ppumask.raw & 0b00011000) && (curr_cycle == 257)) {// copy all horizontal bits from t onto v
             v.scroll_view.coarse_x = t.scroll_view.coarse_x;
             v.scroll_view.nt = (v.scroll_view.nt & 0b10) | (t.scroll_view.nt & 0b01);
         }
@@ -62,7 +63,7 @@ namespace roee_nes {
             frame_oddness = 1 - frame_oddness;
             frame_counter++;
 
-            if (Get_rendering_status() && (frame_oddness == EVEN_FRAME)) { // each ODD scanline we skip a frame. I check for EVEN scanline because i switch the scanline value before the 'if'
+            if ((ext_regs.ppumask.raw & 0b00011000) && (frame_oddness == EVEN_FRAME)) { // each ODD scanline we skip a frame. I check for EVEN scanline because i switch the scanline value before the 'if'
                 increment_cycle(1);
                 return;
             }
@@ -72,7 +73,7 @@ namespace roee_nes {
             ext_regs.ppustatus.raw &= 0b0001'1111; // clearing vblank, sprite 0 hit, and sprite overflow flag
         }
 
-        if (Get_rendering_status() && (280 <= curr_cycle) && (curr_cycle <= 304)) {
+        if ((ext_regs.ppumask.raw & 0b00011000) && (280 <= curr_cycle) && (curr_cycle <= 304)) {
             v.scroll_view.coarse_y = t.scroll_view.coarse_y;
             v.scroll_view.nt = (v.scroll_view.nt & 0b01) | (t.scroll_view.nt & 0b10);
             v.scroll_view.fine_y = t.scroll_view.fine_y;
@@ -188,9 +189,6 @@ namespace roee_nes {
     }
 
     void PPU::fill_sprites_render_data() {
-        // std::cout << "sec_oam_cnt " << (int)sec_oam_cnt << " scanline is: " << (int)curr_scanline << "\n";
-
-        // std::cout << "cycle: " << (int)curr_cycle << " sl: " << (int)curr_scanline << " sec_oam_cnt: " << (int)sec_oam_cnt << "\n";
         switch ((curr_cycle) % 8) {
             case Y_BYTE_0: // case this is 1
                 sprites[sec_oam_cnt].y = secondary_oam[(4 * sec_oam_cnt) + 0];
@@ -213,10 +211,9 @@ namespace roee_nes {
                 // the PPU should fetch here X byte again 4 times, but for emulation this is unessecary, so do nothing
                 break;
         }
-        // sec_oam_cnt %= 8;
     }
 
-    void PPU::add_to_x_map(uint8_t pt_data, uint8_t i_val) {
+    void PPU::add_to_x_map(const uint8_t pt_data, const uint8_t i_val) {
         sprites[sec_oam_cnt].palette_indices[i_val] = ((4 * (sprites[sec_oam_cnt].at & 0b0000'0011)) + pt_data); // setting palette value
 
         auto it = x_to_sprite_map.find(sprites[sec_oam_cnt].x + i_val); // trying to find the element if it already exists in the map
@@ -228,7 +225,7 @@ namespace roee_nes {
         }
     }
 
-    void PPU::fill_sprite_pixels(uint8_t sec_oam_cnt) {
+    void PPU::fill_sprite_pixels(const uint8_t sec_oam_cnt) {
         uint8_t pt_low = fetch_fg_pt_byte(PT_LSB, sprites[sec_oam_cnt]);
         uint8_t pt_high = fetch_fg_pt_byte(PT_MSB, sprites[sec_oam_cnt]);
 
@@ -258,7 +255,7 @@ namespace roee_nes {
     }
 
 
-    uint8_t PPU::fetch_fg_pt_byte(uint16_t priority, struct Sprite& sprite) {
+    uint8_t PPU::fetch_fg_pt_byte(const uint16_t priority, struct Sprite& sprite) {
         uint16_t addr = priority; // bits 3,13 setting msb/lsb (13 is constant 0 for now)
         uint8_t tile = sprite.tile;
         int32_t y_diff = curr_scanline - sprite.y;
@@ -290,7 +287,7 @@ namespace roee_nes {
         return bus->ppu_read(addr);
     }
 
-    void PPU::fetch_rendering_data(Fetch_Modes fetch_mode) {
+    void PPU::fetch_rendering_data(const Fetch_Modes fetch_mode) {
         if (fetch_mode == ONLY_NT_FETCH) { // only fetching nametable byte
             bg_regs.nt_latch = bus->ppu_read(0x2000 | (v.raw & 0x0FFF));
             return;
@@ -319,19 +316,17 @@ namespace roee_nes {
         }
     }
 
-    void PPU::check_sprite_0_hit(uint8_t sprite_index, uint8_t bg_palette_index) {
-        // static std::ofstream file("logs/sprite_0.txt");
-            if ((ext_regs.ppustatus.comp.sprite_0_hit != 1)
-                && ((curr_cycle - 1) != 255) // 255 doesnt not hit 
-                && (curr_sprite_0)
-                && (sprite_index == 0)
-                && ((sprites[sprite_index].palette_indices[curr_cycle - 1 - sprites[sprite_index].x] % 0x4) != 0)
-                && ((bg_palette_index % 4) != 0)
-                ) {
+    void PPU::check_sprite_0_hit(const uint8_t sprite_index, const uint8_t bg_palette_index) {
+        if ((ext_regs.ppustatus.comp.sprite_0_hit != 1)
+            && ((curr_cycle - 1) != 255) // 255 doesnt not hit 
+            && (curr_sprite_0)
+            && (sprite_index == 0)
+            && ((sprites[sprite_index].palette_indices[curr_cycle - 1 - sprites[sprite_index].x] % 0x4) != 0)
+            && ((bg_palette_index % 4) != 0)
+            ) {
 
-                ext_regs.ppustatus.comp.sprite_0_hit = 1;
-                // file << "sprite 0 hit at cycle: " << (int)curr_cycle << " scanline: " << (int)curr_scanline << "\n";
-            }
+            ext_regs.ppustatus.comp.sprite_0_hit = 1;
+        }
     }
 
     void PPU::add_render_pixel() {
@@ -360,7 +355,7 @@ namespace roee_nes {
             get_chosen_pixel(0, bg_palette_index);
     }
 
-    void PPU::get_chosen_pixel(uint8_t base, uint8_t palette_index) {
+    void PPU::get_chosen_pixel(const uint8_t base, const uint8_t palette_index) {
         // if (base == 0x10) { // FOR TESTING PURPOSES
         //     render_pixel.r = 0xff;
         //     render_pixel.g = 0xff;
@@ -373,7 +368,7 @@ namespace roee_nes {
         render_pixel.b = bus->color_palette[(color_index * 3) + 2];
     }
 
-    uint8_t PPU::fetch_bg_pt_byte(uint8_t byte_significance) {
+    uint8_t PPU::fetch_bg_pt_byte(const uint8_t byte_significance) const {
         uint16_t fetch_addr = v.scroll_view.fine_y; // setting bits 0,1,2
         fetch_addr |= byte_significance; // setting bit 3
         fetch_addr |= bg_regs.nt_latch << 4; // setting bits 4,5,6,7,8,9,10,11,12
@@ -381,7 +376,6 @@ namespace roee_nes {
         fetch_addr &= 0b0011'1111'1111'1111; // bit 14 should always be set to 0
 
         return bus->ppu_read(fetch_addr);
-        // return bus->ppu_read(((ext_regs.ppuctrl.raw & 0b0001'0000) << 8) + ((uint16_t)bg_regs.nt_latch << 4) + v.scroll_view.fine_y + byte_significance);
     }
 
     void PPU::load_shift_regs() {
@@ -402,8 +396,8 @@ namespace roee_nes {
         bg_regs.at_shift_msb = fill_shift_reg(bg_regs.at_latch, bg_regs.at_shift_msb, 0b10);
     }
 
-    void PPU::shift_regs() {
-        if (Get_rendering_status()) {
+    void PPU::update_shift_regs() {
+        if ((ext_regs.ppumask.raw & 0b00011000)) {
             bg_regs.pt_shift_lsb <<= 1;
             bg_regs.pt_shift_msb <<= 1;
             bg_regs.at_shift_lsb <<= 1;
@@ -439,7 +433,7 @@ namespace roee_nes {
     }
 
     /* function to increment the curr_cycle internal counter (and curr_scanline accordingly) */
-    void PPU::increment_cycle(uint8_t cycles) {
+    void PPU::increment_cycle(const uint8_t cycles) {
         curr_cycle += cycles;
 
         if (curr_cycle > 340) {
@@ -467,4 +461,74 @@ namespace roee_nes {
         pri_oam_cnt = 0;
     }
 
+    void PPU::cpu_write_ppu(const uint16_t addr, const uint8_t data) {
+        switch (addr % 8) {
+            case OAMADDR:
+                ext_regs.oamaddr = data;
+                break;
+            case OAMDATA:
+                if (((RENDER_START_SCANLINE <= curr_scanline) && (curr_scanline <= RENDER_END_SCANLINE)) || (curr_scanline == PRE_RENDER_SCANLINE))
+                    return; // if we are not in vblank, we do nothing. TODO implement the weird increment of oamaddr here
+                primary_oam[ext_regs.oamaddr] = data;
+                ext_regs.oamaddr += 1;
+                break;
+            case PPUCTRL:
+                // if ( <= 30000) return; // but not really important
+                ext_regs.ppuctrl.raw = data;
+                t.scroll_view.nt = data & 0b0000'0011;
+                break;
+            case PPUMASK:
+                ext_regs.ppumask.raw = data;
+                break;
+            case PPUSCROLL:
+                if (w == 0) {
+                    t.scroll_view.coarse_x = data >> 3; // setting coarse x
+                    x = data & 0b0000'0111; // setting fine x
+                } else { //setting coarse y and fine y
+                    t.scroll_view.fine_y = data & 0b0000'0111;
+                    t.scroll_view.coarse_y = data >> 3;
+                }
+
+                w = 1 - w; // changing w from 1 to 0 and vise versa
+                break;
+            case PPUADDR:
+                if (w == 0) { // setting upper 6 bits data
+                    t.raw = (t.raw & 0x00ff) | ((data & 0x3F) << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
+                } else { // setting lower byte data
+                    t.raw = (t.raw & 0x7f00) | data;
+                    v.raw = t.raw; // TODO: do this every 3 cycles to make more games compatible
+                }
+
+                w = 1 - w; // changing w from 1 to 0 and vise versa
+                break;
+            case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
+                bus->ppu_write(v.raw & 0x3fff, data, true); // & 0x3fff is to mirror if the addr is out of bounds
+                v.raw += (ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
+                break;
+        }
+    }
+
+    uint8_t PPU::cpu_read_ppu(const uint16_t addr) {
+        uint8_t ret = 0;
+        switch (addr) {
+            case OAMDATA:
+                // TODO take care of reading OAMDATA during rendering
+                ret = primary_oam[ext_regs.oamaddr];
+                break;
+            case PPUSTATUS:
+                w = 0;
+                ret = (ext_regs.ppustatus.raw & 0b11100000) | (ppu_stupid_buffer & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
+                ext_regs.ppustatus.raw &= 0b01111111; // clearing vblank flag
+                break;
+            case PPUDATA:
+                ret = ppu_stupid_buffer;
+                ppu_stupid_buffer = bus->ppu_read(v.raw & 0x3fff, true);
+                if (addr >= 0x3f00)
+                    ret = bus->ppu_read(v.raw & 0x3fff, true);
+                v.raw += (ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
+                break;
+        }
+
+        return ret;
+    }
 }

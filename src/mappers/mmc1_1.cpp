@@ -1,5 +1,9 @@
 #include "../../include/mappers/mmc1_1.h"
 #include <bitset>
+#include <fstream>
+#include <iostream>
+#include <filesystem>
+
 namespace roee_nes {
 
     MMC1_1::MMC1_1(Cartridge* cart) :
@@ -139,7 +143,7 @@ namespace roee_nes {
         // set prg rom to bank mode 3 (fixing the last bank at $C000 and allowing the 16 KB bank at $8000 to be switched)
     }
 
-    uint16_t MMC1_1::get_nt_mirrored_addr(uint16_t addr) {
+    uint16_t MMC1_1::get_nt_mirrored_addr(const uint16_t addr) const {
         switch (ctrl.comp.mirroring) {
             case 0: // single nt, first one
                 return addr % 0x400;

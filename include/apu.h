@@ -3,8 +3,6 @@
 
 #include <cstdint>
 #include <array>
-#include <iostream>
-#include <SDL2/SDL.h>
 
 namespace roee_nes {
 

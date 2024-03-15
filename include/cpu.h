@@ -3,14 +3,9 @@
 
 #include "bus.h"
 #include "ppu.h"
-#include "utils.h"
 
 #include <cstdint>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <thread>
-#include <chrono>
 
 namespace roee_nes {
     constexpr double CPU_CLOCK_SPEED = 0.5586592178771;
@@ -30,10 +25,25 @@ namespace roee_nes {
         NEGATIVE_BIT = 0b10000000
     };
 
-    enum AddressingMode : uint8_t { IMP, ACC, IMM, ABS, ZP, ZP_X, ZP_Y, REL, ABS_X, ABS_Y, IND, IND_Y, X_IND };
+    enum AddressingMode : uint8_t { 
+        IMP = 0, 
+        ACC = 1, 
+        IMM = 2, 
+        ABS = 3, 
+        ZP = 4, 
+        ZP_X = 5, 
+        ZP_Y = 6, 
+        REL = 7, 
+        ABS_X = 8, 
+        ABS_Y = 9, 
+        IND = 10, 
+        IND_Y = 11, 
+        X_IND = 12,
+    };
 
-    class Bus; // forward declaration to avoid circular dependency
-    class CPU; // forward declaration to avoid circular dependency
+    // forward declaration to avoid circular dependency
+    class Bus; 
+    class CPU; 
     struct Instruction;
 
     struct Instruction {
@@ -45,7 +55,7 @@ namespace roee_nes {
     };
 
     class CPU {
-        public:
+    public:
         uint8_t S;
         uint8_t P;
         uint16_t PC;
@@ -55,12 +65,11 @@ namespace roee_nes {
         uint8_t IR;
 
         Bus* bus;
-
         Instruction* inst;
         uint16_t bytes;
-
         std::vector<Instruction> lookup;
 
+// #ifdef DEBUG
         uint16_t log_PC;
         uint16_t log_bytes;
         uint8_t log_A;
@@ -68,28 +77,23 @@ namespace roee_nes {
         uint8_t log_S;
         uint8_t log_X;
         uint8_t log_Y;
+// #endif
 
-        public:
+    public:
         uint8_t run_cpu();
-
         void fetch_decode_inst();
-
-        CPU(Bus* bus);
+        CPU();
 
         /* interrupts */
         void nmi(); // non maskable - triggered by the PPU
         void irq(); // maskable
         void reset(); // reset
 
-        private:
-        uint8_t Get_from_op(uint8_t offset) const;
-
-        void set_flag(StatusFlag flag, uint8_t res);
-        uint8_t get_flag_status(StatusFlag flag) const;
-
-        // stack functions
+    private:
+        void set_flag(const StatusFlag flag, const uint8_t res);
+        uint8_t get_flag_status(const StatusFlag flag) const;
         uint8_t pop();
-        void push(uint8_t value);
+        void push(const uint8_t value);
 
         /* the functions called for each instruction */
         void ADC();	void AND();	void ASL();	void BCC();
@@ -106,18 +110,17 @@ namespace roee_nes {
         void SEC();	void SED();	void SEI();	void STA();
         void STX();	void STY();	void TAX();	void TAY();
         void TSX();	void TXA();	void TXS();	void TYA();
-        // this one is a nop which i call for each illegal instruction. I plan to add support for most of them (because some are a pain in the ass to implement) later.
-        void ILL();
+        void ILL(); // illegal opcode
 
         // to avoid code duplications in some instructions, i added these functions (see implementation)
-        void reg_CMP_actual(uint8_t* reg);
-        void reg_INCDEC_actual(uint8_t* reg, uint8_t val);
-        void mem_INCDEC_actual(int8_t val);
-        void reg_LD_actual(uint8_t* reg);
-        void reg_T_actual(uint8_t* dst_reg, uint8_t* src_reg);
-        void LSR_actual(uint8_t* reg);
-        void ROL_actual(uint8_t* val);
-        void ROR_actual(uint8_t* val);
+        void reg_CMP_actual(const uint8_t& reg);
+        void reg_INCDEC_actual(uint8_t& reg, const uint8_t val);
+        void mem_INCDEC_actual(const int8_t val);
+        void reg_LD_actual(uint8_t& reg);
+        void reg_T_actual(uint8_t& dst_reg, const uint8_t& src_reg) ;
+        void LSR_actual(uint8_t& reg);
+        void ROL_actual(uint8_t& target);
+        void ROR_actual(uint8_t& target);
     };
 
 }

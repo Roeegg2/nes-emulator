@@ -2,9 +2,8 @@
 #define PPU_H
 
 #include <cstdint>
-#include <iostream>
 #include <unordered_map>
-#include <string>
+
 #include "bus.h"
 #include "nes_screen.h"
 
@@ -138,32 +137,35 @@ namespace roee_nes {
 
     class PPU {
         public:
-        PPU(Bus* bus, NES_Screen* screen);
-        void run_ppu(uint8_t cycles);
+        PPU(NES_Screen* screen);
+        void run_ppu(const uint8_t cycles);
         void reset();
 
+        void cpu_write_ppu(const uint16_t addr, const uint8_t data);
+        uint8_t cpu_read_ppu(const uint16_t addr);
+
         private:
+        void shared_visible_prerender_scanline();
         void prerender_scanline();
         void visible_scanline();
         void vblank_scanline();
-        void fetch_rendering_data(Fetch_Modes fetch_mode);
-        uint8_t fetch_bg_pt_byte(uint8_t byte_significance);
-        void shared_visible_prerender_scanline();
-        void load_shift_regs();
-        void shift_regs();
-        void add_render_pixel();
+        void sprite_overflow_check();
+        void sprite_evaluation();
+        void fill_sprites_render_data();
+        void add_to_x_map(const uint8_t pt_data, const uint8_t i_val);
+        void fill_sprite_pixels(const uint8_t sec_oam_cnt);
         uint8_t get_bg_palette_index();
-        void increment_cycle(uint8_t cycles);
+        uint8_t fetch_fg_pt_byte(const uint16_t priority, struct Sprite& sprite);
+        void fetch_rendering_data(const Fetch_Modes fetch_mode);
+        void check_sprite_0_hit(const uint8_t sprite_index, const uint8_t bg_palette_index);
+        void add_render_pixel();
+        void get_chosen_pixel(const uint8_t base, const uint8_t palette_index);
+        uint8_t fetch_bg_pt_byte(const uint8_t byte_significance) const;
+        void load_shift_regs();
+        void update_shift_regs();
         void increment_y();
         void increment_coarse_x();
-        uint8_t fetch_fg_pt_byte(uint16_t priority, struct Sprite& sprite);
-        void sprite_evaluation();
-        void sprite_overflow_check();
-        void fill_sprites_render_data();
-        void fill_sprite_pixels(uint8_t n);
-        void get_chosen_pixel(uint8_t base, uint8_t palette_index);
-        void add_to_x_map(uint8_t pt_data, uint8_t i_val);
-        void check_sprite_0_hit(uint8_t sprite_index, uint8_t bg_palette_index);
+        void increment_cycle(const uint8_t cycles);
 
 #ifdef DEBUG
         void log() const;
@@ -198,12 +200,10 @@ namespace roee_nes {
         bool curr_sprite_0;
         bool next_sprite_0;
 
+        uint8_t ppu_stupid_buffer;
         public:
         class Bus* bus;
         NES_Screen* screen;
-
-        private:
-        inline uint8_t Get_rendering_status() { return (ext_regs.ppumask.raw & 0b00011000) > 0; } // IMPORTANT: when adding sprite rendering, make sure to check that bit as well!!
     };
 }
 

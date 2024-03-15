@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <array>
-#include <filesystem>
 #include "../mapper_n_cart.h"
 
 namespace roee_nes {
@@ -15,7 +14,7 @@ namespace roee_nes {
         void cpu_write(uint16_t addr, uint8_t data) override;
         uint8_t ppu_read(uint16_t addr) override;
         void ppu_write(uint16_t addr, uint8_t data) override;
-        uint16_t get_nt_mirrored_addr(uint16_t addr) override;
+        uint16_t get_nt_mirrored_addr(const uint16_t addr) const override;
         void save() override;
         
         void reset();

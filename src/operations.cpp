@@ -139,17 +139,17 @@ namespace roee_nes {
 
     /* compare accumulator with memory */
     void CPU::CMP() {
-        reg_CMP_actual(&A);
+        reg_CMP_actual(A);
     }
 
     /* compare X register with memory */
     void CPU::CPX() {
-        reg_CMP_actual(&X);
+        reg_CMP_actual(X);
     }
 
     /* compare Y register with memory */
     void CPU::CPY() {
-        reg_CMP_actual(&Y);
+        reg_CMP_actual(Y);
     }
 
     /* decrement memory */
@@ -159,12 +159,12 @@ namespace roee_nes {
 
     /* decrement X register */
     void CPU::DEX() {
-        reg_INCDEC_actual(&X, -1);
+        reg_INCDEC_actual(X, -1);
     }
 
     /* decrement Y register */
     void CPU::DEY() {
-        reg_INCDEC_actual(&Y, -1);
+        reg_INCDEC_actual(Y, -1);
     }
 
     /* exclusive OR (XOR) accumulator with memory */
@@ -185,12 +185,12 @@ namespace roee_nes {
 
     /* increment X register */
     void CPU::INX() {
-        reg_INCDEC_actual(&X, 1);
+        reg_INCDEC_actual(X, 1);
     }
 
     /* increment Y register */
     void CPU::INY() {
-        reg_INCDEC_actual(&Y, 1);
+        reg_INCDEC_actual(Y, 1);
     }
 
     /* jump to new location */
@@ -210,26 +210,26 @@ namespace roee_nes {
 
     /* load accumulator with value */
     void CPU::LDA() {
-        reg_LD_actual(&A);
+        reg_LD_actual(A);
     }
 
     /* load X register with value */
     void CPU::LDX() {
-        reg_LD_actual(&X);
+        reg_LD_actual(X);
     }
 
     /* load Y register with value */
     void CPU::LDY() {
-        reg_LD_actual(&Y);
+        reg_LD_actual(Y);
     }
 
     /* logical shift right (wrapper function to avoid code duplication)*/
     void CPU::LSR() {
         if (inst->mode == ACC)
-            LSR_actual(&A);
+            LSR_actual(A);
         else {
             uint8_t data = bus->cpu_read(bytes);
-            LSR_actual(&data);
+            LSR_actual(data);
             bus->cpu_write(bytes, data);
         }
     }
@@ -279,10 +279,10 @@ namespace roee_nes {
     /* rotate left */
     void CPU::ROL() { // NOTE: I know there is code duplication here, maybe ill fix later.
         if (inst->mode == ACC)
-            ROL_actual(&A);
+            ROL_actual(A);
         else {
             uint8_t data = bus->cpu_read(bytes);
-            ROL_actual(&data);
+            ROL_actual(data);
             bus->cpu_write(bytes, data);
         }
     }
@@ -290,10 +290,10 @@ namespace roee_nes {
     /* rotate right */
     void CPU::ROR() {
         if (inst->mode == ACC)
-            ROR_actual(&A);
+            ROR_actual(A);
         else {
             uint8_t data = bus->cpu_read(bytes);
-            ROR_actual(&data);
+            ROR_actual(data);
             bus->cpu_write(bytes, data);
         }
     }
@@ -347,10 +347,6 @@ namespace roee_nes {
 
     /* store accumulator in memory */
     void CPU::STA() {
-        // std::cout << "bytes: " << std::hex << (int)bytes << " byte converted: " << bytes << " A " << (int)A << "\n";
-        // if ((bytes == 0x8000)) {
-        //     std::cout << "PC: " << (int)PC << "A: " << (int)A << "\n";
-        // }
         bus->cpu_write(bytes, A);
     }
 
@@ -366,22 +362,22 @@ namespace roee_nes {
 
     /* transfer accumulator to X register */
     void CPU::TAX() {
-        reg_T_actual(&X, &A);
+        reg_T_actual(X, A);
     }
 
     /* transfer accumulator to Y register */
     void CPU::TAY() {
-        reg_T_actual(&Y, &A);
+        reg_T_actual(Y, A);
     }
 
     /* transfer stack pointer to X register */
     void CPU::TSX() {
-        reg_T_actual(&X, &S);
+        reg_T_actual(X, S);
     }
 
     /* transfer X register to accumulator */
     void CPU::TXA() {
-        reg_T_actual(&A, &X);
+        reg_T_actual(A, X);
     }
 
     /* transfer X register to stack pointer */
@@ -391,7 +387,7 @@ namespace roee_nes {
 
     /* transfer Y register to accumulator */
     void CPU::TYA() {
-        reg_T_actual(&A, &Y);
+        reg_T_actual(A, Y);
     }
 
     /* unofficial instructions */
@@ -402,25 +398,25 @@ namespace roee_nes {
     /* Helper functions to avoid code dupilication */
 
     /* the actual CMP implementation */
-    void CPU::reg_CMP_actual(uint8_t* reg) {
+    void CPU::reg_CMP_actual(const uint8_t& reg) {
         if (inst->mode != IMM)
             bytes = bus->cpu_read(bytes);
 
-        set_flag(ZERO_BIT, *(reg) == (uint8_t)bytes);
-        set_flag(NEGATIVE_BIT, (*(reg)-((uint8_t)bytes)) & 0b10000000);
-        set_flag(CARRY_BIT, *(reg) >= (uint8_t)bytes);
+        set_flag(ZERO_BIT, reg == (uint8_t)bytes);
+        set_flag(NEGATIVE_BIT, (reg-((uint8_t)bytes)) & 0b10000000);
+        set_flag(CARRY_BIT, reg >= (uint8_t)bytes);
         // set_flag(OVERFLOW_BIT, (int8_t)foo != A);
     }
 
     /* the actual INC/DEC implementation */
-    void CPU::reg_INCDEC_actual(uint8_t* reg, uint8_t val) {
-        (*reg) += val;
-        set_flag(ZERO_BIT, (*reg) == 0);
-        set_flag(NEGATIVE_BIT, (*reg) & 0b10000000);
+    void CPU::reg_INCDEC_actual(uint8_t& reg, const uint8_t val) {
+        reg += val;
+        set_flag(ZERO_BIT, reg == 0);
+        set_flag(NEGATIVE_BIT, reg & 0b10000000);
     }
 
     /* the actual INC/DEC implementation */
-    void CPU::mem_INCDEC_actual(int8_t val) {
+    void CPU::mem_INCDEC_actual(const int8_t val) {
         uint8_t data = bus->cpu_read(bytes);
         data += val;
         bus->cpu_write(bytes, data);
@@ -431,55 +427,54 @@ namespace roee_nes {
     }
 
     /* the actual LD implementation */
-    void CPU::reg_LD_actual(uint8_t* reg) {
+    void CPU::reg_LD_actual(uint8_t& reg) {
         if (inst->mode != IMM)
             bytes = bus->cpu_read(bytes);
 
-        *(reg) = (uint8_t)bytes;
+        reg = (uint8_t)bytes;
 
-        set_flag(ZERO_BIT, *(reg) == 0);
-        set_flag(NEGATIVE_BIT, *(reg) & 0b10000000);
+        set_flag(ZERO_BIT, reg == 0);
+        set_flag(NEGATIVE_BIT, reg & 0b10000000);
     }
 
     /* the actual registers transfers implementation */
-    void CPU::reg_T_actual(uint8_t* dst_reg, uint8_t* src_reg) {
-        *(dst_reg) = *(src_reg);
-        set_flag(ZERO_BIT, *(dst_reg) == 0);
-        set_flag(NEGATIVE_BIT, *(dst_reg) & 0b10000000);
+    void CPU::reg_T_actual(uint8_t& dst_reg, const uint8_t& src_reg) {
+        dst_reg = src_reg;
+        set_flag(ZERO_BIT, dst_reg == 0);
+        set_flag(NEGATIVE_BIT, dst_reg & 0b10000000);
     }
 
     /* the actual LSR implementation */
-    void CPU::LSR_actual(uint8_t* reg) {
-        set_flag(CARRY_BIT, *(reg) & 0b00000001);
-        *(reg) = *(reg) >> 1;
-        set_flag(ZERO_BIT, *(reg) == 0);
-        set_flag(NEGATIVE_BIT, *(reg) & 0b10000000);
+    void CPU::LSR_actual(uint8_t& reg) {
+        set_flag(CARRY_BIT, reg & 0b00000001);
+        reg = reg >> 1;
+        set_flag(ZERO_BIT, reg == 0);
+        set_flag(NEGATIVE_BIT, reg & 0b10000000);
     }
 
     /* the actual ROL implementation */
-    void CPU::ROL_actual(uint8_t* val) {
-        uint8_t foo = *(val) & 0b10000000;
-        *(val) = *(val) << 1;
-        *(val) |= get_flag_status(CARRY_BIT);
+    void CPU::ROL_actual(uint8_t& target) {
+        uint8_t foo = target & 0b10000000;
+        target = target << 1;
+        target |= get_flag_status(CARRY_BIT);
         set_flag(CARRY_BIT, foo);
-        set_flag(ZERO_BIT, *(val) == 0);
-        set_flag(NEGATIVE_BIT, *(val) & 0b10000000);
+        set_flag(ZERO_BIT, target == 0);
+        set_flag(NEGATIVE_BIT, target & 0b10000000);
     }
 
     /* the actual ROR implementation */
-    void CPU::ROR_actual(uint8_t* val) {
-        uint8_t foo = *(val) & 0b00000001;
+    void CPU::ROR_actual(uint8_t& target) {
+        uint8_t foo = target & 0b00000001;
 
-        *(val) = *(val) >> 1;
-        *(val) |= (get_flag_status(CARRY_BIT) << 7);
+        target = target >> 1;
+        target |= (get_flag_status(CARRY_BIT) << 7);
 
         set_flag(CARRY_BIT, foo);
-        set_flag(ZERO_BIT, *(val) == 0);
-        set_flag(NEGATIVE_BIT, *(val) & 0b10000000);
+        set_flag(ZERO_BIT, target == 0);
+        set_flag(NEGATIVE_BIT, target & 0b10000000);
     }
 
     /* Interrupts */
-    // there is code duplication in nmi and irq right now, but later they will be different
 
     /* non maskable - triggered by the PPU */
     void CPU::nmi() {

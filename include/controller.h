@@ -32,7 +32,7 @@ namespace roee_nes {
         } internal_regs;
 
         public:
-        void write(uint8_t data);
+        void write(const uint8_t data);
         uint8_t read();
 
         Controller();

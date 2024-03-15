@@ -1,3 +1,4 @@
+#include <iostream>
 #include "../../include/mappers/cnrom_3.h"
 
 namespace roee_nes {

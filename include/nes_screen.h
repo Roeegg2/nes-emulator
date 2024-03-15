@@ -2,11 +2,7 @@
 #define NESSCREEN_H
 
 #include <SDL2/SDL.h>
-#include <fstream>
-#include <iostream>
 #include <cstdint>
-#include <thread>
-#include <array>
 
 #include "controller.h"
 #include "mapper_n_cart.h"
@@ -24,13 +20,12 @@ namespace roee_nes {
 
     class NES_Screen {
         public:
-        NES_Screen(Mapper* mapper, Controller* controller_1, Controller* controller_2);
+        NES_Screen(Mapper* const mapper, Controller* const controller_1, Controller* const controller_2);
         ~NES_Screen();
 
         void draw_pixel_line(const struct Pixel* render_pixel, const int32_t scanline, const int32_t x_pos) const;
         void update_screen() const;
         void handle_events();
-        void output_audio();
         
         private:
         SDL_Window* window;
@@ -41,12 +36,10 @@ namespace roee_nes {
 
         Controller* controller_1;
         Controller* controller_2;
-        
         Mapper* mapper;
 
         private:
-        Controller* get_controller_pressed();
-        
+        Controller* get_controller_pressed() const;
         void process_joypad_pressed_buttons();
         void process_joypad_released_buttons();
         void process_joypad_dpad_axis_motion();

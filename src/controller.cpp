@@ -7,7 +7,7 @@ namespace roee_nes {
     Controller::Controller()
         : buttons{0}, shift_reg{0}, internal_regs{0} {}
 
-    void Controller::write(uint8_t data) {
+    void Controller::write(const uint8_t data) {
         if ((internal_regs.strobe == data))
             return;
         

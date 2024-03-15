@@ -1,15 +1,17 @@
+#include <iostream>
+
 #include "../include/nes_screen.h"
 
 namespace roee_nes {
 
-    NES_Screen::NES_Screen(Mapper* mapper, Controller* controller_1, Controller* controller_2) {
+    NES_Screen::NES_Screen(Mapper* const mapper, Controller* const controller_1, Controller* const controller_2) {
         this->controller_1 = controller_1;
         this->controller_2 = controller_2;
         this->mapper = mapper;
         sdl_joystick_1 = NULL;
         sdl_joystick_2 = NULL;
 
-        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) < 0) {
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK) < 0) {
             std::cerr << "ERROR: SDL could not initialize; SDL_Error: " << SDL_GetError() << "\n";
             exit(1);
         }
@@ -41,8 +43,8 @@ namespace roee_nes {
 
     void NES_Screen::update_screen() const {
         SDL_RenderPresent(renderer);
-
-        SDL_RenderDrawPoint(renderer, 0, 0);
+        SDL_Rect viewport = { 0, 0, SCREEN_WIDTH * SCALE, SCREEN_HEIGHT * SCALE}; // Assuming screenWidth and screenHeight are your screen dimensions
+        SDL_RenderSetViewport(renderer, &viewport);
     }
 
     void NES_Screen::handle_events() {
@@ -79,14 +81,13 @@ namespace roee_nes {
         }
     }
 
-    Controller* NES_Screen::get_controller_pressed() {
+    Controller* NES_Screen::get_controller_pressed() const {
         if (SDL_JoystickInstanceID(sdl_joystick_1) == event.jbutton.which)
             return controller_1;
-        else{
+        else
             return controller_2;
-        }
     }
-    
+
     void NES_Screen::process_joypad_pressed_buttons() {
         Controller* controller = get_controller_pressed();
 
@@ -228,12 +229,5 @@ namespace roee_nes {
             sdl_joystick_2 = NULL;
             std::cout << "USER INFO: Controller 2 disconnected\n";
         }
-    }
-
-    // const uint8_t* buffer, const int32_t buffer_size
-    void NES_Screen::output_audio() {
-        uint8_t buffer[4096] = {1};
-        int32_t buffer_size = 4096;
-        SDL_QueueAudio(1, buffer, buffer_size);
     }
 }

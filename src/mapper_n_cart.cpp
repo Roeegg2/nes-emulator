@@ -1,16 +1,18 @@
+#include <iostream>
+#include <cstring>
+#include <fstream>
+
 #include "../include/mapper_n_cart.h"
 #include "../include/mappers/nrom_0.h"
 #include "../include/mappers/unrom_2.h"
 #include "../include/mappers/cnrom_3.h"
 #include "../include/mappers/mmc1_1.h"
 #include "../include/mappers/mmc3_4.h"
-
 namespace roee_nes {
-    Mapper* Mapper::create_mapper(const std::string* rom_path) {
+    Mapper* Mapper::create_mapper(const std::string& rom_path) {
         Cartridge* cart = new Cartridge(rom_path);
 
-        // uint8_t mapper_number = ((cart->header.flags_7 >> 4) << 4) | (cart->header.flags_6 >> 4);
-        uint8_t mapper_number = (((uint8_t)cart->header.flag_7.parsed.mapper_num_high) << 4) | cart->header.flag_6.parsed.mapper_num_low;
+        const uint8_t mapper_number = (((uint8_t)cart->header.flag_7.parsed.mapper_num_high) << 4) | cart->header.flag_6.parsed.mapper_num_low;
         switch (mapper_number) {
             case 0: // mapper number 0 (NROM)
                 std::cout << "USER INFO: Game mapper is NROM (iNES 0)\n"; 
@@ -34,8 +36,8 @@ namespace roee_nes {
     }
 
     // need also to take care of the case there is a trainer section
-    Cartridge::Cartridge(const std::string* rom_path) {
-        std::ifstream rom_file(*rom_path, std::ios::binary);
+    Cartridge::Cartridge(const std::string& rom_path) {
+        std::ifstream rom_file(rom_path, std::ios::binary);
 
         if (!rom_file.is_open()) {
             std::cerr << "ERROR: Error opening file" << "\n";
@@ -51,7 +53,7 @@ namespace roee_nes {
             }
         }
 
-        this->rom_path = *rom_path;
+        this->rom_path = rom_path;
         rom_file.read((char*)&header.prg_rom_size, 1);
         rom_file.read((char*)&header.chr_rom_size, 1);
         rom_file.read((char*)&header.flag_6.raw, 1);
@@ -88,7 +90,7 @@ namespace roee_nes {
         rom_file.read((char*)chr_rom.data(), chr_rom.size());
     }
 
-    uint16_t Mapper::get_nt_mirrored_addr(uint16_t addr) {
+    uint16_t Mapper::get_nt_mirrored_addr(const uint16_t addr) const {
         if (cart->header.flag_6.parsed.nt_layout == 1) { // vertical mirroring
             return addr % 0x800;
         }

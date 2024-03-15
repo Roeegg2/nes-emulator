@@ -1,4 +1,5 @@
 #include "../../include/mappers/unrom_2.h"
+#include <iostream>
 
 // later generelize this to UxROM nad have UNROM inherit from it
 namespace roee_nes {

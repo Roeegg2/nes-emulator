@@ -3,15 +3,9 @@
 
 #include <cstdint>
 #include <array>
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <string>
-#include <iomanip>
 
 #include "mapper_n_cart.h"
-#include "mappers/nrom_0.h"
 #include "ppu.h"
 #include "cpu.h"
 #include "controller.h"
@@ -46,27 +40,22 @@ namespace roee_nes {
         Controller* controller_1;
         Controller* controller_2;
         
-        uint8_t ppu_stupid_buffer;
         uint8_t cpu_dma_controllers_open_bus;
         uint16_t cpu_sleep_dma_counter;
 
     public:
-        Bus(Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string* palette_path);
+        Bus(CPU* cpu, PPU* ppu, APU* apu, Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string& palette_path);
         uint8_t cpu_read(uint16_t addr);
         void cpu_write(uint16_t addr, uint8_t data);
         uint8_t ppu_read(uint16_t addr, bool came_from_cpu = false);
         void ppu_write(uint16_t addr, uint8_t data, bool came_from_cpu = false);
         struct Color* ppu_get_color(uint16_t addr);
-        uint8_t cpu_read_ppu(uint16_t addr);
-        void cpu_write_ppu(uint16_t addr, uint8_t data);
-        void cpu_write_apu(uint16_t addr, uint8_t data);
-        
+
 #ifdef DEBUG
         void full_log() const;
-        void find_difference() const;
 #endif
     private:
-        void init_palette(const std::string* palette_path);
+        void init_palette(const std::string& palette_path);
     };
 
 }

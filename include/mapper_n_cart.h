@@ -4,9 +4,6 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include <iostream>
-#include <fstream>
-#include <cstring>
 
 namespace roee_nes {
     constexpr uint16_t KILOBYTE = 1024;
@@ -19,7 +16,7 @@ namespace roee_nes {
         friend class MMC1_1;
         friend class MMC3_4;
         public:
-        Cartridge(const std::string* rom_path);
+        Cartridge(const std::string& rom_path);
 
         private:
         struct Cartridge_Header {
@@ -83,7 +80,7 @@ namespace roee_nes {
     class Mapper {
         public:
         Mapper(Cartridge* cart) : cart(cart) {}
-        static Mapper* create_mapper(const std::string* rom_path);
+        static Mapper* create_mapper(const std::string& rom_path);
 
         virtual uint8_t cpu_read(uint16_t addr, uint8_t open_bus_data) = 0;
         virtual void cpu_write(uint16_t addr, uint8_t data) = 0;
@@ -91,7 +88,7 @@ namespace roee_nes {
         virtual void ppu_write(uint16_t addr, uint8_t data) = 0;
         
         virtual void save();
-        virtual uint16_t get_nt_mirrored_addr(uint16_t addr);
+        virtual uint16_t get_nt_mirrored_addr(const uint16_t addr) const;
 
         protected:
         Cartridge* cart;

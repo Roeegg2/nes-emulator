@@ -1,16 +1,26 @@
-#include "../include/bus.h"
-#include <bitset>
+#include <fstream>
+#include <iostream>
 
+#include "../include/bus.h"
 namespace roee_nes {
-    Bus::Bus(Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string* palette_path) {
+    Bus::Bus(CPU* cpu, PPU* ppu, APU* apu, Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string& palette_path) {
+        this->cpu = cpu;
+        this->ppu = ppu;
+        this->apu = apu;
         this->mapper = mapper;
         this->controller_1 = controller_1;
         this->controller_2 = controller_2;
         init_palette(palette_path);
+        
+        cpu->bus = this;
+        ppu->bus = this;
+
+        cpu->reset();
+        ppu->reset();
     }
 
-    void Bus::init_palette(const std::string* palette_path) {
-        std::ifstream pal_file(*palette_path, std::ios::binary);
+    void Bus::init_palette(const std::string& palette_path) {
+        std::ifstream pal_file(palette_path, std::ios::binary);
 
         if (!pal_file.is_open())
             std::cerr << "ERROR: Failed to open palette file" << "\n";
@@ -22,7 +32,7 @@ namespace roee_nes {
         }
     }
 
-    void Bus::ppu_write(uint16_t addr, uint8_t data, bool came_from_cpu) {
+    void Bus::ppu_write(uint16_t addr, const uint8_t data, const bool came_from_cpu) {
         if (0 <= addr && addr <= 0x1fff) {
             mapper->ppu_write(addr, data);
         } else if (0x2000 <= addr && addr <= 0x3eff) {
@@ -43,7 +53,7 @@ namespace roee_nes {
         }
     }
 
-    uint8_t Bus::ppu_read(uint16_t addr, bool came_from_cpu) {
+    uint8_t Bus::ppu_read(uint16_t addr, const bool came_from_cpu) {
         if (0 <= addr && addr <= 0x1fff) {
             return mapper->ppu_read(addr); // pattern table
         } else if (0x2000 <= addr && addr <= 0x3eff) {
@@ -70,82 +80,11 @@ namespace roee_nes {
         return 0;
     }
 
-    void Bus::cpu_write_ppu(uint16_t addr, uint8_t data) {
-        switch (addr % 8) {
-            case OAMADDR:
-                ppu->ext_regs.oamaddr = data;
-                break;
-            case OAMDATA:
-                if (((RENDER_START_SCANLINE <= ppu->curr_scanline) && (ppu->curr_scanline <= RENDER_END_SCANLINE)) || (ppu->curr_scanline == PRE_RENDER_SCANLINE))
-                    return; // if we are not in vblank, we do nothing. TODO implement the weird increment of oamaddr here
-                ppu->primary_oam[ppu->ext_regs.oamaddr] = data;
-                ppu->ext_regs.oamaddr += 1;
-                break;
-            case PPUCTRL:
-                // if (ppu-> <= 30000) return; // but not really important
-                ppu->ext_regs.ppuctrl.raw = data;
-                ppu->t.scroll_view.nt = data & 0b0000'0011;
-                break;
-            case PPUMASK:
-                ppu->ext_regs.ppumask.raw = data;
-                break;
-            case PPUSCROLL:
-                if (ppu->w == 0) {
-                    ppu->t.scroll_view.coarse_x = data >> 3; // setting coarse x
-                    ppu->x = data & 0b0000'0111; // setting fine x
-                } else { //setting coarse y and fine y
-                    ppu->t.scroll_view.fine_y = data & 0b0000'0111;
-                    ppu->t.scroll_view.coarse_y = data >> 3;
-                }
-
-                ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
-                break;
-            case PPUADDR:
-                if (ppu->w == 0) { // setting upper 6 bits data
-                    ppu->t.raw = (ppu->t.raw & 0x00ff) | ((data & 0x3F) << 8); // bit 14 is set to 0 in this case and the register is 15 bits wide, so bit 15 is not set
-                } else { // setting lower byte data
-                    ppu->t.raw = (ppu->t.raw & 0x7f00) | data;
-                    ppu->v.raw = ppu->t.raw; // TODO: do this every 3 cycles to make more games compatible
-                }
-
-                ppu->w = 1 - ppu->w; // changing w from 1 to 0 and vise versa
-                break;
-            case PPUDATA: // TODO: implement $2007 reads and writes during rendering (incremnting both x and y)
-                ppu_write(ppu->v.raw & 0x3fff, data, true); // & 0x3fff is to mirror if the addr is out of bounds
-                ppu->v.raw += (ppu->ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
-                break;
-        }
-    }
-
-    uint8_t Bus::cpu_read_ppu(uint16_t addr) {
-        uint8_t ret = 0;
-        switch (addr) {
-            case OAMDATA:
-                // TODO take care of reading OAMDATA during rendering
-                ret = ppu->primary_oam[ppu->ext_regs.oamaddr];
-                break;
-            case PPUSTATUS:
-                ppu->w = 0;
-                ret = (ppu->ext_regs.ppustatus.raw & 0b11100000) | (ppu_stupid_buffer & 0b00011111); // returning the last 5 bits of the latch and 3 top bits of the status register
-                ppu->ext_regs.ppustatus.raw &= 0b01111111; // clearing vblank flag
-                break;
-            case PPUDATA:
-                ret = ppu_stupid_buffer;
-                ppu_stupid_buffer = ppu_read(ppu->v.raw & 0x3fff, true);
-                if (addr >= 0x3f00)
-                    ret = ppu_read(ppu->v.raw & 0x3fff, true);
-                ppu->v.raw += (ppu->ext_regs.ppuctrl.raw & 0b00000100) ? 32 : 1;
-                break;
-        }
-
-        return ret;
-    }
-
-    void Bus::cpu_write(uint16_t addr, uint8_t data) {
+    void Bus::cpu_write(const uint16_t addr, const uint8_t data) {
         if (0 <= addr && addr <= 0x1fff)
             ram[addr % 0x800] = data;
         else if (0x2000 <= addr && addr <= 0x3fff)
-            cpu_write_ppu(addr % 8, data);
+            ppu->cpu_write_ppu(addr % 8, data);
         else if (addr == 0x4014) { // OAMDMA
             cpu_sleep_dma_counter = 513; // TODO takes more sometimes
             uint16_t start_addr = data;
@@ -154,32 +93,29 @@ namespace roee_nes {
             for (int i = 0; i < 256; i++) {
                 ppu->primary_oam[i] = ram[start_addr + i];
             }
-        }
-        else if (addr == 0x4016) {
+        } else if (addr == 0x4016) {
             controller_1->write(data);
             controller_2->write(data);
-        } 
-        else if ((0x4000 <= addr) && (addr <= 0x401a)) // APU
+        } else if ((0x4000 <= addr) && (addr <= 0x401a)) // APU
             apu->cpu_write_apu(addr % 0x4000, data);
         else if (0x4020 <= addr && addr <= 0xffff)
             mapper->cpu_write(addr, data);
-        
+
         // else if ((0x401c <= addr) && (addr <= 0x401f)) // unfinished IRQ timer functionality
         //     return; // do nothing!
     }
 
-    uint8_t Bus::cpu_read(uint16_t addr) {
+    uint8_t Bus::cpu_read(const uint16_t addr) {
         if (0 <= addr && addr <= 0x1fff)
             cpu_dma_controllers_open_bus = ram[addr % 0x800];
         else if (0x2000 <= addr && addr <= 0x3fff)
-            cpu_dma_controllers_open_bus = cpu_read_ppu(addr % 8);
+            cpu_dma_controllers_open_bus = ppu->cpu_read_ppu(addr % 8);
         else if (0x4000 <= addr && addr <= 0x4014)
             cpu_dma_controllers_open_bus = 0; // didnt implement yet
         else if (addr == 0x4015) {
             cpu_dma_controllers_open_bus = apu->status_reg;
             apu->status_reg &= 0b1011'1111; // clearing frame interrupt flag
-        }
-        else if (addr == 0x4016)
+        } else if (addr == 0x4016)
             cpu_dma_controllers_open_bus = controller_1->read();
         else if (addr == 0x4017)
             cpu_dma_controllers_open_bus = controller_2->read();
@@ -216,135 +152,5 @@ namespace roee_nes {
 
         roee_file << " PPU: " << ppu->curr_scanline << ", " << ppu->curr_cycle << ", CYC:" << ppu->curr_cycle / 3 << "\n";
     }
-
-    void Bus::find_difference() const {
-        std::ifstream roee_file("logs/ROEE_NES_PPU.log");
-        std::ifstream nestest_file("logs/dk-binjnes.txt");
-
-        if (!roee_file.is_open() || !nestest_file.is_open()) {
-            std::cerr << "Error opening files." << "\n";
-            return;
-        }
-
-        uint64_t line_cnt = 0;
-        std::string roee_line, nestest_line;
-        std::string roee_token, nestest_token;
-        bool error_found = false;
-        std::string error;
-        while (std::getline(roee_file, roee_line) && std::getline(nestest_file, nestest_line)) {
-            line_cnt++;
-
-            std::istringstream roee_ss(roee_line);
-            std::istringstream nestest_ss(nestest_line);
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                std::cout << "roee string:" << roee_token << "\n";
-                std::cout << "nestest string:" << nestest_token << "\n";
-                error = "t reg!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "v reg!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "x reg!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "w reg!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "ctrl reg!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "mask reg!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "status reg!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "scanline!";
-                error_found = true;
-            }
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            roee_ss >> roee_token;
-            nestest_ss >> nestest_token;
-
-            if (roee_token != nestest_token && !error_found) {
-                error = "cycle!";
-                error_found = true;
-            }
-
-            if (error_found == true) {
-                std::cerr << "Difference found in " << error << " Line: " << line_cnt << "\n";
-                return;
-            }
-    }
-
-        std::cout << "all goodie!" << "\n";
-}
 #endif
 }
