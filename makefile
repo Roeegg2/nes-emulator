@@ -10,7 +10,7 @@ EMU_SRCS := apu.cpp \
 	cpu.cpp \
 	ppu.cpp \
 	nes_screen.cpp \
-	operations.cpp \
+	instructions.cpp \
 	controller.cpp \
 	main.cpp \
 	bus.cpp \

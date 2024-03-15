@@ -2,7 +2,6 @@
 #include "../include/utils.h"
 
 namespace roee_nes {
-
     CPU::CPU()
         : S(0xfd), P(0b00110100), PC(0x00), A(0x00), X(0x00), Y(0x00), IR(0x00), bytes(0x0000) {
         /* I know, its ugly, but I'm using it for now (possibly forever) because its very easy and convenient */
@@ -30,7 +29,7 @@ namespace roee_nes {
     }
 
     uint8_t CPU::run_cpu() {
-        if (bus->cpu_sleep_dma_counter > 0) {
+        if (bus->cpu_sleep_dma_counter > 0) { // if a DMA transfer was just done
             bus->cpu_sleep_dma_counter--;
             return 1;
         }
@@ -134,7 +133,6 @@ namespace roee_nes {
     uint8_t CPU::get_flag_status(const StatusFlag flag) const {
         return ((P & flag) > 0) ? 1 : 0;
     }
-
 
     /* Stack helper functions */
 
