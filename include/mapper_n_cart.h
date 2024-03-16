@@ -20,6 +20,7 @@ namespace roee_nes {
 
         private:
         struct Cartridge_Header {
+            uint8_t mapper_number;
             uint16_t total_size; // in kb
 
             uint8_t prg_rom_size;
@@ -89,6 +90,10 @@ namespace roee_nes {
         
         virtual void save();
         virtual uint16_t get_nt_mirrored_addr(const uint16_t addr) const;
+
+        public:
+        bool set_irq;
+        uint8_t mapper_number;
 
         protected:
         Cartridge* cart;

@@ -8,6 +8,8 @@ namespace roee_nes {
 
     MMC1_1::MMC1_1(Cartridge* cart) :
         Mapper(cart), shift_reg(0b0001'0000), save_data({ 0 }) {
+        set_irq = false;
+        mapper_number = 1;
         
         if (cart->chr_rom.size() == 0) {
             cart->chr_ram.resize(8 * KILOBYTE);

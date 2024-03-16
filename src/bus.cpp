@@ -1,7 +1,9 @@
 #include <fstream>
 #include <iostream>
-
+#include <iomanip>
 #include "../include/bus.h"
+#include "../include/utils.h"
+#include "../include/mappers/mmc3_4.h"
 namespace roee_nes {
     Bus::Bus(CPU* cpu, PPU* ppu, APU* apu, Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string& palette_path) {
         this->cpu = cpu;
@@ -34,6 +36,9 @@ namespace roee_nes {
 
     void Bus::ppu_write(uint16_t addr, const uint8_t data, const bool came_from_cpu) {
         if (0 <= addr && addr <= 0x1fff) {
+            std::cout << "addr is: " << std::hex << addr << std::dec << "\n";
+            std::cout << "pc is: " << std::hex << cpu->PC << std::dec << "\n";
+            // std::cout << "instruction is " << std::hex << static_cast<int>(cpu->IR) << std::dec << "\n";
             mapper->ppu_write(addr, data);
         } else if (0x2000 <= addr && addr <= 0x3eff) {
             addr %= 0x1000;
@@ -84,7 +89,7 @@ namespace roee_nes {
         if (0 <= addr && addr <= 0x1fff)
             ram[addr % 0x800] = data;
         else if (0x2000 <= addr && addr <= 0x3fff)
-            ppu->cpu_write_ppu(addr % 8, data);
+            ppu->cpu_write_ppu(addr % 0x2000, data);
         else if (addr == 0x4014) { // OAMDMA
             cpu_sleep_dma_counter = 513; // TODO takes more sometimes
             uint16_t start_addr = data;

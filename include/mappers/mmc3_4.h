@@ -2,6 +2,7 @@
 #define MMC3_4_H
 
 #include "../mapper_n_cart.h"
+#include "../cpu.h"
 #include <array>
 
 namespace roee_nes {
@@ -23,7 +24,7 @@ namespace roee_nes {
     };
 
     class MMC3_4 : public Mapper {
-    public:
+        public:
         MMC3_4(Cartridge* cart);
 
         uint8_t cpu_read(uint16_t addr, uint8_t open_bus_data) override;
@@ -31,12 +32,13 @@ namespace roee_nes {
         uint8_t ppu_read(uint16_t addr) override;
         void ppu_write(uint16_t addr, uint8_t data) override;
         uint16_t get_nt_mirrored_addr(const uint16_t addr) const override;
+        void clock_irq();
 
-    private:
+        private:
         void update_chr(uint16_t addr);
         void update_prg(uint16_t addr);
 
-    private:
+        private:
         bool using_chr_ram;
         std::array<uint8_t, 0x2000> save_data;
         std::vector<uint8_t>* chr_read_mem;
@@ -47,15 +49,18 @@ namespace roee_nes {
         std::array<uint8_t, 2> prg_bank;
         std::array<uint8_t, 2> chr_bank_2kb;
         std::array<uint8_t, 4> chr_bank_1kb;
-        
+
         uint8_t prg_bank_num;
         uint8_t chr_bank_num;
 
         uint8_t final_bank;
         uint16_t final_addr;
 
+        public:
+        uint8_t irq_counter;
         uint8_t irq_latch;
-        uint8_t irq_disable;
+        bool irq_reload;
+        bool irq_enabled;
     };
 }
 

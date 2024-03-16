@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "../include/ppu.h"
-
+#include "../include/mappers/mmc3_4.h"
 namespace roee_nes {
     PPU::PPU(NES_Screen* screen)
         : v({ 0 }), t({ 0 }), x(0), w(0), bg_regs({ 0 }), ext_regs({ 0 }), oamdma(0), curr_scanline(0), curr_cycle(0),
@@ -22,7 +22,27 @@ namespace roee_nes {
             else if ((VBLANK_START_SCANLINE <= curr_scanline) && (curr_scanline <= VBLANK_END_SCANLINE))
                 vblank_scanline();
 
+            if (bus->mapper->mapper_number == 4)
+                if (curr_cycle == 260)
+                    ((MMC3_4*)bus->mapper)->clock_irq();
+
             increment_cycle(1);
+        }
+    }
+
+    void PPU::check_mmc3_irq_conditions() {
+        if (ext_regs.ppuctrl.comp.sprite_size == 0) {
+            if (ext_regs.ppuctrl.comp.bg_pt == 0) {
+                if (ext_regs.ppuctrl.comp.sprite_pt == 1) {
+                    if (curr_cycle == 260)
+                        ((MMC3_4*)bus->mapper)->irq_counter--;
+                }
+            } else { // ext_regs.ppuctrl.comp.sprite_size == 1
+                if (ext_regs.ppuctrl.comp.sprite_pt == 0) {
+                    if (curr_cycle == 324)
+                        ((MMC3_4*)bus->mapper)->irq_counter--;
+                }
+            }
         }
     }
 

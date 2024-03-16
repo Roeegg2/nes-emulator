@@ -5,6 +5,10 @@
 namespace roee_nes {
     UNROM_2::UNROM_2(Cartridge* cart) :
         Mapper(cart), prg_bank_select(0) {
+        
+        set_irq = false;
+        mapper_number = 2;
+        
         if (cart->chr_rom.size() == 0) {
             using_chr_ram = true;
             cart->chr_ram.resize(8 * KILOBYTE);

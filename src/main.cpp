@@ -3,6 +3,7 @@
 #include "../include/utils.h"
 #include "../include/nes_screen.h"
 #include <chrono>
+#include <iostream>
 
 using namespace roee_nes;
 
@@ -10,6 +11,10 @@ uint16_t emulator_tick(Bus* bus) {
     uint8_t cycles = bus->cpu->run_cpu();
     bus->ppu->run_ppu(cycles * 3);
     bus->apu->run_apu();
+
+    if (bus->mapper->set_irq) {
+        bus->cpu->irq();
+    }
 
     if (bus->ppu->nmi == 1) {
         bus->ppu->nmi = 0;
@@ -20,7 +25,7 @@ uint16_t emulator_tick(Bus* bus) {
 }
 
 int main() {
-    const std::string rom_path = "roms/AOL3.nes";
+    const std::string rom_path = "roms/PACMAN.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* const controller_1 = new Controller();
@@ -39,6 +44,9 @@ int main() {
         val++;
 
         emulator_tick(bus);
+#ifdef DEBUG
+        bus->full_log();
+#endif
     }
 
     return 0;

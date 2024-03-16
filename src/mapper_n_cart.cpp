@@ -12,8 +12,8 @@ namespace roee_nes {
     Mapper* Mapper::create_mapper(const std::string& rom_path) {
         Cartridge* cart = new Cartridge(rom_path);
 
-        const uint8_t mapper_number = (((uint8_t)cart->header.flag_7.parsed.mapper_num_high) << 4) | cart->header.flag_6.parsed.mapper_num_low;
-        switch (mapper_number) {
+        cart->header.mapper_number = (((uint8_t)cart->header.flag_7.parsed.mapper_num_high) << 4) | cart->header.flag_6.parsed.mapper_num_low;
+        switch (cart->header.mapper_number) {
             case 0: // mapper number 0 (NROM)
                 std::cout << "USER INFO: Game mapper is NROM (iNES 0)\n"; 
                 return new NROM_0(cart);
@@ -30,7 +30,7 @@ namespace roee_nes {
                 std::cout << "USER INFO: Game mapper is MMC3 (iNES 4)\n";
                 return new MMC3_4(cart);
             default:
-                std::cerr << "ERROR: Mapper number " << std::dec << (int)mapper_number << " not implemented yet\n";
+                std::cerr << "ERROR: Mapper number " << std::dec << (int)cart->header.mapper_number << " not implemented yet\n";
                 exit(1);
         }
     }
@@ -91,10 +91,10 @@ namespace roee_nes {
     }
 
     uint16_t Mapper::get_nt_mirrored_addr(const uint16_t addr) const {
-        if (cart->header.flag_6.parsed.nt_layout == 1) { // vertical mirroring
+        if (cart->header.flag_6.parsed.nt_layout == 1) { // horizontal mirroring
             return addr % 0x800;
         }
-        else { // horizontal mirroring
+        else { // vertical mirroring
             if (addr >= 0x800)
                 return (addr % 0x400) + 0x400;
             else

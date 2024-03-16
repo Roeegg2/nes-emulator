@@ -3,7 +3,10 @@
 namespace roee_nes {
 
     NROM_0::NROM_0(Cartridge* cart)
-        : Mapper(cart) {}
+        : Mapper(cart) {
+            set_irq = false;
+            mapper_number = 0;
+        }
 
     uint8_t NROM_0::cpu_read(uint16_t addr, uint8_t open_bus_data) {
         if (0x6000 <= addr && addr <= 0x7FFF) // not sure if its only in famicom

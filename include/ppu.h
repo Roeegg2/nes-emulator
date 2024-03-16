@@ -166,7 +166,7 @@ namespace roee_nes {
         void increment_y();
         void increment_coarse_x();
         void increment_cycle(const uint8_t cycles);
-
+        void check_mmc3_irq_conditions();
 #ifdef DEBUG
         void log() const;
 #endif
