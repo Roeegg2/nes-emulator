@@ -25,7 +25,7 @@ uint16_t emulator_tick(Bus* bus) {
 }
 
 int main() {
-    const std::string rom_path = "roms/LOZ.nes";
+    const std::string rom_path = "roms/SMB2.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* const controller_1 = new Controller();

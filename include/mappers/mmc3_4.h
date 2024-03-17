@@ -33,7 +33,7 @@ namespace roee_nes {
         void ppu_write(uint16_t addr, uint8_t data) override;
         uint16_t get_nt_mirrored_addr(const uint16_t addr) const override;
         void clock_irq();
-
+        void save() override;
         private:
         void update_chr(uint16_t addr);
         void update_prg(uint16_t addr);
@@ -48,6 +48,7 @@ namespace roee_nes {
 
         std::array<uint8_t, 2> prg_bank;
         std::array<uint8_t, 6> chr_bank; // 2 * 2kb + 4 * 1kb
+        Save_RAM* save_ram;
 
         uint8_t prg_bank_num;
         uint8_t chr_bank_num;

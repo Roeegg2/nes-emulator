@@ -21,6 +21,7 @@ namespace roee_nes {
         chr_bank_num = (chr_read_mem->size() / (1 * KILOBYTE)) - 2;
         prg_bank_num = (cart->prg_rom.size() / (8 * KILOBYTE));
 
+        save_ram = new Save_RAM(cart->rom_path + ".sav");
         prg_bank[0] = 0;
         prg_bank[1] = 0;
         chr_bank[0] = 0;
@@ -32,7 +33,9 @@ namespace roee_nes {
     }
 
     void MMC3_4::cpu_write(uint16_t addr, uint8_t data) {
-        if ((0x8000 <= addr) && (addr <= 0x9ffe)) {
+        if ((0x6000 <= addr) && (addr <= 0x7fff)) {
+            save_ram->mapper_write(addr, data);
+        } else if ((0x8000 <= addr) && (addr <= 0x9ffe)) {
             if ((addr % 2) == 0) { // write to low reg
                 bank_select.comp.even.select = data & 0b0000'0111;
                 bank_select.comp.even.prg_rom_bank_mode = (data & 0b0100'0000) >> 6;
@@ -107,8 +110,9 @@ namespace roee_nes {
         // << " irq reload: " << (int)irq_reload << " \n"
         // << " set irq: " << (int)set_irq << " \n"
         // << "-------------------\n";
-
         if ((0x6000 <= addr) && (addr <= 0x7fff)) {
+            return save_ram->mapper_read(addr);
+        } else if ((0x6000 <= addr) && (addr <= 0x7fff)) {
             if ((prg_ram_protect & 0b1000'0000) == 0)
                 return open_bus_data;
             else
@@ -125,7 +129,7 @@ namespace roee_nes {
         if (using_chr_ram == true) {
             update_chr(addr);
             (*chr_read_mem)[(final_bank * 1 * KILOBYTE) + final_addr] = data;
-        } 
+        }
         // else
         //     std::cerr << "ERR trying to write to chr rom!\n";
     }
@@ -137,12 +141,12 @@ namespace roee_nes {
 
     uint16_t MMC3_4::get_nt_mirrored_addr(const uint16_t addr) const {
         if ((mirroring & 0b0000'0001) == 1) { // horizontal mirroring
-            return addr % 0x800;
-        } else { // vertical mirroring
             if (0x800 <= addr)
                 return (addr % 0x400) + 0x400;
             else
                 return addr % 0x400;
+        } else { // vertical mirroring
+            return addr % 0x800;
         }
     }
 
@@ -153,8 +157,7 @@ namespace roee_nes {
         } else if ((0xe000 <= addr) && (addr <= 0xffff)) {
             final_addr = addr % 0xe000;
             final_bank = prg_bank_num - 1;
-        }
-        else {
+        } else {
             uint16_t foo = addr ^ (bank_select.comp.even.prg_rom_bank_mode << 14);
             if ((0x8000 <= foo) && (foo <= 0x9fff)) {
                 final_addr = addr % 0x8000;
@@ -162,8 +165,7 @@ namespace roee_nes {
             } else if ((0xc000 <= foo) && (foo <= 0xdfff)) {
                 final_addr = addr % 0xc000;
                 final_bank = prg_bank_num - 2;
-            } 
-            else 
+            } else
                 std::cerr << "ERR: MMC3_4::update_prg() - invalid addr\n";
         }
     }
@@ -206,5 +208,9 @@ namespace roee_nes {
         if ((irq_counter == 0)) {
             set_irq = true;
         }
+    }
+
+    void MMC3_4::save() {
+        save_ram->~Save_RAM();
     }
 }
