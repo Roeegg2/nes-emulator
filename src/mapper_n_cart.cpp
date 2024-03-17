@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
+#include <filesystem>
 
 #include "../include/mapper_n_cart.h"
 #include "../include/mappers/nrom_0.h"
@@ -15,10 +16,10 @@ namespace roee_nes {
         cart->header.mapper_number = (((uint8_t)cart->header.flag_7.parsed.mapper_num_high) << 4) | cart->header.flag_6.parsed.mapper_num_low;
         switch (cart->header.mapper_number) {
             case 0: // mapper number 0 (NROM)
-                std::cout << "USER INFO: Game mapper is NROM (iNES 0)\n"; 
+                std::cout << "USER INFO: Game mapper is NROM (iNES 0)\n";
                 return new NROM_0(cart);
             case 1:
-                std::cout << "USER INFO: Game mapper is MMC1 (iNES 1)\n"; 
+                std::cout << "USER INFO: Game mapper is MMC1 (iNES 1)\n";
                 return new MMC1_1(cart);
             case 2: // mapper number 2 (UNROM)
                 std::cout << "USER INFO: Game mapper is UNROM (iNES 2)\n";
@@ -93,16 +94,48 @@ namespace roee_nes {
     uint16_t Mapper::get_nt_mirrored_addr(const uint16_t addr) const {
         if (cart->header.flag_6.parsed.nt_layout == 1) { // horizontal mirroring
             return addr % 0x800;
-        }
-        else { // vertical mirroring
+        } else { // vertical mirroring
             if (addr >= 0x800)
                 return (addr % 0x400) + 0x400;
             else
-                return addr % 0x400;             
+                return addr % 0x400;
         }
     }
 
     void Mapper::save() {
         return; // do nothing!
     }
+
+    Save_RAM::Save_RAM(const std::string& save_file_path) 
+    : save_data({ 0 }), path(save_file_path){
+        if (std::filesystem::exists(path)) {
+            std::cout << "USER INFO: Save game data found. Reading from save data\n";
+
+            std::ifstream input_save_file(path, std::ios::in | std::ios::binary);
+            input_save_file.read(reinterpret_cast<char*>(save_data.data()), 0x2000);
+
+            input_save_file.close();
+        } else
+            std::cout << "USER INFO: No past game save data found\n";
+    }
+
+    Save_RAM::~Save_RAM() {
+        std::ofstream output_save_file(path, std::ios::out | std::ios::binary);
+        std::cout << "USER INFO: Saving game...\n";
+        for (uint8_t num : save_data) {
+            output_save_file << num;
+        }
+        output_save_file.close();
+        std::cout << "USER INFO: Saving done!\n";
+    }
+
+    uint8_t Save_RAM::mapper_read(const uint16_t addr) {
+        return save_data[addr % 0x6000];
+    }
+
+    void Save_RAM::mapper_write(const uint16_t addr, const uint8_t data) {
+        save_data[addr % 0x6000] = data;
+    }
+
+
 }

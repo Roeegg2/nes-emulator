@@ -47,8 +47,7 @@ namespace roee_nes {
         uint8_t prg_ram_protect;
 
         std::array<uint8_t, 2> prg_bank;
-        std::array<uint8_t, 2> chr_bank_2kb;
-        std::array<uint8_t, 4> chr_bank_1kb;
+        std::array<uint8_t, 6> chr_bank; // 2 * 2kb + 4 * 1kb
 
         uint8_t prg_bank_num;
         uint8_t chr_bank_num;

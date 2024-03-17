@@ -16,7 +16,6 @@ namespace roee_nes {
         void ppu_write(uint16_t addr, uint8_t data) override;
         uint16_t get_nt_mirrored_addr(const uint16_t addr) const override;
         void save() override;
-        
         void reset();
 
     private:
@@ -27,8 +26,7 @@ namespace roee_nes {
         bool using_chr_ram;
         uint8_t shift_reg;
         std::vector<uint8_t>* chr_read_mem;
-        std::array<uint8_t, 0x2000> save_data;
-        std::string save_file_path;
+        Save_RAM* save_ram;
         union {
             struct {
                 uint8_t mirroring : 2;

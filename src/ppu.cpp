@@ -22,9 +22,9 @@ namespace roee_nes {
             else if ((VBLANK_START_SCANLINE <= curr_scanline) && (curr_scanline <= VBLANK_END_SCANLINE))
                 vblank_scanline();
 
-            if (bus->mapper->mapper_number == 4)
-                if (curr_cycle == 260)
-                    ((MMC3_4*)bus->mapper)->clock_irq();
+            // if (bus->mapper->mapper_number == 4)
+            //     if (curr_cycle == 260)
+            //         ((MMC3_4*)bus->mapper)->clock_irq();
 
             increment_cycle(1);
         }

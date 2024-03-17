@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <array>
 
 namespace roee_nes {
     constexpr uint16_t KILOBYTE = 1024;
@@ -101,5 +102,17 @@ namespace roee_nes {
         uint8_t prg_bank_num;
     };
 
+    class Save_RAM {
+        public:
+        Save_RAM(const std::string& save_file_path);
+        ~Save_RAM();
+
+        uint8_t mapper_read(const uint16_t addr);
+        void mapper_write(const uint16_t addr, const uint8_t data);
+
+        private:
+        std::array<uint8_t, 0x2000> save_data;
+        std::string path;
+    };
 }
 #endif

@@ -36,8 +36,8 @@ namespace roee_nes {
 
     void Bus::ppu_write(uint16_t addr, const uint8_t data, const bool came_from_cpu) {
         if (0 <= addr && addr <= 0x1fff) {
-            std::cout << "addr is: " << std::hex << addr << std::dec << "\n";
-            std::cout << "pc is: " << std::hex << cpu->PC << std::dec << "\n";
+            // std::cout << "addr is: " << std::hex << addr << std::dec << "\n";
+            // std::cout << "pc is: " << std::hex << cpu->PC << std::dec << "\n";
             // std::cout << "instruction is " << std::hex << static_cast<int>(cpu->IR) << std::dec << "\n";
             mapper->ppu_write(addr, data);
         } else if (0x2000 <= addr && addr <= 0x3eff) {
