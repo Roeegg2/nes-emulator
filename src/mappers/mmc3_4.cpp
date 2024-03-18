@@ -152,22 +152,22 @@ namespace roee_nes {
 
     void MMC3_4::update_prg(uint16_t addr) {
         if ((0xa000 <= addr) && (addr <= 0xbfff)) {
-            final_addr = addr % 0xa000;
-            final_bank = prg_bank[0];
+            final_bank = prg_bank[1];
         } else if ((0xe000 <= addr) && (addr <= 0xffff)) {
-            final_addr = addr % 0xe000;
             final_bank = prg_bank_num - 1;
         } else {
             uint16_t foo = addr ^ (bank_select.comp.even.prg_rom_bank_mode << 14);
             if ((0x8000 <= foo) && (foo <= 0x9fff)) {
-                final_addr = addr % 0x8000;
                 final_bank = prg_bank[0];
             } else if ((0xc000 <= foo) && (foo <= 0xdfff)) {
-                final_addr = addr % 0xc000;
                 final_bank = prg_bank_num - 2;
-            } else
+            } else {
+                std::cout << "addr: " << std::hex << addr << " \n";
                 std::cerr << "ERR: MMC3_4::update_prg() - invalid addr\n";
+            }
         }
+
+        final_addr = addr % 0x2000;
     }
 
     void MMC3_4::update_chr(uint16_t addr) {
@@ -205,7 +205,7 @@ namespace roee_nes {
         } else
             irq_counter--;
 
-        if ((irq_counter == 0)) {
+        if ((irq_counter == 0) && (irq_enabled == true)) {
             set_irq = true;
         }
     }

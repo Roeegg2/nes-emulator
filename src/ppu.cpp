@@ -22,9 +22,10 @@ namespace roee_nes {
             else if ((VBLANK_START_SCANLINE <= curr_scanline) && (curr_scanline <= VBLANK_END_SCANLINE))
                 vblank_scanline();
 
-            if (bus->mapper->mapper_number == 4)
-                if (curr_cycle == 260)
-                    ((MMC3_4*)bus->mapper)->clock_irq();
+            if ((bus->mapper->mapper_number == 4) 
+            // && (!checked)
+             )
+                ((MMC3_4*)bus->mapper)->clock_irq();
 
             increment_cycle(1);
         }
@@ -35,15 +36,32 @@ namespace roee_nes {
             if (ext_regs.ppuctrl.comp.bg_pt == 0) {
                 if (ext_regs.ppuctrl.comp.sprite_pt == 1) {
                     if (curr_cycle == 260)
-                        ((MMC3_4*)bus->mapper)->irq_counter--;
+                        ((MMC3_4*)bus->mapper)->clock_irq();
                 }
-            } else { // ext_regs.ppuctrl.comp.sprite_size == 1
+            } else { 
                 if (ext_regs.ppuctrl.comp.sprite_pt == 0) {
                     if (curr_cycle == 324)
-                        ((MMC3_4*)bus->mapper)->irq_counter--;
+                        ((MMC3_4*)bus->mapper)->clock_irq();
                 }
             }
         }
+        // else {
+        //     if ((ext_regs.ppuctrl.comp.bg_pt == 0)
+        //         && (ext_regs.ppuctrl.comp.sprite_pt == 1))
+        //         // && (/* curr_sprite_overflow */)) 
+        //         ((MMC3_4*)bus->mapper)->clock_irq();
+        // }
+
+        checked = true;
+        /*
+        clock_IRQ:
+         if a12 goes from 0 to 1 
+                if (counter == 0 || reload_flag == true)
+                    counter = reload_value
+                else
+                    counter--
+        
+        */
     }
 
     void PPU::shared_visible_prerender_scanline() {
@@ -52,9 +70,9 @@ namespace roee_nes {
 
         if ((curr_cycle % 2) == 1) { // if we are on an odd frame, that means we need to fetch something
             if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336)))
-                fetch_rendering_data(REGULAR_FETCH);
+                fetch_bg_rendering_data(REGULAR_FETCH);
             else if ((337 == curr_cycle) || (curr_cycle == 339)) // between 337 and 340 we only fetch nt
-                fetch_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
+                fetch_bg_rendering_data(ONLY_NT_FETCH); // fetch nt0, nt1
         }
 
         if (((1 <= curr_cycle) && (curr_cycle <= 256)) || ((321 <= curr_cycle) && (curr_cycle <= 336))) {
@@ -114,11 +132,11 @@ namespace roee_nes {
             screen->draw_pixel_line(&render_pixel, curr_scanline, curr_cycle - 1);
 
             if (curr_cycle == 64) {
-                for (auto it = secondary_oam.begin(); it != secondary_oam.end(); it++)
-                    *it = 0xff;
                 sprite_rendering_stage = SPRITE_EVAL;
                 sec_oam_cnt = 0;
                 pri_oam_cnt = 0;
+                for (auto it = secondary_oam.begin(); it != secondary_oam.end(); it++)
+                    *it = 0xff;
             } else if (65 <= curr_cycle) { // sprite evaluation 
                 if ((ext_regs.ppumask.raw & 0b0001'1000)) { // if either sprites or background rendering is enabled
                     switch (sprite_rendering_stage) {
@@ -307,7 +325,7 @@ namespace roee_nes {
         return bus->ppu_read(addr);
     }
 
-    void PPU::fetch_rendering_data(const Fetch_Modes fetch_mode) {
+    void PPU::fetch_bg_rendering_data(const Fetch_Modes fetch_mode) {
         if (fetch_mode == ONLY_NT_FETCH) { // only fetching nametable byte
             bg_regs.nt_latch = bus->ppu_read(0x2000 | (v.raw & 0x0FFF));
             return;
@@ -460,6 +478,7 @@ namespace roee_nes {
             curr_cycle = 0;
             curr_scanline++;
             curr_scanline %= 262; // wrapping around 261 -> 0
+            checked = false;
         }
     }
 

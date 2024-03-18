@@ -156,7 +156,7 @@ namespace roee_nes {
         void fill_sprite_pixels(const uint8_t sec_oam_cnt);
         uint8_t get_bg_palette_index();
         uint8_t fetch_fg_pt_byte(const uint16_t priority, struct Sprite& sprite);
-        void fetch_rendering_data(const Fetch_Modes fetch_mode);
+        void fetch_bg_rendering_data(const Fetch_Modes fetch_mode);
         void check_sprite_0_hit(const uint8_t sprite_index, const uint8_t bg_palette_index);
         void add_render_pixel();
         void get_chosen_pixel(const uint8_t base, const uint8_t palette_index);
@@ -199,7 +199,7 @@ namespace roee_nes {
         uint8_t sec_oam_cnt;
         bool curr_sprite_0;
         bool next_sprite_0;
-
+        bool checked;
         uint8_t ppu_stupid_buffer;
         public:
         class Bus* bus;

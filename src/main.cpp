@@ -14,6 +14,7 @@ uint16_t emulator_tick(Bus* bus) {
 
     if (bus->mapper->set_irq) {
         bus->cpu->irq();
+        bus->mapper->set_irq = false;
     }
 
     if (bus->ppu->nmi == 1) {
