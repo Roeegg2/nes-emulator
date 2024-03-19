@@ -21,7 +21,11 @@ namespace roee_nes {
         chr_bank_num = (chr_read_mem->size() / (1 * KILOBYTE)) - 2;
         prg_bank_num = (cart->prg_rom.size() / (8 * KILOBYTE));
 
-        save_ram = new Save_RAM(cart->rom_path + ".sav");
+        if (cart->header.flag_6.parsed.prg_ram == 1)
+            save_ram = new Save_RAM(cart->rom_path + ".sav");
+        else
+            save_ram = nullptr;
+
         prg_bank[0] = 0;
         prg_bank[1] = 0;
         chr_bank[0] = 0;
@@ -211,6 +215,7 @@ namespace roee_nes {
     }
 
     void MMC3_4::save() {
-        save_ram->~Save_RAM();
+        if (save_ram != nullptr)
+            save_ram->~Save_RAM();
     }
 }

@@ -28,6 +28,8 @@ namespace roee_nes {
 
         if (cart->header.flag_6.parsed.prg_ram == 1)
             save_ram = new Save_RAM(cart->rom_path + ".sav");
+        else
+            save_ram = nullptr;
     }
 
     void MMC1_1::cpu_write(uint16_t addr, uint8_t data) {
@@ -152,6 +154,7 @@ namespace roee_nes {
     }
 
     void MMC1_1::save() {
-        save_ram->~Save_RAM();
+        if (save_ram != nullptr)
+            save_ram->~Save_RAM();
     }
 }

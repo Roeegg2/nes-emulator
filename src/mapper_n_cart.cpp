@@ -130,11 +130,11 @@ namespace roee_nes {
     }
 
     uint8_t Save_RAM::mapper_read(const uint16_t addr) {
-        return save_data[addr % 0x6000];
+        return save_data[addr % 0x2000];
     }
 
     void Save_RAM::mapper_write(const uint16_t addr, const uint8_t data) {
-        save_data[addr % 0x6000] = data;
+        save_data[addr % 0x2000] = data;
     }
 
 
