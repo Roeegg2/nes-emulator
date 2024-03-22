@@ -1,7 +1,16 @@
 # nes-emulator
 
 a simple NES emulator written in C++, _currently_ for Linux systems.
-Might work on other operating systems, havent checked.
+Might work on other operating systems, haven't checked.
+
+Currently supported mappers:
+
+ - [x] NROM (Mapper 0)
+ - [x] MMC1 (Mapper 1)
+ - [x] MMC3 (Mapper 4) ** still haven't implemented the scanline counter
+ - [x] CNROM (Mapper 3)
+ - [x] UNROM (Mapper 2)
+
 
 ## Before building
 
@@ -15,7 +24,8 @@ for (int i = 0; i < SDL_JoystickNumButtons(joystick); i++) {
 
 ## Building
 
-make sure you have `make`, `sdl2` and `gcc` on your system.
+clone the repo.
+make sure you have `make`, `sdl2` and `g++` on your system.
 then run:
 
 ```bash
@@ -31,8 +41,11 @@ This is not a 100% accurate emulation, there are some things not fully implement
 
 - Instead of having 2, 1 bit latches for the lsbit and msbit attribute shift regs and having the shift regs be 8 bits each, i used 8 bit latches and 16 bits shift regs (exactly like the pattern table).
 this is for simplicity, and being able to use the same mechanism used for the pattern table shift regs with the attribute shift regs.
+
 - Sprite overflow flag isn't implemented yet, will add support for it in the future though
+
+- Haven't done sound yet, might add it later.
 
 ## Final words
 
-If you are interested in emulation development of the NES, go check out my [NES internals blog!](https://roeegg2.github.io/nes-internals-blog) I give try to give a there a simple introduction to it's architecture (at emulation level, I do not go in depth into the electronics).
+If you are interested in emulation development of the NES, go check out my [NES internals blog!](https://roeegg2.github.io) I give try to give a there a simple introduction to it's architecture (at behavior level - I do not go in depth into the specific electronics).
