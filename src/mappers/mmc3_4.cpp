@@ -21,10 +21,12 @@ namespace roee_nes {
         chr_bank_num = (chr_read_mem->size() / (1 * KILOBYTE)) - 2;
         prg_bank_num = (cart->prg_rom.size() / (8 * KILOBYTE));
 
-        if (cart->header.flag_6.parsed.prg_ram == 1)
+        if (cart->header.flag_6.parsed.prg_ram == 1) {
+            std::cout << "USER INFO: Game has PRG RAM\n";
             save_ram = new Save_RAM(cart->rom_path + ".sav");
-        else
+        } else {
             save_ram = nullptr;
+        }
 
         prg_bank[0] = 0;
         prg_bank[1] = 0;
@@ -38,7 +40,8 @@ namespace roee_nes {
 
     void MMC3_4::cpu_write(uint16_t addr, uint8_t data) {
         if ((0x6000 <= addr) && (addr <= 0x7fff)) {
-            save_ram->mapper_write(addr, data);
+            if (save_ram != nullptr)
+                save_ram->mapper_write(addr, data);
         } else if ((0x8000 <= addr) && (addr <= 0x9ffe)) {
             if ((addr % 2) == 0) { // write to low reg
                 bank_select.comp.even.select = data & 0b0000'0111;
@@ -114,18 +117,13 @@ namespace roee_nes {
         // << " irq reload: " << (int)irq_reload << " \n"
         // << " set irq: " << (int)set_irq << " \n"
         // << "-------------------\n";
-        if ((0x6000 <= addr) && (addr <= 0x7fff)) {
-            return save_ram->mapper_read(addr);
-        } else if ((0x6000 <= addr) && (addr <= 0x7fff)) {
-            if ((prg_ram_protect & 0b1000'0000) == 0)
-                return open_bus_data;
-            else
-                return save_data[addr % 0x6000]; // handle prg_ram
+        if ((0x6000 <= addr) && (addr <= 0x7fff) && (!(prg_ram_protect & 0b1000'0000)) && (save_ram != nullptr)) {
+            return save_data[addr % 0x6000]; // handle prg_ram
         } else if ((0x8000 <= addr) && (addr <= 0xffff)) {
             update_prg(addr);
             return cart->prg_rom[(final_bank * 8 * KILOBYTE) + final_addr];
-        } else {
-            return open_bus_data;
+        } else { // otherwise return open bus
+            return 0; // should return open bus but fuck it, no MMC3 game uses this anyway
         }
     }
 

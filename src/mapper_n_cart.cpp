@@ -106,8 +106,8 @@ namespace roee_nes {
         return; // do nothing!
     }
 
-    Save_RAM::Save_RAM(const std::string& save_file_path) 
-    : save_data({ 0 }), path(save_file_path){
+    Save_RAM::Save_RAM(const std::string& save_file_path)
+        : save_data({ 0 }), path(save_file_path) {
         if (std::filesystem::exists(path)) {
             std::cout << "USER INFO: Save game data found. Reading from save data\n";
 
@@ -130,11 +130,11 @@ namespace roee_nes {
     }
 
     uint8_t Save_RAM::mapper_read(const uint16_t addr) {
-        return save_data[addr % 0x2000];
+        return save_data[addr % 0x6000];
     }
 
     void Save_RAM::mapper_write(const uint16_t addr, const uint8_t data) {
-        save_data[addr % 0x2000] = data;
+        save_data[addr % 0x6000] = data;
     }
 
 

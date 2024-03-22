@@ -13,7 +13,7 @@ namespace roee_nes {
         this->controller_1 = controller_1;
         this->controller_2 = controller_2;
         init_palette(palette_path);
-        
+
         cpu->bus = this;
         ppu->bus = this;
 

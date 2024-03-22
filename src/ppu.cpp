@@ -23,9 +23,9 @@ namespace roee_nes {
                 vblank_scanline();
 
             if ((bus->mapper->mapper_number == 4) 
-            // && (!checked)
+            && (!checked)
              )
-                ((MMC3_4*)bus->mapper)->clock_irq();
+                check_mmc3_irq_conditions();
 
             increment_cycle(1);
         }
