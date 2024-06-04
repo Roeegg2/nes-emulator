@@ -53,6 +53,7 @@ namespace roee_nes {
         switch (event.type) {
             case SDL_QUIT:
                 mapper->save();
+                this->~NES_Screen();
                 exit(0);
             case SDL_JOYDEVICEADDED:
                 process_joypad_added();

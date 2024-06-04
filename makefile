@@ -1,7 +1,7 @@
 # defining compiler and the flags to be used
 CXX := g++
 CXXFLAGS := -g -Wall -pedantic -std=c++20 \
-# -DDEBUG
+# -DDEBUG # uncomment this if you want to debug!!!
 # -fsanitize=shift -fsanitize=undefined -fsanitize=address
 
 

@@ -21,11 +21,14 @@ for (int i = 0; i < SDL_JoystickNumButtons(joystick); i++) {
     printf("Button %d: %s\n", i, SDL_JoystickGetButton(joystick, i) ? "pressed" : "not pressed");
 }
 ```
+2. You can compile with 2 different options:
+    a. Debugging mode (uncomment `-DDEBUG` on the `makefile`) (emulator will run slow but output detailed logs)
+    b. Release mode - regular compilation (I did not enable aggressive optimizations though. If you want to compile with optimizations, add it manually)
 
 ## Building
 
 clone the repo.
-make sure you have `make`, `sdl2` and `g++` on your system.
+make sure you have `make`, `SDL2`,`SDL2 dev package` and `g++` on your system.
 then run:
 
 ```bash
@@ -34,6 +37,12 @@ blah/blahblah/.../nes-emulator
 $ make
 $ ./emulator
 ```
+
+## Contributing
+
+I would really love someone to develop my emulator! This is just a project I had put on the back burner.
+If someone wants to contribute (finish APU, implement more mappers, add proper debugger or whatever really) it would be very cool, and I would be more than happy to work on it together!
+My contacts is on my profile 
 
 ## Notes
 
