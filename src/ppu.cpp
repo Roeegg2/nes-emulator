@@ -2,6 +2,7 @@
 
 #include "../include/ppu.h"
 #include "../include/mappers/mmc3_4.h"
+
 namespace roee_nes {
     PPU::PPU(NES_Screen* screen)
         : v({ 0 }), t({ 0 }), x(0), w(0), bg_regs({ 0 }), ext_regs({ 0 }), oamdma(0), curr_scanline(0), curr_cycle(0),

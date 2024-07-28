@@ -10,7 +10,6 @@ using namespace roee_nes;
 uint16_t emulator_tick(Bus* bus) {
     uint8_t cycles = bus->cpu->run_cpu();
     bus->ppu->run_ppu(cycles * 3);
-    bus->apu->run_apu();
 
     if (bus->mapper->set_irq) {
         bus->cpu->irq();
@@ -26,7 +25,7 @@ uint16_t emulator_tick(Bus* bus) {
 }
 
 int main() {
-    const std::string rom_path = "roms/SMB.nes";
+    const std::string rom_path = "roms/smb.nes";
     const std::string palette_path = "ntscpalette.pal";
 
     Controller* const controller_1 = new Controller();
@@ -35,8 +34,7 @@ int main() {
     NES_Screen* const screen = new NES_Screen(mapper, controller_1, controller_2);
     CPU* const cpu = new CPU();
     PPU* const ppu = new PPU(screen);
-    APU* const apu = new APU();
-    Bus* const bus = new Bus(cpu, ppu, apu, mapper, controller_1, controller_2, palette_path);
+    Bus* const bus = new Bus(cpu, ppu, mapper, controller_1, controller_2, palette_path);
 
     uint8_t val = 0;
     while (true) {

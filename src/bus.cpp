@@ -5,10 +5,9 @@
 #include "../include/utils.h"
 #include "../include/mappers/mmc3_4.h"
 namespace roee_nes {
-    Bus::Bus(CPU* cpu, PPU* ppu, APU* apu, Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string& palette_path) {
+    Bus::Bus(CPU* cpu, PPU* ppu, Mapper* mapper, Controller* controller_1, Controller* controller_2, const std::string& palette_path) {
         this->cpu = cpu;
         this->ppu = ppu;
-        this->apu = apu;
         this->mapper = mapper;
         this->controller_1 = controller_1;
         this->controller_2 = controller_2;
@@ -101,9 +100,7 @@ namespace roee_nes {
         } else if (addr == 0x4016) {
             controller_1->write(data);
             controller_2->write(data);
-        } else if ((0x4000 <= addr) && (addr <= 0x401a)) // APU
-            apu->cpu_write_apu(addr % 0x4000, data);
-        else if (0x4020 <= addr && addr <= 0xffff)
+        } else if (0x4020 <= addr && addr <= 0xffff)
             mapper->cpu_write(addr, data);
 
         // else if ((0x401c <= addr) && (addr <= 0x401f)) // unfinished IRQ timer functionality
@@ -117,10 +114,7 @@ namespace roee_nes {
             cpu_dma_controllers_open_bus = ppu->cpu_read_ppu(addr % 8);
         else if (0x4000 <= addr && addr <= 0x4014)
             cpu_dma_controllers_open_bus = 0; // didnt implement yet
-        else if (addr == 0x4015) {
-            cpu_dma_controllers_open_bus = apu->status_reg;
-            apu->status_reg &= 0b1011'1111; // clearing frame interrupt flag
-        } else if (addr == 0x4016)
+        else if (addr == 0x4016)
             cpu_dma_controllers_open_bus = controller_1->read();
         else if (addr == 0x4017)
             cpu_dma_controllers_open_bus = controller_2->read();

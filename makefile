@@ -6,8 +6,7 @@ CXXFLAGS := -g -Wall -pedantic -std=c++20 \
 
 
 # emulator source files
-EMU_SRCS := apu.cpp \
-	cpu.cpp \
+EMU_SRCS := cpu.cpp \
 	ppu.cpp \
 	nes_screen.cpp \
 	instructions.cpp \
