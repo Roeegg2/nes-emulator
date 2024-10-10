@@ -13,6 +13,7 @@ EMU_SRCS := cpu.cpp \
 	controller.cpp \
 	main.cpp \
 	bus.cpp \
+	apu.cpp \
 	utils.cpp \
 	mapper_n_cart.cpp \
 	mappers/nrom_0.cpp \
